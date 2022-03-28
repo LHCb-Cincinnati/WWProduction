@@ -6,15 +6,11 @@
 // Header file to access Pythia 8 program elements.
 #include "/Applications/pythia8307/include/Pythia8/Pythia.h"
 
-// ROOT, for histogramming.
+// ROOT stuff
 #include "TH1.h"
 #include "TTree.h"
-
-// ROOT, for interactive graphics.
 #include "TVirtualPad.h"
 #include "TApplication.h"
-
-// ROOT, for saving file.
 #include "TFile.h"
 
 using namespace Pythia8;
@@ -41,7 +37,6 @@ int main(int argc, char* argv[]) {
     pythia.readFile(argv[1]);
   }
   pythia.init(); 
-  Hist pTZ("dN/dpTZ", 100, 0., 100.);
 
 
   // Extract information from file
@@ -51,22 +46,21 @@ int main(int argc, char* argv[]) {
   TFile* outFile = new TFile("WeakBosonDecay.root", "RECREATE");
 
   // Structure
-  struct Particle{
-    int id;
-    int charge;
-    int status;
+  struct ParticleStruct{
     double pT;
     double p;
     double eta;
     double energy;
     double phi;
+    int id;
+    int charge;
+    int status;
   };
-  Particle test;
+  ParticleStruct w_boson;
 
   // ROOT objects
-  TH1F *WpT_hist = new TH1F("WpT","WpT", 100, -100, 100);
   TTree *Tree = new TTree("Tree","Tree");
-  Tree->Branch("Test",&test,"id/I:charge/I:status/I:pT/D:p/D:eta/D:energy/D:phi/D");
+  Tree->Branch("WBoson",&w_boson,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
 
   // Begin event loop. Generate event; skip if generation aborted.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
@@ -83,22 +77,20 @@ int main(int argc, char* argv[]) {
     double px = pythia.event[iW].px();
     double py = pythia.event[iW].py();
     double pz = pythia.event[iW].pz();
-    test.p = px*px + py*py + pz*pz;
-    test.id = pythia.event[iW].id();
-    test.status = pythia.event[iW].status();
-    test.charge = pythia.event[iW].charge();
-    test.pT = pythia.event[iW].pT();
-    test.eta = pythia.event[iW].eta();
-    test.energy = pythia.event[iW].e();
-    test.phi = pythia.event[iW].phi();
+    w_boson.p = px*px + py*py + pz*pz;
+    w_boson.id = pythia.event[iW].id();
+    w_boson.status = pythia.event[iW].status();
+    w_boson.charge = pythia.event[iW].charge();
+    w_boson.pT = pythia.event[iW].pT();
+    w_boson.eta = pythia.event[iW].eta();
+    w_boson.energy = pythia.event[iW].e();
+    w_boson.phi = pythia.event[iW].phi();
 
     Tree->Fill();
-    pTZ.fill(pythia.event[iW].pT());
   }
 
   // Statistics on event generation.
   pythia.stat();
-  cout << pTZ;
 
   // Show histogram. Possibility to close it.
   // WpT_hist->Draw();
