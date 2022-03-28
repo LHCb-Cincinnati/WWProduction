@@ -1,0 +1,34 @@
+# File: WBosonDecay.cmnd
+# File meant for WBosonDecay.cc
+
+# General Settings
+Main:numberOfEvents = 100         # number of events to generate
+Main:timesAllowErrors = 10         # how many aborts before run stops
+Init:showChangedSettings = on      # list changed settings
+Init:showChangedParticleData = on  # list changed particle data
+
+# Beam Parameters
+Beams:idA = 2212. # Colliding Protons
+Beams:idB = 2212. # Colliding Protons
+Beams:eCM = 13000 # Beam CM Energy
+
+# Process Parameters
+# QCD
+HardQCD:all = off
+# Single Bosons
+WeakSingleBoson:all = off
+WeakSingleBoson:ffbar2gmZ = off
+WeakSingleBoson:ffbar2W = on
+WeakSingleBoson:ffbar2ffbar(s:gm) = off
+WeakSingleBoson:ffbar2ffbar(s:gmZ) = off
+WeakSingleBoson:ffbar2ffbar(s:W) = off
+# Double Bosons
+WeakDoubleBoson:all = off
+WeakDoubleBoson:ffbar2gmZgmZ = off
+WeakDoubleBoson:ffbar2ZW = off
+WeakDoubleBoson:ffbar2WW= off
+
+
+# Phase Space Parameters
+# PhaseSpace:mHatMin = 80.
+# PhaseSpace:mHatMax = 120.
