@@ -56,46 +56,47 @@ int main(int argc, char* argv[]) {
     int charge;
     int status;
   };
-  ParticleStruct w_boson;
+  ParticleStruct w_struct;
+  ParticleStruct muon_struct;
+  ParticleStruct neutrino_struct;
 
   // ROOT objects
   TTree *Tree = new TTree("Tree","Tree");
-  Tree->Branch("WBoson",&w_boson,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
+  Tree->Branch("WBoson",&w_struct,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
 
   // Begin event loop. Generate event; skip if generation aborted.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next()) continue;
     int iW = 0;
+    // pythia.event.list();
 
     // Find number of all final charged particles.
     for (int i = 0; i < pythia.event.size(); ++i){
       if (pythia.event[i].id() == 24 || pythia.event[i].id() == -24)
         iW = i;
     }
-    // Fill charged multiplicity in histogram. End event loop.
-    // WpT_hist->Fill(pythia.event[iW].pT());
+    vector<int> daughter_list = pythia.event[iW].daughterList();
+    for (int i = 0; i < daughter_list.size(); i++){
+      cout << i+1 << ": " << pythia.event[daughter_list[i]].id() << endl;
+    }
+
+
     double px = pythia.event[iW].px();
     double py = pythia.event[iW].py();
     double pz = pythia.event[iW].pz();
-    w_boson.p = px*px + py*py + pz*pz;
-    w_boson.id = pythia.event[iW].id();
-    w_boson.status = pythia.event[iW].status();
-    w_boson.charge = pythia.event[iW].charge();
-    w_boson.pT = pythia.event[iW].pT();
-    w_boson.eta = pythia.event[iW].eta();
-    w_boson.energy = pythia.event[iW].e();
-    w_boson.phi = pythia.event[iW].phi();
+    w_struct.p = px*px + py*py + pz*pz;
+    w_struct.id = pythia.event[iW].id();
+    w_struct.status = pythia.event[iW].status();
+    w_struct.charge = pythia.event[iW].charge();
+    w_struct.pT = pythia.event[iW].pT();
+    w_struct.eta = pythia.event[iW].eta();
+    w_struct.energy = pythia.event[iW].e();
+    w_struct.phi = pythia.event[iW].phi();
 
     Tree->Fill();
   }
 
   // Statistics on event generation.
-  pythia.stat();
-
-  // Show histogram. Possibility to close it.
-  // WpT_hist->Draw();
-  // std::cout << "\nDouble click on the histogram window to quit.\n";
-  // gPad->WaitPrimitive();
 
   // Save histogram on file and close file.
   Tree->Write();
