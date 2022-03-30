@@ -3,6 +3,7 @@
 // Stdlib header file for input and output.
 #include <iostream>
 #include <math.h>
+#include <fstream>
 
 // Header file to access Pythia 8 program elements.
 #include "/Applications/pythia8307/include/Pythia8/Pythia.h"
@@ -49,6 +50,13 @@ int struct_fill(ParticleStruct* particle_structref, Pythia8::Event event, int in
 
 int main(int argc, char* argv[]) {
 
+  // Redirect std out to a log file.
+  string fname = "WeakSingleBosonDecay.log";
+  std::ofstream outstream(fname);
+  std::streambuf* filebuf = outstream.rdbuf();
+  std::streambuf* coutbuf = cout.rdbuf();
+  cout.rdbuf(filebuf);
+
   // Create the ROOT application environment.
   TApplication theApp("hist", &argc, argv);
 
@@ -68,8 +76,9 @@ int main(int argc, char* argv[]) {
     }
     pythia.readFile(argv[1]);
   }
-  pythia.init(); 
 
+  // Initialize Pythia
+  pythia.init(); 
 
   // Extract information from file
   int nEvent = pythia.mode("Main:numberOfEvents");
