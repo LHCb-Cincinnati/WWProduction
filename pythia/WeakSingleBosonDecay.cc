@@ -16,6 +16,37 @@
 
 using namespace Pythia8;
 
+// Particle Structure
+// A structure to contain the data for a particle.
+struct ParticleStruct{
+  double pT;
+  double p;
+  double eta;
+  double energy;
+  double phi;
+  double m0;
+  int id;
+  int charge;
+  int status;
+};
+
+// A function to fill the ParticleStruct structure given an event and index.
+int struct_fill(ParticleStruct* particle_structref, Pythia8::Event event, int index){
+  double px = event[index].px();
+  double py = event[index].py();
+  double pz = event[index].pz();
+  particle_structref->p = sqrt(px*px + py*py + pz*pz);
+  particle_structref->id = event[index].id();
+  particle_structref->status = event[index].status();
+  particle_structref->charge = event[index].charge();
+  particle_structref->pT = event[index].pT();
+  particle_structref->eta = event[index].eta();
+  particle_structref->energy = event[index].e();
+  particle_structref->phi = event[index].phi();
+  particle_structref->m0 = event[index].m0();
+  return(0);
+}
+
 int main(int argc, char* argv[]) {
 
   // Create the ROOT application environment.
@@ -44,28 +75,17 @@ int main(int argc, char* argv[]) {
   int nEvent = pythia.mode("Main:numberOfEvents");
 
   // Create file on which histogram(s) can be saved.
-  TFile* outFile = new TFile("WeakBosonSingleDecay.root", "RECREATE");
+  TFile* outFile = new TFile("WeakSingleBosonDecay.root", "RECREATE");
 
-  // Particle Structure
-  struct ParticleStruct{
-    double pT;
-    double p;
-    double eta;
-    double energy;
-    double phi;
-    int id;
-    int charge;
-    int status;
-  };
   ParticleStruct w_struct;
   ParticleStruct muon_struct;
   ParticleStruct neutrino_struct;
 
   // ROOT objects
   TTree *Tree = new TTree("Tree","Tree");
-  Tree->Branch("WBoson",&w_struct,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
-  Tree->Branch("Muon",&muon_struct,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
-  Tree->Branch("Neutrino",&neutrino_struct,"pT/D:p/D:eta/D:energy/D:phi/D:id/I:charge/I:status/I");
+  Tree->Branch("WBoson",&w_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("Muon",&muon_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("Neutrino",&neutrino_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
 
   // Begin event loop. Generate event; skip if generation aborted.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
@@ -82,24 +102,11 @@ int main(int argc, char* argv[]) {
     // Get indices of daughter particles from W decay.
     int imuon = pythia.event[iW].daughter1();
     int ineutrino = pythia.event[iW].daughter2();
-    // Loop through daughter particles.
-    // vector<int> daughter_list = pythia.event[iW].daughterList();
-    // for (int i = 0; i < daughter_list.size(); i++){
-    //   cout << i+1 << ": " << pythia.event[daughter_list[i]].id() << endl;
-    // }
 
     // Fill out the structs with event data.
-    double px = pythia.event[iW].px();
-    double py = pythia.event[iW].py();
-    double pz = pythia.event[iW].pz();
-    w_struct.p = sqrt(px*px + py*py + pz*pz);
-    w_struct.id = pythia.event[iW].id();
-    w_struct.status = pythia.event[iW].status();
-    w_struct.charge = pythia.event[iW].charge();
-    w_struct.pT = pythia.event[iW].pT();
-    w_struct.eta = pythia.event[iW].eta();
-    w_struct.energy = pythia.event[iW].e();
-    w_struct.phi = pythia.event[iW].phi();
+    struct_fill(&w_struct, pythia.event, iW);
+    struct_fill(&muon_struct, pythia.event, imuon);
+    struct_fill(&neutrino_struct, pythia.event, ineutrino);
 
     // Fill the tree with the new data
     Tree->Fill();
