@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 
   // Read in commands from external file.
   if (argc != 2)
-    pythia.readFile("WeakBosonDecay.cmnd");
+    pythia.readFile("WeakSingleBosonDecay.cmnd");
   else {
     // Check that the provided input name corresponds to an existing file.
     ifstream is(argv[1]);
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
   int nEvent = pythia.mode("Main:numberOfEvents");
 
   // Create file on which histogram(s) can be saved.
-  TFile* outFile = new TFile("WeakBosonDecay.root", "RECREATE");
+  TFile* outFile = new TFile("WeakBosonSingleDecay.root", "RECREATE");
 
   // Structure
   struct ParticleStruct{
