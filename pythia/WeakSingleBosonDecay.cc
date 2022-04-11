@@ -86,13 +86,13 @@ int main(int argc, char* argv[]) {
   // Create file on which histogram(s) can be saved.
   TFile* outFile = new TFile("WeakSingleBosonDecay.root", "RECREATE");
 
-  ParticleStruct w_struct;
+  ParticleStruct weakboson_struct;
   ParticleStruct muon_struct;
   ParticleStruct neutrino_struct;
 
   // ROOT objects
   TTree *Tree = new TTree("Tree","Tree");
-  Tree->Branch("WBoson",&w_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("WeakBoson",&weakboson_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("Muon",&muon_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("Neutrino",&neutrino_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
 
@@ -100,20 +100,23 @@ int main(int argc, char* argv[]) {
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     if (!pythia.next()) continue;
     int iW = 0;
+    int iZ = 0;
     // pythia.event.list(); // Used to print out each event.
 
     // Find last W boson
     for (int i = 0; i < pythia.event.size(); ++i){
-      if (pythia.event[i].id() == 24 || pythia.event[i].id() == -24)
+      if (pythia.event[i].id() == 24 || pythia.event[i].id() == -24) // Used for W events
         iW = i;
-    }
+      // if (pythia.event[i].id() == 23) // Used for Z events
+      //   iZ = i;
+    } 
 
     // Get indices of daughter particles from W decay.
     int imuon = pythia.event[iW].daughter1();
     int ineutrino = pythia.event[iW].daughter2();
 
     // Fill out the structs with event data.
-    struct_fill(&w_struct, pythia.event, iW);
+    struct_fill(&weakboson_struct, pythia.event, iW);
     struct_fill(&muon_struct, pythia.event, imuon);
     struct_fill(&neutrino_struct, pythia.event, ineutrino);
 
