@@ -87,19 +87,19 @@ int main(int argc, char* argv[]) {
   TFile* outFile = new TFile("WeakDoubleBosonDecay.root", "RECREATE");
 
   ParticleStruct weakboson_plus_struct;
-  ParticleStruct muon_plus_struct;
+  ParticleStruct lepton_plus_struct;
   ParticleStruct neutrino_plus_struct;
   ParticleStruct weakboson_minus_struct;
-  ParticleStruct muon_minus_struct;
+  ParticleStruct lepton_minus_struct;
   ParticleStruct neutrino_minus_struct;
 
   // ROOT objects
-  TTree *Tree = new TTree("Tree","Tree");
+  TTree *Tree = new TTree("AnalysisTree","AnalysisTree");
   Tree->Branch("WeakBosonPlus",&weakboson_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
-  Tree->Branch("MuonPlus",&muon_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("LeptonPlus",&lepton_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("NeutrinoPlus",&neutrino_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("WeakBosonMinus",&weakboson_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
-  Tree->Branch("MuonMinus",&muon_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("LeptonMinus",&lepton_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("NeutrinoMinus",&neutrino_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
 
 
@@ -124,17 +124,17 @@ int main(int argc, char* argv[]) {
     } 
 
     // Get indices of daughter particles from W decay.
-    int imuon_plus = pythia.event[iWplus].daughter1();
+    int ilepton_plus = pythia.event[iWplus].daughter1();
     int ineutrino_plus = pythia.event[iWplus].daughter2();
-    int imuon_minus = pythia.event[iWminus].daughter1();
+    int ilepton_minus = pythia.event[iWminus].daughter1();
     int ineutrino_minus = pythia.event[iWminus].daughter2();
 
     // Fill out the structs with event data.
     struct_fill(&weakboson_plus_struct, pythia.event, iWplus);
-    struct_fill(&muon_plus_struct, pythia.event, imuon_plus);
+    struct_fill(&lepton_plus_struct, pythia.event, ilepton_plus);
     struct_fill(&neutrino_plus_struct, pythia.event, ineutrino_plus);
     struct_fill(&weakboson_minus_struct, pythia.event, iWminus);
-    struct_fill(&muon_minus_struct, pythia.event, imuon_minus);
+    struct_fill(&lepton_minus_struct, pythia.event, ilepton_minus);
     struct_fill(&neutrino_minus_struct, pythia.event, ineutrino_minus);
 
     // Fill the tree with the new data
