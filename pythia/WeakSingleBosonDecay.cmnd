@@ -17,8 +17,8 @@ Beams:eCM = 13000 # Beam CM Energy
 HardQCD:all = off
 # Single Bosons
 WeakSingleBoson:all = off
-WeakSingleBoson:ffbar2gmZ = off
-WeakSingleBoson:ffbar2W = on
+WeakSingleBoson:ffbar2gmZ = on
+WeakSingleBoson:ffbar2W = off
 WeakSingleBoson:ffbar2ffbar(s:gm) = off
 WeakSingleBoson:ffbar2ffbar(s:gmZ) = off
 WeakSingleBoson:ffbar2ffbar(s:W) = off
@@ -36,10 +36,10 @@ WeakDoubleBoson:ffbar2WW= off
 22:onMode = off
 
 # Turn relavant decay modes on
-#22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
-#23:onIfAny: 13 // Turn on decays for Z -> u+ + u-
-24:onIfAny: -13 // Turn on decays of W+ -> u+
--24:onIfAny: 13 // Turn on decays of W- -> u-
+22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
+23:onIfAny: 13 // Turn on decays for Z -> u+ + u-
+#24:onIfAny: -13 // Turn on decays of W+ -> u+
+#-24:onIfAny: 13 // Turn on decays of W- -> u-
 
 
 
