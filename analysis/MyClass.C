@@ -62,9 +62,9 @@ void MyClass::Loop()
 
    // Found estimated number of events in detector to be:
    // Original number of events in simulation: 10000
-   // n = L * sigma = 1.665E15*7.528E-10 = 1.253E6
+   // n = L * sigma = 1.665E15*7.528E-13 = 1,253
    // Rescaling the histograms
-   double scaling_factor = 1253000 / 10000;
+   double scaling_factor = 1253 / 10000;
    plepton_eta_hist->Scale(scaling_factor);
    plepton_pt_hist->Scale(scaling_factor);
    mlepton_eta_hist->Scale(scaling_factor);
