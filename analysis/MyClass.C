@@ -4,6 +4,15 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 
+// Variable Definitions
+double total_luminosity = 1; // In units of fb
+double xsection = 7.528e-13; // In units of barns
+double ngenevents = 10000;
+double const scaling_factor = (xsection * 1e15 * total_luminosity) / ngenevents;
+
+// Output File
+TString outfile_str = "WW_DoubleBosonDecayOutput.root";
+
 void MyClass::Loop()
 {
 //   In a ROOT session, you can do:
@@ -34,7 +43,7 @@ void MyClass::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    // Define an output file.
-   TFile out_file("WW_DoubleBosonDecayOutput.root","RECREATE");
+   TFile out_file(outfile_str,"RECREATE");
 
    // Define some histograms
    TH1F* plepton_eta_hist = new TH1F("Positive Lepton Eta", "Positive Lepton Eta",100, 2, 5);
@@ -60,11 +69,7 @@ void MyClass::Loop()
 
    } // Entry Loop Ends
 
-   // Found estimated number of events in detector to be:
-   // Original number of events in simulation: 10000
-   // n = L * sigma = 1.665E15*7.528E-13 = 1,253
    // Rescaling the histograms
-   double scaling_factor = 1253 / 10000;
    plepton_eta_hist->Scale(scaling_factor);
    plepton_pt_hist->Scale(scaling_factor);
    mlepton_eta_hist->Scale(scaling_factor);
