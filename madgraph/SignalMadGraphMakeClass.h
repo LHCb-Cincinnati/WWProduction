@@ -24,7 +24,7 @@ public :
 // Fixed size dimensions of array or collections stored in the TTree if any.
    static constexpr Int_t kMaxEvent = 1;
    static constexpr Int_t kMaxRwgt = 145;
-   static constexpr Int_t kMaxParticle = 8;
+   static constexpr Int_t kMaxParticle = 12;
 
    // Declaration of leaf types
    Int_t           Event_;
@@ -130,6 +130,7 @@ SignalMadGraphMakeClass::SignalMadGraphMakeClass(TTree *tree) : fChain(0)
       f->GetObject("LHEF",tree);
 
    }
+   // kMaxParticle = 8;
    Init(tree);
 }
 

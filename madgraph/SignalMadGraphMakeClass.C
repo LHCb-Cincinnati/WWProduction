@@ -6,6 +6,7 @@
 
 // More General Imports
 #include <math.h>
+#include <algorithm>
 
 void SignalMadGraphMakeClass::Loop()
 {
@@ -35,25 +36,19 @@ void SignalMadGraphMakeClass::Loop()
    if (fChain == 0) return;
 
    // Useful Quantities
-   // Indicies of Leptons and Neutrinos.
-   // Will need to turn on and off depending on the input file.
+   // Output File
+   TFile ofile("test.root","RECREATE");
    
-   // For p p -> W W
-   const int lepton_index = 6;
-   const int antilepton_index = 4;
-   const int neutrino_index = 5;
-   const int antineutrino_index = 7;
-
-   // For p p -> t t~
-   // const int lepton_index = 10;
-   // const int antilepton_index = 7;
-   // const int neutrino_index = 8;
-   // const int antineutrino_index = 11;
+   // Set Default Indices.
+   int lepton_index = 11;
+   int antilepton_index = 11;
+   int neutrino_index = 11;
+   int antineutrino_index = 11;
 
    // Scaling Histograms
    double luminosity = 1.0; // Unit luminosity measured in fb^-1
-   double xsection = 492.0; // Measured in fb
-   double n_gen = 10000.0; // Number of events generated
+   double xsection = 5045.0; // Measured in fb
+   double n_gen = 100000.0; // Number of events generated
    double scale_factor = (luminosity * xsection)/n_gen;
 
    // Quantities to calculate
@@ -82,8 +77,6 @@ void SignalMadGraphMakeClass::Loop()
    TH1F* delta_phi_hist = new TH1F("Delta Phi", "Delta Phi", 100, 0, 3.14);
    TH1F* missing_pT_proj_hist = new TH1F("Missing pT proj", "Missing pT proj", 100, 0, 150);
 
-   TFile ofile("test.root","RECREATE");
-
 
    Long64_t nentries = fChain->GetEntriesFast();
 
@@ -93,12 +86,17 @@ void SignalMadGraphMakeClass::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       
-      // Things to Know:
-      // Indexes: 4 - antilepton, 5 - neutrino
-      // Indexes: 6 - lepton, 7 - anti-neutrino
-      
+      // Finding appropriate particle indices.
+      for(int i=0; i < *Event_Nparticles; i++){
+         int PID = Particle_PID[i];
+         if (PID == 13 or PID == 11)  lepton_index = i;
+         else if (PID == -13 or PID == -11)  antilepton_index = i;
+         else if (PID == 12 or PID == 14)  neutrino_index = i;
+         else if (PID == -12 or PID == -14)  antineutrino_index = i;
+      }
+
       // Eta Cut
-      if ((Particle_Eta[4] > 0) &&  (Particle_Eta[6] > 0)){
+      if ((Particle_Eta[lepton_index] > 2) &&  (Particle_Eta[antilepton_index] > 2) && (Particle_Eta[lepton_index] < 5) &&  (Particle_Eta[antilepton_index] < 5)){
 
          // Filling Vectors
          antilepton_vector = ROOT::Math::PxPyPzEVector(Particle_Px[antilepton_index], Particle_Py[antilepton_index], Particle_Pz[antilepton_index], Particle_E[antilepton_index]);
