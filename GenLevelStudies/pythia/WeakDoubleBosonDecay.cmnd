@@ -31,15 +31,15 @@ WeakDoubleBoson:ffbar2WW= on
 # Decays
 # Shut all decay modes off from W
 24:onMode = off
--24:onMode = off
+#-24:onMode = off
 23:onMode = off
 22:onMode = off
 
 # Turn relavant decay modes on
 #22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
 #23:onIfAny: 13 // Turn on decays for Z -> u+ + u-
-24:onIfAny: -13 // Turn on decays of W+ -> u+
--24:onIfAny: 13 // Turn on decays of W- -> u-
+24:onIfAny: -13 -11 // Turn on decays of W+ -> u+
+#-24:onIfAny: 13 12// Turn on decays of W- -> u-
 
 
 

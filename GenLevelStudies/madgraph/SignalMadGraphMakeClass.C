@@ -76,6 +76,7 @@ void SignalMadGraphMakeClass::Loop()
    TH1F* missing_pT_hist = new TH1F("Missing pT", "Missing pT", 100, 0, 150);
    TH1F* delta_phi_hist = new TH1F("Delta Phi", "Delta Phi", 100, 0, 3.14);
    TH1F* missing_pT_proj_hist = new TH1F("Missing pT proj", "Missing pT proj", 100, 0, 150);
+   TH1F* test_lepton_pair_invariant_mass_hist = new TH1F("Test Lepton Pair Invariant Mass", "Test Lepton Pair Invariant Mass", 100, 0, 200);
 
 
    Long64_t nentries = fChain->GetEntriesFast();
@@ -135,6 +136,8 @@ void SignalMadGraphMakeClass::Loop()
          // pT Miss proj
          pT_miss_proj = missing_vector.Pt()*sin(delta_phi);
 
+         if (*Event_Nparticles != 4) test_lepton_pair_invariant_mass_hist->Fill(dilepton_invariant_mass);
+
          // Filling Histograms
          lepton_pair_invariant_mass_hist->Fill(dilepton_invariant_mass);
          lepton_pair_energy_hist->Fill(lepton_pair_vector.Et());
@@ -170,6 +173,7 @@ void SignalMadGraphMakeClass::Loop()
    missing_pT_hist->Write();
    delta_phi_hist->Write();
    missing_pT_proj_hist->Write();
+   test_lepton_pair_invariant_mass_hist->Write();
 
    // Closing File
    ofile.Close();

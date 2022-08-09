@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
   int nEvent = pythia.mode("Main:numberOfEvents");
 
   // Create file on which histogram(s) can be saved.
-  TFile* outFile = new TFile("WeakDoubleBosonDecay.root", "RECREATE");
+  TFile* outFile = new TFile("Test.root", "RECREATE");
 
   ParticleStruct weakboson_plus_struct;
   ParticleStruct lepton_plus_struct;

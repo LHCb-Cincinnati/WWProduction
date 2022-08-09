@@ -6,7 +6,7 @@
 
 // Variable Definitions
 double total_luminosity = 1; // In units of fb
-double xsection = 7.528e-13; // In units of barns
+double xsection = 3.038e-12; // In units of barns
 double ngenevents = 10000;
 double const scaling_factor = (xsection * 1e15 * total_luminosity) / ngenevents;
 

@@ -50,12 +50,12 @@ int struct_fill(ParticleStruct* particle_structref, Pythia8::Event event, int in
 
 int main(int argc, char* argv[]) {
 
-  // Redirect std out to a log file.
-  string fname = "WeakSingleBosonDecay.log";
-  std::ofstream outstream(fname);
-  std::streambuf* filebuf = outstream.rdbuf();
-  std::streambuf* coutbuf = cout.rdbuf();
-  cout.rdbuf(filebuf);
+  // // Redirect std out to a log file.
+  // string fname = "WeakSingleBosonDecay.log";
+  // std::ofstream outstream(fname);
+  // std::streambuf* filebuf = outstream.rdbuf();
+  // std::streambuf* coutbuf = cout.rdbuf();
+  // cout.rdbuf(filebuf);
 
   // Create the ROOT application environment.
   TApplication theApp("hist", &argc, argv);
@@ -105,18 +105,21 @@ int main(int argc, char* argv[]) {
 
     // Find last W boson
     for (int i = 0; i < pythia.event.size(); ++i){
-      if (pythia.event[i].id() == 24 || pythia.event[i].id() == -24) // Used for W events
-        iW = i;
-      // if (pythia.event[i].id() == 23) // Used for Z events
-      //   iZ = i;
+      // if (pythia.event[i].id() == 24 || pythia.event[i].id() == -24) // Used for W events
+      //   iW = i;
+      if (pythia.event[i].id() == 23) // Used for Z events
+        iZ = i;
     } 
 
     // Get indices of daughter particles from W decay.
-    int imuon = pythia.event[iW].daughter1();
-    int ineutrino = pythia.event[iW].daughter2();
+    int imuon = pythia.event[iZ].daughter1();
+    int ineutrino = pythia.event[iZ].daughter2();
 
+    cout << pythia.event[iZ].id() << endl;
+    cout << pythia.event[imuon].id() << endl;
+    cout << pythia.event[ineutrino].id() << endl;
     // Fill out the structs with event data.
-    struct_fill(&weakboson_struct, pythia.event, iW);
+    struct_fill(&weakboson_struct, pythia.event, iZ);
     struct_fill(&muon_struct, pythia.event, imuon);
     struct_fill(&neutrino_struct, pythia.event, ineutrino);
 
