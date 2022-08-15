@@ -22,8 +22,8 @@ from StandardParticles import StdAllLooseMuons as Muons
 # Cuts on the individual muons, dilepton object, and parent particle.
 # All the cuts here are fake to accept almost any lepton pair.
 dilepton_decay_products = {
-    'mu+': 'PT > 5000*MeV',
-    'mu-': 'PT > 5000*MeV'
+    'mu+': '(PT > 5000*MeV) & (ETA < 5) & (ETA > 2)',
+    'mu-': '(PT > 5000*MeV) & (ETA < 5) & (ETA > 2)'
 }
 dilepton_comb = '(AM > 100*MeV)'
 #dilepton_comb = "15*GeV<AMAXCHILD(MAXTREE('mu+'==ABSID,PT)"
