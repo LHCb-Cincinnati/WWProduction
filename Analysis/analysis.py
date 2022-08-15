@@ -45,30 +45,30 @@ tree = ifile['Tuple/DecayTree'].arrays()
 
 
 # Create Vectors
-lepton_vec = vector.zip({
+lminus_vec = vector.zip({
     'px': tree['lminus_PX'],
     'py': tree['lminus_PY'],
     'pz': tree['lminus_PZ'],
     'e': tree['lminus_PE'],
 })
 
-antilepton_vec = vector.zip({
+lplus_vec = vector.zip({
     'px': tree['lplus_PX'],
     'py': tree['lplus_PY'],
     'pz': tree['lplus_PZ'],
     'e': tree['lplus_PE'],
 })
-dilepton_vec = lepton_vec + antilepton_vec
+dilepton_vec = lminus_vec + lplus_vec
 
 
 # Calculate Quantitites
-greater_pt_array = (lepton_vec.pt > antilepton_vec.pt)
+greater_pt_array = (lminus_vec.pt > lplus_vec.pt)
 lesser_pt_array = -1*(greater_pt_array-1)
-leading_lepton_pT_array = greater_pt_array * lepton_vec.pt + lesser_pt_array * antilepton_vec.pt
-trailing_lepton_pT_array = lesser_pt_array * lepton_vec.pt + greater_pt_array * antilepton_vec.pt
-delta_phi_array = np.abs(lepton_vec.deltaphi(antilepton_vec))
-delta_eta_array = np.abs(lepton_vec.deltaeta(antilepton_vec))
-delta_r_array = np.abs(lepton_vec.deltaR(antilepton_vec))
+leading_lepton_pT_array = greater_pt_array * lminus_vec.pt + lesser_pt_array * lplus_vec.pt
+trailing_lepton_pT_array = lesser_pt_array * lminus_vec.pt + greater_pt_array * lplus_vec.pt
+delta_phi_array = np.abs(lminus_vec.deltaphi(lplus_vec))
+delta_eta_array = np.abs(lminus_vec.deltaeta(lplus_vec))
+delta_r_array = np.abs(lminus_vec.deltaR(lplus_vec))
 
 # Create output directory if it does not yet exist
 # and change current directory to output directory
@@ -80,8 +80,8 @@ create_hist(dilepton_vec.m, 'DiLepton Mass', bins=50, range=(0,150000))
 create_hist(dilepton_vec.pt, 'Lepton Pair pT', yscale='log', bins=50, range=(0,150000))
 create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=50, range=(0,150000))
 create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000))
-create_hist(lepton_vec.pt, 'Lepton pT', bins=50, yscale='log', range=(0,150000))
-create_hist(antilepton_vec.pt, 'Antilepton pT', yscale='log', bins=50, range=(0,150000))
+create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000))
+create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000))
 create_hist(delta_phi_array, 'Delta Phi', bins=50)
 create_hist(delta_r_array, 'Delta R', bins=50)
 create_hist(delta_eta_array, 'Delta Eta', bins=50)
