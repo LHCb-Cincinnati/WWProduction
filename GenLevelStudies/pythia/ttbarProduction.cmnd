@@ -1,0 +1,62 @@
+# File: WBosonDecay.cmnd
+# File meant for WBosonDecay.cc
+
+# General Settings
+Main:numberOfEvents = 1000        # number of events to generate
+Main:timesAllowErrors = 10         # how many aborts before run stops
+Init:showChangedSettings = on      # list changed settings
+Init:showChangedParticleData = on  # list changed particle data
+
+# Beam Parameters
+Beams:idA = 2212. # Colliding Protons
+Beams:idB = 2212. # Colliding Protons
+Beams:eCM = 13000 # Beam CM Energy
+
+# Process Parameters
+# QCD
+HardQCD:all = off
+# Top Production
+#Top:all = on
+Top:gg2ttbar = on
+Top:qqbar2ttbar = on
+Top:qq2tq(t:W) = off
+Top:ffbar2ttbar(s:gmZ) = on
+Top:ffbar2tqbar(s:W) = off
+Top:gmgm2ttbar = on
+Top:ggm2ttbar = on
+
+
+# Single Bosons
+WeakSingleBoson:all = off
+WeakSingleBoson:ffbar2gmZ = off
+WeakSingleBoson:ffbar2W = off
+WeakSingleBoson:ffbar2ffbar(s:gm) = off
+WeakSingleBoson:ffbar2ffbar(s:gmZ) = off
+WeakSingleBoson:ffbar2ffbar(s:W) = off
+# Double Bosons
+WeakDoubleBoson:all = off
+WeakDoubleBoson:ffbar2gmZgmZ = off
+WeakDoubleBoson:ffbar2ZW = off
+WeakDoubleBoson:ffbar2WW= off
+
+# Decays
+# Shut all decay modes off from W
+24:onMode = off
+#-24:onMode = off
+23:onMode = off
+22:onMode = off
+
+# Shut all decay modes off from top quark
+6:onMode = on
+
+# Turn relavant decay modes on for Bosons
+#22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
+#23:onIfAny: 13 // Turn on decays for Z -> u+ + u-
+24:onIfAny: -13 -11 // Turn on decays of W+ -> u+
+#-24:onIfAny: 13 12// Turn on decays of W- -> u-
+
+# Turn relavant decay modes on for Fermions
+
+
+
+
