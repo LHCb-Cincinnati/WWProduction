@@ -57,7 +57,7 @@ dtt.addBranches({
 # Configure DaVinci
 DaVinci().UserAlgorithms += [dilepton_seq.sequence(), dtt]
 DaVinci().InputType = 'DST'
-DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/ttbar_mumu_Pythia_LO_Tuple.root'
+DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/DrellYan_mumu_Pythia_LO_Tuple.root'
 DaVinci().PrintFreq = 1000
 DaVinci().DataType = '2016'
 DaVinci().Simulation = True
@@ -69,5 +69,5 @@ DaVinci().DDDBtag = 'dddb-20150724'
 
 # Use the local input data
 IOHelper().inputFiles([
-    '~/WWProduction/Data/TestFiles/00057379_00000087_3.AllStreams.dst'
+    '~/WWProduction/Data/TestFiles/00059360_00000009_7.AllStreams.dst'
 ], clear=True)
