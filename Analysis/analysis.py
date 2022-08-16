@@ -17,7 +17,7 @@ def create_folder_path(file_name):
     path = os.environ['HOME'] + '/WWProduction/Data/Figures/' + folder_name
     if not os.path.exists(path):
         os.mkdir(path)
-    return(path)
+    return(path) 
 
 def create_hist(array, title, yscale='linear', **kwargs):
     fig, axs = plt.subplots()
