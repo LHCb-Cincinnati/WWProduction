@@ -30,14 +30,19 @@ def create_folder_path(file_name, test_mode_flag):
 
 def create_hist(array, title, yscale='linear', **kwargs):
     fig, axs = plt.subplots()
-    plt.subplots_adjust(top=0s.85)
-    axs.hist(array, **kwargs)
+    plt.subplots_adjust(top=0.85)
+    hist, bins, patches = axs.hist(array, **kwargs)
+    hist_count = np.sum(hist)
+    hist_mids = 0.5*(bins[1:] + bins[:-1])
+    hist_mean = np.average(hist_mids, weights=(hist/hist_count))
+    hist_var = np.sqrt(np.average((hist_mids - hist_mean)**2,
+                       weights=(hist/hist_count)))
     plt.yscale(yscale)
     plt.title(title)
     fig_string = (f"Statistics:\n"
-                  f"Count: {np.size(array)}\n"
-                  f"Mean:  {np.mean(array):.2f}\n"
-                  f"Sigma: {np.std(array):.2f}")
+                  f"Count: {hist_count:.2f}\n"
+                  f"Mean:  {hist_mean:.2f}\n"
+                  f"Sigma: {hist_var:.2f}")
 
     axs.text(0.8, 1.02, fig_string, transform=axs.transAxes,
               bbox=dict(facecolor='none', edgecolor='0.7', pad=3.0))
@@ -51,7 +56,7 @@ parser = argparse.ArgumentParser(description='Process files and settings for ana
 parser.add_argument('input_files',type=open, nargs='+',
                     help='The file or files to be anayzed. Input files should be root files.')
 parser.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
-                    help='''The cross section used to normalize histograms.
+                    help='''The cross section used to normalize histograms in fb.
                     This option should either not be specified or have exactly
                     as many arguments as input files.''')
 parser.add_argument('-t', '--testing', default=True, action='store_true',
@@ -73,16 +78,13 @@ elif (len(args.cross_section) != len(args.input_files)):
                        specify a cross section arugment or specify as many
                        cross sections as there are input files.''')
 
-# Open the file
+# Parse inputs
 file_name =  args.input_files[0].name
+cross_section = args.cross_section[0] # Cross section in fb
+
+# Open the file
 ifile = uproot.open(file_name)
 tree = ifile['Tuple/DecayTree'].arrays()
-
-
-# Scaling Quantities
-cross_section = args.cross_section[0] # Scaling factor for testing
-# scale_factor = 56.23 # in fb for signal
-# scale_factor = 458337 # in fb for Drell Yan
 
 # Create Vectors
 lminus_vec = vector.zip({
@@ -134,8 +136,3 @@ create_hist(delta_r_array, 'Delta R', bins=50,
             weights=calculate_weights(cross_section, delta_r_array))
 create_hist(delta_eta_array, 'Delta Eta', bins=50,
             weights=calculate_weights(cross_section, delta_eta_array))
-
-# Print total number of events left after cuts
-hist, bins = np.histogram(dilepton_vec.m.to_numpy(), bins=50, range=(0,150000), 
-                          weights=calculate_weights(cross_section, dilepton_vec))
-print(f'Total Events after scaling: {np.sum(hist)}')
