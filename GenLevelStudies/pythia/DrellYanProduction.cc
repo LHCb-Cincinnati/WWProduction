@@ -48,6 +48,12 @@ int struct_fill(ParticleStruct* particle_structref, Pythia8::Event event, int in
   return(0);
 }
 
+// A function to compute the invariant mass given two four vectors.
+double compute_invariant_mass(Pythia8::Vec4 v1, Pythia8::Vec4 v2){
+  Pythia8::Vec4 v_new = v1+v2;
+  return(v_new.mCalc());
+}
+
 int main(int argc, char* argv[]) {
 
   // Redirect std out to a log file.
@@ -84,15 +90,17 @@ int main(int argc, char* argv[]) {
   int nEvent = pythia.mode("Main:numberOfEvents");
 
   // Create file on which histogram(s) can be saved.
-  TFile* outFile = new TFile("Test.root", "RECREATE");
+  TFile* outFile = new TFile("DrellYanProduction.root", "RECREATE");
 
   // Some Definitions
   int ilminus, ilplus;
+  double dilepton_invariant_mass;
   ParticleStruct lepton_plus_struct;
   ParticleStruct lepton_minus_struct;
   TTree *Tree = new TTree("AnalysisTree","AnalysisTree");
   Tree->Branch("LeptonPlus",&lepton_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("LeptonMinus",&lepton_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("DiLeptonInvariantMass",&dilepton_invariant_mass);
 
   // Begin event loop. Generate event; skip if generation aborted.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
@@ -112,6 +120,7 @@ int main(int argc, char* argv[]) {
     // Fill out the structs with event data.
     struct_fill(&lepton_plus_struct, pythia.event, ilplus);
     struct_fill(&lepton_minus_struct, pythia.event, ilminus);
+    dilepton_invariant_mass = compute_invariant_mass(pythia.event[ilminus].p(), pythia.event[ilplus].p());
 
     // Fill the tree with the new data
     Tree->Fill();
