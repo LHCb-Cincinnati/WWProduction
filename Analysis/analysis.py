@@ -45,8 +45,9 @@ tree = ifile['Tuple/DecayTree'].arrays()
 
 
 # Scaling Quantities
+scale_factor = 1 # Scaling factor for testing
 # scale_factor = 56.23 # in fb for signal
-scale_factor = 458337 # in fb for Drell Yan
+# scale_factor = 458337 # in fb for Drell Yan
 
 # Create Vectors
 lminus_vec = vector.zip({
