@@ -17,9 +17,12 @@ def calculate_weights(cross_section, array):
     weights_array = [scale_factor] * len(array)
     return(weights_array)
 
-def create_folder_path(file_name):
-    folder_name = file_name[:-5]
-    folder_name = folder_name.split('/')[-1]
+def create_folder_path(file_name, test_mode_flag):
+    if test_mode_flag:
+        folder_name = 'Test'
+    else:
+        folder_name = file_name[:-5]
+        folder_name = folder_name.split('/')[-1]
     path = os.environ['HOME'] + '/WWProduction/Data/Figures/' + folder_name
     if not os.path.exists(path):
         os.mkdir(path)
@@ -27,7 +30,7 @@ def create_folder_path(file_name):
 
 def create_hist(array, title, yscale='linear', **kwargs):
     fig, axs = plt.subplots()
-    plt.subplots_adjust(top=0.85)
+    plt.subplots_adjust(top=0s.85)
     axs.hist(array, **kwargs)
     plt.yscale(yscale)
     plt.title(title)
@@ -109,7 +112,7 @@ delta_r_array = np.abs(lminus_vec.deltaR(lplus_vec))
 
 # Create output directory if it does not yet exist
 # and change current directory to output directory
-file_path = create_folder_path(file_name)
+file_path = create_folder_path(file_name, args.testing)
 os.chdir(file_path)
 
 # Plots
