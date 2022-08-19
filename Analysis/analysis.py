@@ -44,6 +44,10 @@ ifile = uproot.open(file_name)
 tree = ifile['Tuple/DecayTree'].arrays()
 
 
+# Scaling Quantities
+# scale_factor = 56.23 # in fb for signal
+scale_factor = 458337 # in fb for Drell Yan
+
 # Create Vectors
 lminus_vec = vector.zip({
     'px': tree['lminus_PX'],
@@ -76,12 +80,16 @@ file_path = create_folder_path(file_name)
 os.chdir(file_path)
 
 # Plots
-create_hist(dilepton_vec.m, 'DiLepton Mass', bins=50, range=(0,150000))
-create_hist(dilepton_vec.pt, 'Lepton Pair pT', yscale='log', bins=50, range=(0,150000))
-create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=50, range=(0,150000))
-create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000))
-create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000))
-create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000))
-create_hist(delta_phi_array, 'Delta Phi', bins=50)
-create_hist(delta_r_array, 'Delta R', bins=50)
-create_hist(delta_eta_array, 'Delta Eta', bins=50)
+create_hist(dilepton_vec.m, 'DiLepton Mass', bins=50, range=(0,150000), weights=[scale_factor / len(dilepton_vec)]*len(dilepton_vec))
+create_hist(dilepton_vec.pt, 'Lepton Pair pT', yscale='log', bins=50, range=(0,150000), weights=[scale_factor / len(dilepton_vec)]*len(dilepton_vec))
+create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=50, range=(0,150000), weights=[scale_factor / len(leading_lepton_pT_array)]*len(leading_lepton_pT_array))
+create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000), weights=[scale_factor / len(trailing_lepton_pT_array)]*len(trailing_lepton_pT_array))
+create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000), weights=[scale_factor / len(lminus_vec)]*len(lminus_vec))
+create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000), weights=[scale_factor / len(lplus_vec)]*len(lplus_vec))
+create_hist(delta_phi_array, 'Delta Phi', bins=50, weights=[scale_factor / len(delta_phi_array)]*len(delta_phi_array))
+create_hist(delta_r_array, 'Delta R', bins=50, weights=[scale_factor / len(delta_r_array)]*len(delta_r_array))
+create_hist(delta_eta_array, 'Delta Eta', bins=50, weights=[scale_factor / len(delta_eta_array)]*len(delta_eta_array))
+
+# Print total number of events left after cuts
+hist, bins = np.histogram(dilepton_vec.m.to_numpy(), bins=50, range=(0,150000), weights=[scale_factor / len(dilepton_vec)]*len(dilepton_vec))
+print(f'Total Events after scaling: {np.sum(hist)}')
