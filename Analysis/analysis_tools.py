@@ -45,7 +45,27 @@ def calculate_hist_stats(hist, bins):
     return(hist_count, hist_mean, hist_var)
 
 def create_hist(array, title, yscale='linear', **kwargs):
+    ''' Create a 1D histogram from a numpy array and save it.
 
+    Create a 1D histogram from a numpy array, and save it to
+    a file.  The file name will be derived from the title of the histogram.
+    The recommended usage of this function is to specify more keyword
+    arguments than is required.
+    Ex: create__hist(array1, 'Histogram 1', yscale='log', bins=50,
+                    range=(0,100))
+
+    Args:
+    array (np.array): A numpy array of the data to be histogrammed.
+    title (str): The title of the new histogram.
+    yscale (str): The type of scale used for the yaxis of this histogram.
+        Should be either 'linear' or 'log'.
+    **kwargs:  Any additional keyword arguments are fed into the matplotlib 
+        hist function.
+
+    Returns:
+    None
+
+    '''
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots()
@@ -67,7 +87,29 @@ def create_hist(array, title, yscale='linear', **kwargs):
     plt.savefig(save_str + '.png')
 
 def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
+    ''' Create a 1D stacked histogram from several numpy arrays and save it.
 
+    Create a 1D stacked histogram from several numpy arrays, and saves it to
+    a file.  The file name will be derived from the title of the histogram.
+    The recommended usage of this function is to specify more keyword
+    arguments than is required.
+    Ex: create_stacked_hist((array1, array2), 'Histogram 1', yscale='log',
+                            bins=50, range=(0,100),
+                            label=['array1 label', 'array2 label'])
+
+    Args:
+    array_list (list[np.array]): A list of numpy arrays full of the data to be
+        histogrammed.
+    title (str): The title of the new histogram.
+    yscale (str): The type of scale used for the yaxis of this histogram.
+        Should be either 'linear' or 'log'.
+    **kwargs:  Any additional keyword arguments are fed into the matplotlib 
+        hist function.
+
+    Returns:
+    None
+
+    '''
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots()
@@ -75,6 +117,7 @@ def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
     hist, bins, patches = axs.hist(array_list, stacked=True, **kwargs)
     plt.yscale(yscale)
     plt.title(title)
+    #plt.legend()
 
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
