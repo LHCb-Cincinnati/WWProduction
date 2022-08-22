@@ -1,6 +1,7 @@
 # Imports
 import sys
 import pdb
+from array import array
 
 import numpy as np
 import ROOT
@@ -36,16 +37,18 @@ IOHelper().inputFiles([
 ], clear=True)
 
 # Containers for ROOT Tree
-evt_num = np.array([0])
-l_plus_array = np.array(4*[0])
-l_minus_array = np.array(4*[0])
+#evt_num = np.array([0])
+evt_num = array('f', [ 1.5 ])
+l_plus_array = np.array(4*[0], dtype=np.float32)
+l_minus_array = np.array(4*[0], dtype=np.float32)
 
 # Create ROOT Tree
 ofile = ROOT.TFile('~/WWProduction/Data/DVTuples/ofile.root', 'RECREATE')
 tree = ROOT.TTree('Tree', 'Tree')
-tree.Branch('EventNumber', evt_num, 'EventNumber/D')
-tree.Branch('l_plus_array', l_plus_array, 'l_plus_array[' + str(4) + ']/D')
-tree.Branch('l_minus_array', l_minus_array, 'l_minus_array[' + str(4) + ']/D')
+tree.Branch('evt_num', evt_num, 'evt_num/F')
+#tree.Branch('EventNumber', evt_num, 'EventNumber/D')
+tree.Branch('l_plus_array', l_plus_array, 'l_plus_array[' + str(4) + ']/F')
+tree.Branch('l_minus_array', l_minus_array, 'l_minus_array[' + str(4) + ']/F')
 
 
 # dilepton Object Cuts
@@ -85,8 +88,10 @@ evtmax = 100
 #evtmax = float('inf')
 evtnum = 0
 bevents = 0
-#while evtnum < evtmax:
-while (not bool(tes(['/Event'])) & evtnum>0):
+gaudi.run(1)
+#pdb.set_trace()
+while evtnum < evtmax:
+#while bool(tes['/Event']):
     # if not bool(tes['/Event']):
     #     print(f'EVENT HERE {evt_num}')
     #     pdb.set_trace()
@@ -94,26 +99,38 @@ while (not bool(tes(['/Event'])) & evtnum>0):
     #     break
     # print(type(evt_num))
     # print(evt_num)
-    gaudi.run(1)
+    if not bool(tes['/Event']):
+        print(f'EVENT HERE {evt_num}')
+        #pdb.set_trace()
+        bevents+=1
+    #print(bool(tes['/Event']))
+
     evtnum += 1
     if not bool(tes['Phys/StdAllLooseMuons/Particles']):
+        gaudi.run(1)
         continue
     candidates =  tes[dilepton_seq.outputLocation()]
     for index in range(len(candidates)):
+        print(candidates)
         evt_num[0] = tes['DAQ/ODIN'].eventNumber()
         daughter_id_list = [daughter.particleID().pid() for daughter in candidates[index].daughters()]
         l_minus_index = daughter_id_list.index(13)
         l_plus_index = daughter_id_list.index(-13)
-        l_minus_array[:] = (candidates[index].daughters()[l_minus_index].momentum().X(),
+        l_minus_array[:] = np.array((candidates[index].daughters()[l_minus_index].momentum().X(),
                             candidates[index].daughters()[l_minus_index].momentum().Y(),
                             candidates[index].daughters()[l_minus_index].momentum().Z(),
-                            candidates[index].daughters()[l_minus_index].momentum().E())
-        l_plus_array[:] = (candidates[index].daughters()[l_plus_index].momentum().X(),
+                            candidates[index].daughters()[l_minus_index].momentum().E()), dtype=np.float32)
+        l_plus_array[:] = np.array((candidates[index].daughters()[l_plus_index].momentum().X(),
                             candidates[index].daughters()[l_plus_index].momentum().Y(),
                             candidates[index].daughters()[l_plus_index].momentum().Z(),
-                            candidates[index].daughters()[l_plus_index].momentum().E())
+                            candidates[index].daughters()[l_plus_index].momentum().E()), dtype=np.float32)
+        print(l_minus_array)                           
+        print(l_plus_array)
+        print(evt_num)
         tree.Fill()
+    gaudi.run(1)
 
+tree.Print()
 ofile.Write()
 ofile.Close()
 
