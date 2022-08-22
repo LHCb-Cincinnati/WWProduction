@@ -26,17 +26,37 @@ def create_folder_path(file_name, test_mode_flag):
     path = os.environ['HOME'] + '/WWProduction/Data/Figures/' + folder_name
     if not os.path.exists(path):
         os.mkdir(path)
-    return(path) 
+    return(path)
 
-def create_hist(array, title, yscale='linear', **kwargs):
-    fig, axs = plt.subplots()
-    plt.subplots_adjust(top=0.85)
-    hist, bins, patches = axs.hist(array, **kwargs)
+def calculate_hist_stats(hist, bins):
+    ''' Calculate count, mean, and variance for a numpy histogram.
+
+    Calculate count, mean, and variance of the given histogram using the
+    histogram, not the data in the histogram.
+
+    Args:
+    hist (np.array): A numpy histogram that represents some dataset.
+    bins (np.array): The bin edge placements for hist.
+
+    Returns:
+    hist_count (float): The number of samples in hist.
+    hist_mean (float): The average value of hist.
+    hist_variance (float): The variance of the samples in hist.
+
+    '''
+
     hist_count = np.sum(hist)
     hist_mids = 0.5*(bins[1:] + bins[:-1])
     hist_mean = np.average(hist_mids, weights=(hist/hist_count))
     hist_var = np.sqrt(np.average((hist_mids - hist_mean)**2,
                        weights=(hist/hist_count)))
+    return(hist_count, hist_mean, hist_var)
+
+def create_hist(array, title, yscale='linear', **kwargs):
+    fig, axs = plt.subplots()
+    plt.subplots_adjust(top=0.85)
+    hist, bins, patches = axs.hist(array, **kwargs)
+    hist_count, hist_mean, hist_var = calculate_hist_stats(hist, bins)
     plt.yscale(yscale)
     plt.title(title)
     fig_string = (f"Statistics:\n"
