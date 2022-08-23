@@ -1,8 +1,36 @@
 '''
 '''
 
-def calculate_weights(cross_section, array):
-    scale_factor = bool(cross_section)*(cross_section / len(array) - 1) + 1
+def calculate_weights(array, cross_section, nsim=False):
+    ''' Creates the weights array for a numpy histogram, given information
+    on the particle creation process.
+
+    There are three cases for this function.
+    - First, no cross section is specified.  In this case the weights array
+    should be filled with ones.
+    - Two, a cross section is specified, but the number of simulated events
+    is not provided.  In this case each weight should be the cross section
+    divided by the number of events in the array.
+    - Three, both the cross section and the number of simulated events are
+    provided.  In this case, the weights should be the cross section divided
+    by the number of simulated events.
+
+    Args:
+    array (np.array): Numpy array of data corresponding to the process of the
+        cross-section.
+    cross_section (float): The cross-section of the process through which the
+        data was created. Optional
+    nsim (int): The number of events simulated on the given process type.
+        Optional
+
+    Returns:
+    weights_array (np.array): An array of weights for each element of the
+        input array.
+
+    '''
+    if not nsim:
+        nsim = len(array)
+    scale_factor = bool(cross_section)*(cross_section / nsim - 1) + 1
     weights_array = [scale_factor] * len(array)
     return(weights_array)
 

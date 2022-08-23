@@ -81,20 +81,20 @@ os.chdir(file_path)
 
 # Plots
 at.create_hist(dilepton_vec.m, 'DiLepton Mass', bins=50, range=(0,150000),
-            weights=at.calculate_weights(cross_section, dilepton_vec))
+            weights=at.calculate_weights(dilepton_vec, cross_section))
 at.create_hist(dilepton_vec.pt, 'Lepton Pair pT', yscale='log', bins=50, range=(0,150000),
-            weights=at.calculate_weights(cross_section, dilepton_vec))
+            weights=at.calculate_weights(dilepton_vec, cross_section))
 at.create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=50, range=(0,150000),
-            weights=at.calculate_weights(cross_section, leading_lepton_pT_array))
+            weights=at.calculate_weights(leading_lepton_pT_array, cross_section))
 at.create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000),
-            weights=at.calculate_weights(cross_section, trailing_lepton_pT_array))
+            weights=at.calculate_weights(trailing_lepton_pT_array, cross_section))
 at.create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000),
-            weights=at.calculate_weights(cross_section, lminus_vec))
+            weights=at.calculate_weights(lminus_vec, cross_section))
 at.create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000),
-            weights=at.calculate_weights(cross_section, lplus_vec))
+            weights=at.calculate_weights(lplus_vec, cross_section))
 at.create_hist(delta_phi_array, 'Delta Phi', bins=50,
-            weights=at.calculate_weights(cross_section, delta_phi_array))
+            weights=at.calculate_weights(delta_phi_array, cross_section))
 at.create_hist(delta_r_array, 'Delta R', bins=50,
-            weights=at.calculate_weights(cross_section, delta_r_array))
+            weights=at.calculate_weights(delta_r_array, cross_section))
 at.create_hist(delta_eta_array, 'Delta Eta', bins=50,
-            weights=at.calculate_weights(cross_section, delta_eta_array))
+            weights=at.calculate_weights(delta_eta_array, cross_section))
