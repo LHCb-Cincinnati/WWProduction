@@ -14,7 +14,10 @@ sys.path.append('/Users/nowakg/OneDrive - University of Cincinnati/Research/Weak
 import analysis_tools as at
 
 # Argument Parser
-parser = argparse.ArgumentParser(description='Process files and settings for analysis.')
+parser = argparse.ArgumentParser(description='''Process files and settings for analysis.
+                                Required arguments are: input_files.
+                                Optional arguments are: cross_section, testing.
+                                Ex: python3 analysis.py test.root -c 53.5 -p''')
 parser.add_argument('input_files',type=open, nargs='+',
                     help='The file or files to be anayzed. Input files should be root files.')
 parser.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
