@@ -20,6 +20,9 @@ using namespace Pythia8;
 // Particle Structure
 // A structure to contain the data for a particle.
 struct ParticleStruct{
+  double px;
+  double py;
+  double pz;
   double pT;
   double p;
   double eta;
@@ -36,6 +39,9 @@ int struct_fill(ParticleStruct* particle_structref, Pythia8::Event event, int in
   double px = event[index].px();
   double py = event[index].py();
   double pz = event[index].pz();
+  particle_structref->px = event[index].px();
+  particle_structref->py = event[index].py();
+  particle_structref->pz = event[index].pz();
   particle_structref->p = sqrt(px*px + py*py + pz*pz);
   particle_structref->id = event[index].id();
   particle_structref->status = event[index].status();
@@ -98,8 +104,8 @@ int main(int argc, char* argv[]) {
   ParticleStruct lepton_plus_struct;
   ParticleStruct lepton_minus_struct;
   TTree *Tree = new TTree("AnalysisTree","AnalysisTree");
-  Tree->Branch("LeptonPlus",&lepton_plus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
-  Tree->Branch("LeptonMinus",&lepton_minus_struct,"pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("LeptonPlus",&lepton_plus_struct,"px/D:py/D:pz/D:pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
+  Tree->Branch("LeptonMinus",&lepton_minus_struct,"px/D:py/D:pz/D:pT/D:p/D:eta/D:energy/D:phi/D:m0/D:id/I:charge/I:status/I");
   Tree->Branch("DiLeptonInvariantMass",&dilepton_invariant_mass);
 
   // Begin event loop. Generate event; skip if generation aborted.
