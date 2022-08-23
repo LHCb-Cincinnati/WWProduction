@@ -13,19 +13,6 @@ import vector
 sys.path.append('/Users/nowakg/OneDrive - University of Cincinnati/Research/WeakBosonDecay/Analysis') # This is Awesome!
 import analysis_tools as at
 
-# Functions
-# def get_px(pT_array, eta, phi):
-#     from numpy import cos
-#     return(pT_array*cos(phi))
-
-# def get_py(pT_array, eta, phi):
-#     from numpy import sin
-#     return(pT_array*sin(phi))
-
-# def get_pz(pT_array, eta, phi):
-#     from numpy import sinh
-#     return(pT_array*sinh(eta))
-
 # Argument Parser
 parser = argparse.ArgumentParser(description='Process files and settings for analysis.')
 parser.add_argument('input_files',type=open, nargs='+',
@@ -77,18 +64,6 @@ lplus_vec = vector.zip({
     'e': tree['LeptonPlus'].energy,
 })
 dilepton_vec = lminus_vec + lplus_vec
-# lminus_array = tree['LeptonMinus']
-# lplus_array = tree['LeptonPlus']
-# dilepton_xmom = (get_px(lminus_array.pT, lminus_array.eta, lminus_array.phi)
-#                 + get_px(lplus_array.pT, lminus_array.eta, lplus_array.phi))
-# dilepton_ymom = (get_py(lminus_array.pT, lminus_array.eta, lminus_array.phi)
-#                 + get_py(lplus_array.pT, lminus_array.eta, lplus_array.phi))
-# dilepton_zmom = (get_pz(lminus_array.pT, lminus_array.eta, lminus_array.phi)
-#                 + get_pz(lplus_array.pT, lminus_array.eta, lplus_array.phi))
-# dilepton_pT_array = np.sqrt(dilepton_xmom**2 + dilepton_ymom**2)
-# dilepton_momentum2 = dilepton_xmom**2 + dilepton_ymom**2 + dilepton_zmom**2
-# dilepton_energy2 = (lminus_array.energy + lminus_array.energy)**2
-# dilepton_mass_array = np.sqrt(dilepton_energy2 - dilepton_momentum2)
 
 # Cuts
 lepton_eta_cut = ((lminus_vec.eta > 2) & (lminus_vec.eta<5)
@@ -96,7 +71,9 @@ lepton_eta_cut = ((lminus_vec.eta > 2) & (lminus_vec.eta<5)
 high_pT_lepton_cut = ((lminus_vec.pt>15) | (lplus_vec.pt>15))
 low_pT_lepton_cut = ((lminus_vec.pt>5) & (lplus_vec.pt>5))
 muon_pid_cut = ((tree['LeptonMinus'].id==13) & (tree['LeptonPlus'].id==-13))
+invariant_mass_cut = (dilepton_vec.m>10)
 lepton_cuts = lepton_eta_cut&high_pT_lepton_cut&low_pT_lepton_cut&muon_pid_cut
+drellyan_cuts = lepton_eta_cut&low_pT_lepton_cut&invariant_mass_cut
 
 # Calculate Quantitites
 greater_pt_array = (lminus_vec.pt > lplus_vec.pt)
@@ -109,25 +86,35 @@ delta_r_array = np.abs(lminus_vec.deltaR(lplus_vec))
 
 # # Create output directory if it does not yet exist
 # # and change current directory to output directory
-file_path = at.create_folder_path('WW_GenLevelPythia' + '.root', args.testing)
+#file_path = at.create_folder_path('WW_GenLevelPythia' + '.root', args.testing)
+
+file_path = 'DY_GenLevelPythia'
+#os.mkdir(file_path)
 os.chdir(file_path)
 
-# # Plots
-# at.create_hist(dilepton_vec.m, 'DiLepton Mass', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(cross_section, dilepton_vec))
-# at.create_hist(dilepton_vec.pt, 'Lepton Pair pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(cross_section, dilepton_vec))
-# at.create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(cross_section, leading_lepton_pT_array))
-# at.create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(cross_section, trailing_lepton_pT_array))
-# at.create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000),
-#             weights=at.calculate_weights(cross_section, lminus_vec))
-# at.create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(cross_section, lplus_vec))
-# at.create_hist(delta_phi_array, 'Delta Phi', bins=50,
-#             weights=at.calculate_weights(cross_section, delta_phi_array))
-# at.create_hist(delta_r_array, 'Delta R', bins=50,
-#             weights=at.calculate_weights(cross_section, delta_r_array))
-# at.create_hist(delta_eta_array, 'Delta Eta', bins=50,
-#             weights=at.calculate_weights(cross_section, delta_eta_array))
+# scale_factor
+#cross_section = 3038 # in fb (WW)
+cross_section = 35.53E6 # in fb (DY)
+nevents = 100000
+scale_factor = cross_section / nevents
+
+
+# Plots
+at.create_hist(dilepton_vec.m[drellyan_cuts], 'DiLepton Mass', bins=50, range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(dilepton_vec.pt[drellyan_cuts], 'Lepton Pair pT', yscale='log', bins=50, range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(leading_lepton_pT_array[drellyan_cuts], 'Leading Lepton pT', yscale='log', bins=50, range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(trailing_lepton_pT_array[drellyan_cuts], 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(lminus_vec.pt[drellyan_cuts], 'lminus pT', bins=50, yscale='log', range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(lplus_vec.pt[drellyan_cuts], 'lplus pT', yscale='log', bins=50, range=(0,150),
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(delta_phi_array[drellyan_cuts], 'Delta Phi', bins=50,
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(delta_r_array[drellyan_cuts], 'Delta R', bins=50,
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
+at.create_hist(delta_eta_array[drellyan_cuts], 'Delta Eta', bins=50,
+            weights=[scale_factor]*len(dilepton_vec[drellyan_cuts]))
