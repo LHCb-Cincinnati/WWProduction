@@ -48,23 +48,23 @@ dilepton_seq = SelectionSequence('dilepton_Seq', TopSelection=dilepton_sel)
 # Decay Tree Configuration
 dtt = DecayTreeTuple('Tuple')
 dtt.Inputs = dilepton_seq.outputLocations()
-dtt.Decay = '[H_10 -> ^mu+ ^e-]CC'
+dtt.Decay = '[H_10 -> ^e- ^mu+]CC'
 dtt.addBranches({
-    'H_10': 'H_10 -> mu+ mu-',
-    'lplus': 'H_10 -> ^mu+ e-',
-    'lminus': 'H_10 -> mu+ ^e-',
+    'H_10': '[H_10 -> e- mu+]CC',
+    'muon': '[H_10 -> e- ^mu+]CC',
+    'electron': '[H_10 -> ^e- mu+',
 })
 
 # Configure DaVinci
 DaVinci().UserAlgorithms += [dilepton_seq.sequence(), dtt]
 DaVinci().InputType = 'DST'
-DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/Test.root'
-DaVinci().PrintFreq = 100
+DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/DVoption_WW_mue_Pythia_LO.root'
+DaVinci().PrintFreq = 1000
 DaVinci().DataType = '2016'
 DaVinci().Simulation = True
 # Only ask for luminosity information when not using simulated data
 DaVinci().Lumi = not DaVinci().Simulation
-DaVinci().EvtMax = 1000
+DaVinci().EvtMax = -1
 DaVinci().CondDBtag = 'sim-20161124-2-vc-md100'
 DaVinci().DDDBtag = 'dddb-20150724'
 
