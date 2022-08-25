@@ -10,7 +10,7 @@ import awkward as ak
 import uproot
 import vector
 
-sys.path.append('/Users/nowakg/OneDrive - University of Cincinnati/Research/WeakBosonDecay/Analysis') # This is Awesome!
+sys.path.append('/Users/nowakg/OneDrive - University of Cincinnati/Research/WWProduction/Analysis') # This is Awesome!
 import analysis_tools as at
 
 # Argument Parser
@@ -97,7 +97,7 @@ os.chdir(file_path)
 
 # scale_factor
 #cross_section = 3038 # in fb (WW)
-cross_section = 35.53E6 # in fb (DY)
+cross_section = 6.577E6 # in fb (DY)
 nevents = 100000
 scale_factor = cross_section / nevents
 
