@@ -47,6 +47,78 @@ def create_folder_path(file_name, test_mode_flag):
         os.mkdir(path)
     return(path)
 
+def create_parser():
+    ''' Creates an argparse parser to process user input.
+
+    Creates an argparse parser to process user input.
+
+    Args:
+    None
+
+    Returns:
+    parser (argparse.parser): An argparse parser to process user input.
+    '''
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Process files and settings for analysis.')
+    parser.add_argument('input_files',type=open, nargs='+',
+                        help='The file or files to be anayzed. Input files should be root files.')
+    parser.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
+                        help='''The cross section used to normalize histograms in fb.
+                        This option should either not be specified or have exactly
+                        as many arguments as input files.''')
+    parser.add_argument('-t', '--testing', default=True, action='store_true',
+                        help='''Flag to indicate if a new output folder should be created for 
+                        this analysis.  -t means that all plots will go in folder labelled Test.''')
+    parser.add_argument('-p', '--production', dest='testing', action='store_false',
+                        help='''Flag to indicate if a new output folder should be created for this 
+                        analysis.  -p means that all plots will be put into a new output folder with
+                        the same name as the input file.''')
+    return(parser)
+
+def check_args(args):
+    ''' Checks output from create_parser to ensure the user inputs are safe.
+
+    Checks output from create_parser to ensure the user inputs are safe.
+    Specifically, the parser checks that for every input file there is an
+    associated cross-section or that no cross=sections are given.
+
+    Args:
+    args (dict): Dictionary of parser arguments.
+
+    Returns:
+    args (dict): Dictionary of parser arguments.
+    '''
+
+    if (not args.cross_section):
+        args.cross_section = [False] * len(args.input_files)
+    elif (len(args.cross_section) != len(args.input_files)):
+        raise RuntimeError('''The number of given cross sections is different from
+                        the number of given input files.  Please either don't
+                        specify a cross section arugment or specify as many
+                        cross sections as there are input files.''')
+    return(args)
+
+def parse_user_input(args):
+    ''' Parses user inputs.
+
+    Parses user inputs and returns a dictionary of cleaned user options.
+
+    Args:
+    args (sys.argv): Raw user inputs from sys.argv
+
+    Returns:
+    args (dict): Dictionary of parser arguments.  After cleaning
+    '''
+    import sys
+    import argparse
+    
+    parser = create_parser()
+    args = parser.parse_args(sys.argv[1:])
+    print(args)
+    args = check_args(args)
+    return(args)
+
 def find_WW_path():
     ''' Finds the path to WWProduction the folder within the project.
 

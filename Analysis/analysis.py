@@ -13,34 +13,8 @@ import vector
 import analysis_tools as at
 
 
-# Argument Parser
-parser = argparse.ArgumentParser(description='Process files and settings for analysis.')
-parser.add_argument('input_files',type=open, nargs='+',
-                    help='The file or files to be anayzed. Input files should be root files.')
-parser.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
-                    help='''The cross section used to normalize histograms in fb.
-                    This option should either not be specified or have exactly
-                    as many arguments as input files.''')
-parser.add_argument('-t', '--testing', default=True, action='store_true',
-                    help='''Flag to indicate if a new output folder should be created for 
-                    this analysis.  -t means that all plots will go in folder labelled Test.''')
-parser.add_argument('-p', '--production', dest='testing', action='store_false',
-                    help='''Flag to indicate if a new output folder should be created for this 
-                    analysis.  -p means that all plots will be put into a new output folder with
-                    the same name as the input file.''')
-args = parser.parse_args()
-print(args)
-
-# Make sure the cross-sections have as many aguments as files.
-if (not args.cross_section):
-    args.cross_section = [False] * len(args.input_files)
-elif (len(args.cross_section) != len(args.input_files)):
-    raise RuntimeError('''The number of given cross sections is different from
-                       the number of given input files.  Please either don't
-                       specify a cross section arugment or specify as many
-                       cross sections as there are input files.''')
-
 # Parse inputs
+args = at.parse_user_input(sys.argv)
 file_name =  args.input_files[0].name
 cross_section = args.cross_section[0] # Cross section in fb
 
