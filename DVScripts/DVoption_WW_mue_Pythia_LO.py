@@ -52,13 +52,13 @@ dtt.Decay = '[H_10 -> ^e- ^mu+]CC'
 dtt.addBranches({
     'H_10': '[H_10 -> e- mu+]CC',
     'muon': '[H_10 -> e- ^mu+]CC',
-    'electron': '[H_10 -> ^e- mu+',
+    'electron': '[H_10 -> ^e- mu+]CC',
 })
 
 # Configure DaVinci
 DaVinci().UserAlgorithms += [dilepton_seq.sequence(), dtt]
 DaVinci().InputType = 'DST'
-DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/DVoption_WW_mue_Pythia_LO.root'
+DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/WW_mue_Pythia_LO.root'
 DaVinci().PrintFreq = 1000
 DaVinci().DataType = '2016'
 DaVinci().Simulation = True

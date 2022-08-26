@@ -48,19 +48,23 @@ cross_section = args.cross_section[0] # Cross section in fb
 ifile = uproot.open(file_name)
 tree = ifile['Tuple/DecayTree'].arrays()
 
+# Create Indices
+first_lepton_key = 'muon'
+second_lepton_key = 'electron'
+
 # Create Vectors
 lminus_vec = vector.zip({
-    'px': tree['lminus_PX'],
-    'py': tree['lminus_PY'],
-    'pz': tree['lminus_PZ'],
-    'e': tree['lminus_PE'],
+    'px': tree[first_lepton_key + '_PX'],
+    'py': tree[first_lepton_key + '_PY'],
+    'pz': tree[first_lepton_key + '_PZ'],
+    'e': tree[first_lepton_key + '_PE'],
 })
 
 lplus_vec = vector.zip({
-    'px': tree['lplus_PX'],
-    'py': tree['lplus_PY'],
-    'pz': tree['lplus_PZ'],
-    'e': tree['lplus_PE'],
+    'px': tree[second_lepton_key + '_PX'],
+    'py': tree[second_lepton_key + '_PY'],
+    'pz': tree[second_lepton_key + '_PZ'],
+    'e': tree[second_lepton_key + '_PE'],
 })
 dilepton_vec = lminus_vec + lplus_vec
 
@@ -88,10 +92,10 @@ at.create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=
             weights=at.calculate_weights(leading_lepton_pT_array, cross_section))
 at.create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000),
             weights=at.calculate_weights(trailing_lepton_pT_array, cross_section))
-at.create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000),
-            weights=at.calculate_weights(lminus_vec, cross_section))
-at.create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000),
-            weights=at.calculate_weights(lplus_vec, cross_section))
+#at.create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000),
+#            weights=at.calculate_weights(lminus_vec, cross_section))
+#at.create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000),
+#            weights=at.calculate_weights(lplus_vec, cross_section))
 at.create_hist(delta_phi_array, 'Delta Phi', bins=50,
             weights=at.calculate_weights(delta_phi_array, cross_section))
 at.create_hist(delta_r_array, 'Delta R', bins=50,
