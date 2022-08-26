@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import awkward as ak
 import uproot
 import vector
-
-sys.path.append('/Users/nowakg/OneDrive - University of Cincinnati/Research/WWProduction/Analysis') # This is Awesome!
+sys.path.append('../../Analysis') # This is Awesome!
 import analysis_tools as at
+
 
 # Argument Parser
 parser = argparse.ArgumentParser(description='''Process files and settings for analysis.

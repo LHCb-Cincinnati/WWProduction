@@ -42,9 +42,28 @@ def create_folder_path(file_name, test_mode_flag):
     else:
         folder_name = file_name[:-5]
         folder_name = folder_name.split('/')[-1]
-    path = os.environ['HOME'] + '/WWProduction/Data/Figures/' + folder_name
+    path = find_WW_path() + '/Data/Figures/' + folder_name
     if not os.path.exists(path):
         os.mkdir(path)
+    return(path)
+
+def find_WW_path():
+    ''' Finds the path to WWProduction the folder within the project.
+
+    Finds the path to WWProduction the folder within the project.  Many paths
+    are based upon where this folder is located.
+
+    Args:
+    None
+
+    Returns:
+    path (str): Path to WWProduciton folder.
+    '''
+    import os
+
+    cwd_list = os.getcwd().split('/')
+    WW_index = cwd_list.index('WWProduction')
+    path = '/'.join(cwd_list[:WW_index+1])
     return(path)
 
 def calculate_hist_stats(hist, bins):
