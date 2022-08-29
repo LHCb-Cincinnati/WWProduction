@@ -1,4 +1,13 @@
 '''
+
+Ideas:
+- Make the Parser a class inherited from argparse.parser instead of a
+    function.
+- Make a optional argument to the Parser Class/Function the required
+    minimum number of files and make check there are as many input files as
+    needed.
+- Make a funciton that grabs all the normal kinematic variables from a ROOT
+    Tree.
 '''
 
 def calculate_weights(array, cross_section, nsim=False):

@@ -66,10 +66,10 @@ at.create_hist(leading_lepton_pT_array, 'Leading Lepton pT', yscale='log', bins=
             weights=at.calculate_weights(leading_lepton_pT_array, cross_section))
 at.create_hist(trailing_lepton_pT_array, 'Trailing Lepton pT', yscale='log', bins=50, range=(0,150000),
             weights=at.calculate_weights(trailing_lepton_pT_array, cross_section))
-#at.create_hist(lminus_vec.pt, 'lminus pT', bins=50, yscale='log', range=(0,150000),
-#            weights=at.calculate_weights(lminus_vec, cross_section))
-#at.create_hist(lplus_vec.pt, 'lplus pT', yscale='log', bins=50, range=(0,150000),
-#            weights=at.calculate_weights(lplus_vec, cross_section))
+at.create_hist(lminus_vec.pt, 'Muon pT', bins=50, yscale='log', range=(0,150000),
+            weights=at.calculate_weights(lminus_vec, cross_section))
+at.create_hist(lplus_vec.pt, 'Electron pT', yscale='log', bins=50, range=(0,150000),
+            weights=at.calculate_weights(lplus_vec, cross_section))
 at.create_hist(delta_phi_array, 'Delta Phi', bins=50,
             weights=at.calculate_weights(delta_phi_array, cross_section))
 at.create_hist(delta_r_array, 'Delta R', bins=50,
