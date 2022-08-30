@@ -245,7 +245,7 @@ def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
     hist, bins, patches = axs.hist(array_list, stacked=True, **kwargs)
     plt.yscale(yscale)
     plt.title(title)
-    #plt.legend()
+    plt.legend()
 
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
