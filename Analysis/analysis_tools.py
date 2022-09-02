@@ -1,6 +1,8 @@
-'''
+'''  Provides a series of functions and classes to use my physics analysis.
 
-Ideas:
+Provides a series of functions and classes to use my physics analysis.
+
+To-Dos:
 - Make a funciton that grabs all the normal kinematic variables from a ROOT
     Tree.
 '''
