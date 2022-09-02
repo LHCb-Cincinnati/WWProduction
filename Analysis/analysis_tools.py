@@ -1,14 +1,12 @@
 '''
 
 Ideas:
-- Make the Parser a class inherited from argparse.parser instead of a
-    function.
-- Make a optional argument to the Parser Class/Function the required
-    minimum number of files and make check there are as many input files as
-    needed.
 - Make a funciton that grabs all the normal kinematic variables from a ROOT
     Tree.
 '''
+
+import argparse 
+
 
 def calculate_weights(array, cross_section, nsim=False):
     ''' Creates the weights array for a numpy histogram, given information
@@ -56,77 +54,128 @@ def create_folder_path(file_name, test_mode_flag):
         os.mkdir(path)
     return(path)
 
-def create_parser():
-    ''' Creates an argparse parser to process user input.
+class Parser(argparse.ArgumentParser):
+    """ A user input parser for my analysis.
 
-    Creates an argparse parser to process user input.
+    A user input parser for my analysis.  Parses input files, cross sections,
+    and testing flags.
 
-    Args:
-    None
+    Attributes:
+        args (dict): Dictionary of user inputs.  Derived from sys.argv
+        min_num_files (int): The minimum number of input files allowed by the
+            parser.
 
-    Returns:
-    parser (argparse.parser): An argparse parser to process user input.
-    '''
-    import argparse
+    """
 
-    parser = argparse.ArgumentParser(description='Process files and settings for analysis.')
-    parser.add_argument('input_files',type=open, nargs='+',
-                        help='The file or files to be anayzed. Input files should be root files.')
-    parser.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
-                        help='''The cross section used to normalize histograms in fb.
-                        This option should either not be specified or have exactly
-                        as many arguments as input files.''')
-    parser.add_argument('-t', '--testing', default=True, action='store_true',
-                        help='''Flag to indicate if a new output folder should be created for 
-                        this analysis.  -t means that all plots will go in folder labelled Test.''')
-    parser.add_argument('-p', '--production', dest='testing', action='store_false',
-                        help='''Flag to indicate if a new output folder should be created for this 
-                        analysis.  -p means that all plots will be put into a new output folder with
-                        the same name as the input file.''')
-    return(parser)
+    def __init__(self, sys_args, min_num_files = 1):
+        ''' Initialization method of class.
 
-def check_args(args):
-    ''' Checks output from create_parser to ensure the user inputs are safe.
+        Initialization method of class.  Performs initial assignment using
+        the argparse.ArgumentParser class __init__ method, parses the user
+        input arguments, and checks the user input for any errors.
 
-    Checks output from create_parser to ensure the user inputs are safe.
-    Specifically, the parser checks that for every input file there is an
-    associated cross-section or that no cross=sections are given.
+        Args:
+        sys_args (list): Input from sys.argv.
+        min_num_files (int): The minimum number of input files allowed by the
+            parser.
 
-    Args:
-    args (dict): Dictionary of parser arguments.
+        Returns:
+        None
 
-    Returns:
-    args (dict): Dictionary of parser arguments.
-    '''
+        '''
 
-    if (not args.cross_section):
-        args.cross_section = [False] * len(args.input_files)
-    elif (len(args.cross_section) != len(args.input_files)):
-        raise RuntimeError('''The number of given cross sections is different from
-                        the number of given input files.  Please either don't
-                        specify a cross section arugment or specify as many
-                        cross sections as there are input files.''')
-    return(args)
+        argparse.ArgumentParser.__init__(self, description='''Process files
+                                        and settings for analysis.''',
+                                        prog='program.py',
+                                        usage='%(prog)s file1.root'
+                                         +' file2.root -c 35.6 37.8 -p')
+        self.add_argument('input_files',type=open, nargs='+',
+                        help='''The file or files to be anayzed. 
+                        Input files should be root files.''')
+        self.add_argument('-c', '--cross_section', type=float, default=False, nargs='*', 
+                            help='''The cross section used to normalize
+                            histograms in fb.  This option should either not
+                            be specified or have exactly as many arguments as
+                            input files.''')
+        self.add_argument('-t', '--testing', default=True,
+                            action='store_true', help='''Flag to indicate if
+                            a new output folder should be created for this
+                            analysis.  -t means that all plots will go in
+                            folder labelled Test.''')
+        self.add_argument('-p', '--production', dest='testing',
+                            action='store_false', help='''Flag to indicate if
+                            a new output folder should be created for this
+                            analysis.  -p means that all plots will be put
+                            into a new output folder withthe same name as
+                            the input file.''')
+        self.args = self.parse_args(sys_args)
+        self.min_num_files = min_num_files
+        self.check_args()
+        print(self.args)
 
-def parse_user_input(args):
-    ''' Parses user inputs.
+    def check_args(self):
+        ''' Checks self.args input for any potential errors after parsing.
 
-    Parses user inputs and returns a dictionary of cleaned user options.
+        Checks self.args input for any potential errors after parsing.  This
+        may include an incorrect number of files or cross sections given.
+        This function is used to call other functions which perform
+        individual checks.
 
-    Args:
-    args (sys.argv): Raw user inputs from sys.argv
+        Args:
+        None
 
-    Returns:
-    args (dict): Dictionary of parser arguments.  After cleaning
-    '''
-    import sys
-    import argparse
+        Returns:
+        None
+
+        '''
     
-    parser = create_parser()
-    args = parser.parse_args(sys.argv[1:])
-    print(args)
-    args = check_args(args)
-    return(args)
+        self.check_cross_sections()
+        self.check_min_num_files()
+        return()
+    
+    def check_cross_sections(self):
+        ''' Checks that the number of cross sections is correct.
+
+        Checks that the number of cross sections given is equal to the
+        number of files given.  If not, an error is raised.
+
+        Args:
+        None
+
+        Returns:
+        None
+
+        '''
+
+        if (not self.args.cross_section):
+            self.args.cross_section = [False] * len(self.args.input_files)
+        elif (len(self.args.cross_section) != len(self.args.input_files)):
+            raise RuntimeError('''The number of given cross sections is
+                                different from the number of given input 
+                                files.  Please either don't specify a cross
+                                section arugment or specify as many cross 
+                                sections as there are input files.''')
+        return()
+
+    def check_min_num_files(self):
+        ''' Checks that the number of input files is acceptable.
+
+        Checks that the number of input files given is equal to or greater
+        than the min_num_files parameter.  If not, an error is raised.
+
+        Args:
+        None
+
+        Returns:
+        None
+
+        '''
+
+        if (len(self.args.input_files) < self.min_num_files):
+            raise RuntimeError(f'''The number of files given is less than the
+            the required number of files.  Please give at least 
+            {self.min_num_files} files as input.''')
+        return()
 
 def find_WW_path():
     ''' Finds the path to WWProduction the folder within the project.

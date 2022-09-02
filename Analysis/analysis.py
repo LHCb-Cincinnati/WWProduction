@@ -14,7 +14,8 @@ import analysis_tools as at
 
 
 # Parse inputs
-args = at.parse_user_input(sys.argv)
+parser = at.Parser(sys.argv[1:])
+args = parser.args
 file_name =  args.input_files[0].name
 cross_section = args.cross_section[0] # Cross section in fb
 
