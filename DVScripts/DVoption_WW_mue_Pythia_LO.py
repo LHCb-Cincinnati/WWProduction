@@ -65,10 +65,10 @@ DaVinci().Simulation = True
 # Only ask for luminosity information when not using simulated data
 DaVinci().Lumi = not DaVinci().Simulation
 DaVinci().EvtMax = -1
-DaVinci().CondDBtag = 'sim-20161124-2-vc-md100'
-DaVinci().DDDBtag = 'dddb-20150724'
+DaVinci().CondDBtag = 'sim-20170721-2-vc-md100'
+DaVinci().DDDBtag = 'dddb-20170721-3'
 
 # Use the local input data
 IOHelper().inputFiles([
-    '~/WWProduction/Data/TestFiles/00057387_00000003_3.AllStreams.dst'
+    '~/WWProduction/Data/TestFiles/00166588_00000014_7.AllStreams.dst'
 ], clear=True)
