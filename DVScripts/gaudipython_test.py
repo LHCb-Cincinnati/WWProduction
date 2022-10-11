@@ -36,11 +36,12 @@ tEvt_num = np.array([0], dtype=np.float32)
 # Truth Containers
 tFew_lepton_flag = np.array([0], dtype=np.float32)
 tMany_lepton_flag = np.array([0], dtype=np.float32)
+tDecay_process_array = np.array(3*[0], dtype=np.float32)
 tLeading_lepton_array = np.array(5*[0], dtype=np.float32)
 tTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
 # Reco Containers
-rElectron_array = np.array(5*[0], dtype=np.float32)
-rMuon_array = np.array(5*[0], dtype=np.float32)
+rLeading_lepton_array = np.array(5*[0], dtype=np.float32)
+rTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
 
 # Create ROOT Tree
 ofile = ROOT.TFile('~/WWProduction/Data/DVTuples/ofile.root', 'RECREATE')
@@ -51,9 +52,10 @@ tree.Branch('tFew_lepton_flag', tFew_lepton_flag, 'tFew_lepton_flag/F')
 tree.Branch('tMany_lepton_flag',tMany_lepton_flag, 'tMany_lepton_flag/F')
 tree.Branch('tLeading_lepton_array', tLeading_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
 tree.Branch('tTrailing_lepton_array', tTrailing_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
+tree.Branch('tDecay_process_array', tDecay_process_array, 'mumu/F:mue/F:ee/F')
 # Reco Branches
-tree.Branch('rElectron_array', rElectron_array, 'px/F:py/F:pz/F:e/F:pid/F')
-tree.Branch('rMuon_array', rMuon_array, 'px/F:py/F:pz/F:e/F:pid/F')
+tree.Branch('rLeading_lepton_array', rLeading_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
+tree.Branch('rTrailing_lepton_array', rTrailing_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
 
 # Set up DaVinci Objects
 import DVoption_Sequences as DVSequences
@@ -83,10 +85,10 @@ gaudi.run(1)
 evtmax = 100
 
 # Testing
-counter = 0
+
 
 while (evtnum<evtmax):
-# while (bool(tes['/Event'])):
+# while bool(tes['/Event']):
     # Putting this gaud.run(1) here skips the first event in preference of
     # simplicity.
     gaudi.run(1) 
@@ -96,6 +98,7 @@ while (evtnum<evtmax):
     tEvt_num[:] = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
     tFew_lepton_flag[:] = np.array(0, dtype=np.float32)
     tMany_lepton_flag[:] = np.array(0, dtype=np.float32)
+    tDecay_process_array[:] = np.array(3*[0], dtype=np.float32)
 
     # Truth Stuff
     truth_particles = tes['MC/Particles']
@@ -104,18 +107,28 @@ while (evtnum<evtmax):
                     if (((abs(mc_particle.particleID().pid()) == 13) 
                         or (abs(mc_particle.particleID().pid()) == 11))
                         and (mc_particle.pt() > 10000))}
+    # Odd Process Assignment
     if (len(truth_highptleptons_dict)>2):
         tMany_lepton_flag[:] = np.array(1, dtype=np.float32)
     elif (len(truth_highptleptons_dict)<2):
-        # pdb.set_trace()
         tFew_lepton_flag[:] = np.array(1, dtype=np.float32)
         tree.GetBranch("tEvt_num").Fill()
         tree.GetBranch("tFew_lepton_flag").Fill()
         tree.GetBranch("tMany_lepton_flag").Fill()
+        tree.GetBranch("tDecay_process_array").Fill()
         continue
     high_pt_vals = sorted(truth_highptleptons_dict.keys(), reverse=True)[:2]
     leading_lepton = truth_highptleptons_dict[high_pt_vals[0]]
     trailing_lepton = truth_highptleptons_dict[high_pt_vals[1]]
+    # Decay Process Assignment
+    pdb.set_trace()
+    if ((abs(leading_lepton.particleID().pid()) == 13) and (abs(trailing_lepton.particleID().pid()) == 13)):
+        tDecay_process_array[:] = np.array([1,0,0], dtype=np.float32)
+    elif ((abs(leading_lepton.particleID().pid()) == 11) and (abs(trailing_lepton.particleID().pid()) == 13)
+        or (abs(leading_lepton.particleID().pid()) == 13) and (abs(trailing_lepton.particleID().pid()) == 11)):
+        tDecay_process_array[:] = np.array([0,1,0], dtype=np.float32)
+    elif ((abs(leading_lepton.particleID().pid()) == 11) and (abs(trailing_lepton.particleID().pid()) == 11)):
+        tDecay_process_array[:] = np.array([0,0,1], dtype=np.float32)
     tLeading_lepton_array[:] = np.array((
                     leading_lepton.momentum().X(),
                     leading_lepton.momentum().Y(),
@@ -131,12 +144,14 @@ while (evtnum<evtmax):
                     trailing_lepton.particleID().pid()), 
                     dtype=np.float32)
 
+    
     # Fill MC Branches
     tree.GetBranch("tEvt_num").Fill()
     tree.GetBranch("tFew_lepton_flag").Fill()
     tree.GetBranch("tMany_lepton_flag").Fill()
     tree.GetBranch("tLeading_lepton_array").Fill()
     tree.GetBranch("tTrailing_lepton_array").Fill()
+    tree.GetBranch("tDecay_process_array").Fill()
 
     # Reco Stuff
     # If collection is not filled, skip the loop
@@ -151,30 +166,30 @@ while (evtnum<evtmax):
     # reg_jets = tes['Phys/StdHltJets/Particles']
 
     for index in range(len(candidates)):
-        daughter_id_list = [abs(daughter.particleID().pid()) for daughter in candidates[index].daughters()]
-        muon_index = daughter_id_list.index(13)
-        electron_index = daughter_id_list.index(11)
+        reco_leptons_dict = {particle.pt():particle for particle
+                            in candidates[index].daughters()}
+        leading_lepton = reco_leptons_dict[max(reco_leptons_dict.keys())]
+        trailing_lepton = reco_leptons_dict[min(reco_leptons_dict.keys())]
         # test_ele = genTool.relatedMCPs(candidates[index].daughters()[electron_index])
         # test_muon = genTool.relatedMCPs(candidates[index].daughters()[muon_index])
-        # pdb.set_trace()
 
-        rMuon_array[:] = np.array((candidates[index].daughters()[muon_index].momentum().X(),
-                            candidates[index].daughters()[muon_index].momentum().Y(),
-                            candidates[index].daughters()[muon_index].momentum().Z(),
-                            candidates[index].daughters()[muon_index].momentum().E(),
-                            candidates[index].daughters()[muon_index].particleID().pid()),
+        rLeading_lepton_array[:] = np.array((
+                            leading_lepton.momentum().X(),
+                            leading_lepton.momentum().Y(),
+                            leading_lepton.momentum().Z(),
+                            leading_lepton.momentum().E(),
+                            leading_lepton.particleID().pid()),
                             dtype=np.float32)
-        rElectron_array[:] = np.array((candidates[index].daughters()[electron_index].momentum().X(),
-                            candidates[index].daughters()[electron_index].momentum().Y(),
-                            candidates[index].daughters()[electron_index].momentum().Z(),
-                            candidates[index].daughters()[electron_index].momentum().E(),
-                            candidates[index].daughters()[electron_index].particleID().pid()),
+        rTrailing_lepton_array[:] = np.array((
+                            trailing_lepton.momentum().X(),
+                            trailing_lepton.momentum().Y(),
+                            trailing_lepton.momentum().Z(),
+                            trailing_lepton.momentum().E(),
+                            trailing_lepton.particleID().pid()),
                             dtype=np.float32)
-        tree.GetBranch("rElectron_array").Fill()
-        tree.GetBranch("rMuon_array").Fill()
-
+        tree.GetBranch("rLeading_lepton_array").Fill()
+        tree.GetBranch("rTrailing_lepton_array").Fill()
 
 tree.SetEntries(-1)
 ofile.Write()
 ofile.Close()
-
