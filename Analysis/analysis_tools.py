@@ -301,3 +301,15 @@ def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png')
+
+def create_2D_hist(array1, array2, **kwargs):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    fig, axs = plt.subplots()
+    hist, x_edges, y_edges = np.histogram2d(array1, array2, **kwargs)
+    X, Y = np.meshgrid(x_edges, y_edges)
+    color_mesh = axs.pcolormesh(X, Y, hist)
+    fig.colorbar(color_mesh, ax=axs)
+    plt.title('Test')
+    plt.xlabel('xlabel')
+    fig.savefig('Test' + '.png')
