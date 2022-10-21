@@ -68,12 +68,10 @@ rElectron_vec = ak.where((abs(rLeading_lepton_vec.pid)==11), rLeading_lepton_vec
 tDelta_phi_array = np.abs(tMuon_vec.deltaphi(tElectron_vec))
 tDelta_eta_array = np.abs(tMuon_vec.deltaeta(tElectron_vec))
 tDelta_r_array = np.abs(tMuon_vec.deltaR(tElectron_vec))
-print(f'Truth Length: {len(tDelta_eta_array)}')
 # Reco Quantities
 rDelta_phi_array = np.abs(rMuon_vec.deltaphi(rElectron_vec))
 rDelta_eta_array = np.abs(rMuon_vec.deltaeta(rElectron_vec))
 rDelta_r_array = np.abs(rMuon_vec.deltaR(rElectron_vec))
-print(f'Reco Length: {len(rDelta_eta_array)}')
 
 # Create output directory if it does not yet exist
 # and change current directory to output directory
