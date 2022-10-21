@@ -55,16 +55,18 @@ dtt.addBranches({
     'electron': '[H_10 -> ^e- mu+]CC',
 })
 
+
 # Configure DaVinci
 DaVinci().UserAlgorithms += [dilepton_seq.sequence(), dtt]
 DaVinci().InputType = 'DST'
-DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/WW_mue_Pythia_LO.root'
-DaVinci().PrintFreq = 1000
+# DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/WW_mue_Pythia_LO.root'
+DaVinci().TupleFile = '~/WWProduction/Data/DVTuples/Test.root'
+DaVinci().PrintFreq = 10
 DaVinci().DataType = '2016'
 DaVinci().Simulation = True
 # Only ask for luminosity information when not using simulated data
 DaVinci().Lumi = not DaVinci().Simulation
-DaVinci().EvtMax = -1
+DaVinci().EvtMax = 100
 DaVinci().CondDBtag = 'sim-20170721-2-vc-md100'
 DaVinci().DDDBtag = 'dddb-20170721-3'
 
