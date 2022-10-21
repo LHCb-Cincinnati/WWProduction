@@ -88,11 +88,10 @@ gaudi.run(1)
 evtmax = 100
 counter = 0
 
-while (evtnum<evtmax):
-# while bool(tes['/Event']):
+# while (evtnum<evtmax):
+while bool(tes['/Event']):
     # Putting this gaud.run(1) here skips the first event in preference of
     # simplicity.
-    gaudi.run(1) 
     evtnum += 1
 
     # Initialize Truth Arrays
@@ -146,6 +145,7 @@ while (evtnum<evtmax):
     # Reco Stuff
     # If collection is not filled, skip the loop
     if (not bool(tes['Phys/StdAllLooseMuons/Particles']) or not bool(tes['Phys/StdAllLooseElectrons/Particles'])):
+        gaudi.run(1) 
         continue
 
     candidates =  tes[dilepton_seq.outputLocation()]
@@ -156,8 +156,9 @@ while (evtnum<evtmax):
     # reg_jets = tes['Phys/StdHltJets/Particles']
 
     for index in range(len(candidates)):
+
         # Initialize Reco Arrays
-        rEvt_num = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
+        rEvt_num[:] = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
         rMuonid_array[:] = np.array(2*[0], dtype=np.float32)
         rElectronid_array[:] = np.array(2*[0], dtype=np.float32)
 
@@ -189,10 +190,12 @@ while (evtnum<evtmax):
             rMuonid_array[:] = np.array((reco_leading_lepton.proto().muonPID().IsMuon(),
                                         reco_trailing_lepton.proto().muonPID().IsMuon()),
                                         dtype=np.float32)
+
         tree.GetBranch("rEvt_num").Fill()                                
         tree.GetBranch("rLeading_lepton_array").Fill()
         tree.GetBranch("rTrailing_lepton_array").Fill()
         tree.GetBranch("rMuonid_array").Fill()
+    gaudi.run(1) 
 
 
 print(f'Count: {counter}')

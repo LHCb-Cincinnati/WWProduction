@@ -27,8 +27,8 @@ def calculate_weights(array, cross_section, nsim=False):
     Args:
     array (np.array): Numpy array of data corresponding to the process of the
         cross-section.
-    cross_section (float): The cross-section of the process through which the
-        data was created. Optional
+    cross_section (float): The cross-section (in fb )of the process through
+        which the data was created. Optional
     nsim (int): The number of events simulated on the given process type.
         Optional
 
