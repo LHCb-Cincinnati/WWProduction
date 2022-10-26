@@ -45,15 +45,13 @@ leading_lepton_vec = ak.where((lplus_vec.pt>lminus_vec.pt), lplus_vec, lminus_ve
 trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_vec)
 
 # Masks
-both_lepton_acc_mask = ((lminus_vec.eta > 2) & (lminus_vec.eta<5)
-                    & (lplus_vec.eta > 2) & (lplus_vec.eta<5))
+both_lepton_acc_mask = ((lminus_vec.eta>1.596) & (lplus_vec.eta>1.596))
 high_pT_lepton_mask = ((lminus_vec.pt>15) | (lplus_vec.pt>15))
 low_pT_lepton_mask = ((lminus_vec.pt>5) & (lplus_vec.pt>5))
 mumu_decay_mask = ((tree['LeptonMinus'].id==13) & (tree['LeptonPlus'].id==-13))
 mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                     | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
-one_lepton_acc_mask = (((lminus_vec.eta>2) & (lminus_vec.eta<5))
-                        | ((lplus_vec.eta>2) & (lplus_vec.eta<5)))
+one_lepton_acc_mask = ((lminus_vec.eta>1.596) | (lplus_vec.eta>1.596))
 invariant_mass_mask = (dilepton_vec.m>10)
 lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mumu_decay_mask
 drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
@@ -67,16 +65,12 @@ delta_phi_array = np.abs(leading_lepton_vec.deltaphi(trailing_lepton_vec))
 delta_eta_array = np.abs(leading_lepton_vec.deltaeta(trailing_lepton_vec))
 delta_r_array = np.abs(leading_lepton_vec.deltaR(trailing_lepton_vec))
 
-# # Create output directory if it does not yet exist
-# # and change current directory to output directory
-#file_path = at.create_folder_path('WW_GenLevelPythia' + '.root', args.testing)
-
-file_path = 'WW_GenLevelPythia'
-#os.mkdir(file_path)
+# Create output directory if it does not yet exist
+# and change current directory to output directory
+file_path = at.create_folder_path(file_name, args.testing)
 os.chdir(file_path)
 
-# scale_factor
-
+pdb.set_trace()
 # Plots
 at.create_hist(leading_lepton_vec.pt, 'StandAlone Leading Lepton Pt', bins=100, range=(0,200),
                 density=True)
@@ -86,7 +80,7 @@ at.create_hist(leading_lepton_vec.eta, 'StandAlone Leading Lepton Eta', bins=50,
                 density=True)
 at.create_hist(trailing_lepton_vec.eta, 'StandAlone Trailing Lepton Eta', bins=50, range=(-7,7),
                 density=True)
-at.create_hist(dilepton_vec.m, 'StandAlone DiLepton Mass', bins=100, range=(0,200),
+at.create_hist(dilepton_vec.m, 'StandAlone DiLepton Mass', bins=100, range=(0,500),
                 density=True)
 at.create_hist(dilepton_vec.pt, 'StandAlone DiLepton pT', bins=100, range=(0,200),
                 density=True)

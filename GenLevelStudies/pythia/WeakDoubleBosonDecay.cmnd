@@ -2,7 +2,7 @@
 # File meant for WBosonDecay.cc
 
 # General Settings
-Main:numberOfEvents = 100        # number of events to generate
+Main:numberOfEvents = 10000        # number of events to generate
 Main:timesAllowErrors = 10         # how many aborts before run stops
 Init:showChangedSettings = on      # list changed settings
 Init:showChangedParticleData = on  # list changed particle data
@@ -13,7 +13,7 @@ Beams:idB = 2212. # Colliding Protons
 Beams:eCM = 13000 # Beam CM Energy
 
 # Process PDFs
-PDF:pSet = 13
+# PDF:pSet = 13
 
 # Process Parameters
 # QCD
