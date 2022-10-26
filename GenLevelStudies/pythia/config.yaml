@@ -1,0 +1,9 @@
+card_file: "ttbarProduction.cmnd"
+output_file: "Test.root"
+log_file: ""
+additional_particles:
+  6: "Top"
+  5: "Bottom"
+  -6: "TopBar"
+  -5: "BottomBar"
+
