@@ -39,7 +39,7 @@ def calculate_weights(array, cross_section, nsim=False):
     '''
     if not nsim:
         nsim = len(array)
-    scale_factor = bool(cross_section)*(cross_section / nsim - 1) + 1
+    scale_factor = bool(cross_section)*((cross_section / nsim) - 1) + 1
     weights_array = [scale_factor] * len(array)
     return(weights_array)
 
