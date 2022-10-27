@@ -1,5 +1,5 @@
-card_file: "ttbarProduction.cmnd"
-output_file: "Test.root"
+card_file: "WeakDoubleBosonDecay.cmnd"
+output_file: "WeakDoubleBosonDecay.root"
 log_file: ""
 additional_particles:
   6: "Top"

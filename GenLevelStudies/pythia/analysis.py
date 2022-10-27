@@ -57,36 +57,41 @@ lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mumu_d
 drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 
 # Apply Masks
-leading_lepton_vec = leading_lepton_vec[one_lepton_acc_mask&high_pT_lepton_mask]
-trailing_lepton_vec = trailing_lepton_vec[one_lepton_acc_mask&high_pT_lepton_mask]
+muon_vec = muon_vec[lepton_mask]
+electron_vec = electron_vec[lepton_mask]
 
 # Calculate Quantitites
-delta_phi_array = np.abs(leading_lepton_vec.deltaphi(trailing_lepton_vec))
-delta_eta_array = np.abs(leading_lepton_vec.deltaeta(trailing_lepton_vec))
-delta_r_array = np.abs(leading_lepton_vec.deltaR(trailing_lepton_vec))
+delta_phi_array = np.abs(muon_vec.deltaphi(electron_vec))
+delta_eta_array = np.abs(muon_vec.deltaeta(electron_vec))
+delta_r_array = np.abs(muon_vec.deltaR(electron_vec))
 
 # Create output directory if it does not yet exist
 # and change current directory to output directory
 file_path = at.create_folder_path(file_name, args.testing)
 os.chdir(file_path)
 
-pdb.set_trace()
 # Plots
-at.create_hist(leading_lepton_vec.pt, 'StandAlone Leading Lepton Pt', bins=100, range=(0,200),
-                density=True)
-at.create_hist(trailing_lepton_vec.pt, 'StandAlone Trailing Lepton Pt', bins=100, range=(0,200),
-                density=True)
-at.create_hist(leading_lepton_vec.eta, 'StandAlone Leading Lepton Eta', bins=50, range=(-7,7),
-                density=True)
-at.create_hist(trailing_lepton_vec.eta, 'StandAlone Trailing Lepton Eta', bins=50, range=(-7,7),
-                density=True)
-at.create_hist(dilepton_vec.m, 'StandAlone DiLepton Mass', bins=100, range=(0,500),
-                density=True)
-at.create_hist(dilepton_vec.pt, 'StandAlone DiLepton pT', bins=100, range=(0,200),
-                density=True)
-at.create_hist(delta_phi_array, 'StandAlone Delta Phi', bins=50,
-                density=True)
-at.create_hist(delta_r_array, 'StandAlone Delta R', bins=50, range=(0, 4),
-                density=True)
-at.create_hist(delta_eta_array, 'StandAlone Delta Eta', bins=50, range=(0, 3),
-                density=True)
+at.create_hist(dilepton_vec.m, 'Standalone DiLepton Mass', bins=50, range=(0,500),
+            weights=at.calculate_weights(dilepton_vec, cross_section))
+at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Log', yscale='log', bins=50, range=(0,500),
+            weights=at.calculate_weights(dilepton_vec, cross_section))
+at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Linear', bins=50, range=(0,500),
+            weights=at.calculate_weights(dilepton_vec, cross_section))
+at.create_hist(muon_vec.pt, 'Standalone Muon pT Log', yscale='log', bins=50, range=(0,150),
+            weights=at.calculate_weights(muon_vec.pt, cross_section))
+at.create_hist(electron_vec.pt, 'Standalone Electron pT Log', yscale='log', bins=50, range=(0,150),
+            weights=at.calculate_weights(electron_vec.pt, cross_section))
+at.create_hist(muon_vec.pt, 'Standalone Muon pT Linear', bins=50, range=(0,150),
+            weights=at.calculate_weights(muon_vec.pt, cross_section))
+at.create_hist(electron_vec.pt, 'Standalone Electron pT Linear', bins=50, range=(0,150),
+            weights=at.calculate_weights(electron_vec.pt, cross_section))
+at.create_hist(muon_vec.eta, 'Standalone Muon Eta', bins=50, range=(1.5, 5),
+            weights=at.calculate_weights(muon_vec, cross_section))
+at.create_hist(electron_vec.eta, 'Standalone Electron Eta', bins=50, range=(1.5, 5),
+            weights=at.calculate_weights(electron_vec, cross_section))
+at.create_hist(delta_phi_array, 'Standalone Delta Phi', bins=50,
+            weights=at.calculate_weights(delta_phi_array, cross_section))
+at.create_hist(delta_r_array, 'Standalone Delta R', bins=50, range=(0, 5),
+            weights=at.calculate_weights(delta_r_array, cross_section))
+at.create_hist(delta_eta_array, 'Standalone Delta Eta', bins=50, range=(0, 3),
+            weights=at.calculate_weights(delta_eta_array, cross_section))
