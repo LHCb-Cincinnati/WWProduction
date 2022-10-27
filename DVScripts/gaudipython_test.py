@@ -6,15 +6,16 @@ import pdb
 import inspect
 # Standard Packages
 import numpy as np
-# Specific Packages
+# HEP Packages
 import ROOT
+# LHCb Packages
 import GaudiPython
 from GaudiConf import IOHelper
 from Configurables import DaVinci
 from Configurables import ApplicationMgr 
 # Personal Packages
 import DVoption_Sequences as DVSequences
-from DVoption_tools import DeltaRMatching
+import DVoption_tools as tools
 
 # Parse Inputs
 with open('DVScripts/config.yaml', 'r') as file:
@@ -87,10 +88,11 @@ genTool = gaudi.toolsvc().create(
 evtnum = 0
 gaudi.run(1)
 evtmax = config_dict['EvtMax']
+SourceParticles = config_dict['SourceParticles']
 counter = 0
 
-while (evtnum<evtmax):
-# while bool(tes['/Event']):
+# while (evtnum<evtmax):
+while bool(tes['/Event']):
     evtnum += 1
 
     # Initialize Truth Arrays
@@ -99,33 +101,19 @@ while (evtnum<evtmax):
 
     # Truth Stuff
     truth_particles = tes['MC/Particles']
-    W_list = [particle for particle in truth_particles
-             if ((abs(particle.particleID().pid())==6)
-             and particle.originVertex().type()==1)]
-    pdb.set_trace()
-    if len(W_list)!=2:
-        pdb.set_trace()
-    W1_decay_dict = {particle_ref.pt():particle_ref.target()
-                for particle_ref in W_list[0].endVertices()[0].products()
-                    if (abs(particle_ref.particleID().pid())==11
-                        or abs(particle_ref.particleID().pid())==13)
-                        and (W_list[0].particleID().pid()
-                            / particle_ref.particleID().pid() < 0)}
-    W2_decay_dict = {particle_ref.pt():particle_ref.target()
-            for particle_ref in W_list[1].endVertices()[0].products()
-                if (abs(particle_ref.particleID().pid())==11
-                    or abs(particle_ref.particleID().pid())==13)
-                    and (W_list[1].particleID().pid()
-                        / particle_ref.particleID().pid() < 0)}
-    if (not W1_decay_dict) or (not W2_decay_dict):
-        gaudi.run(1)
-        continue
-    high_pT_W1_decay_product = W1_decay_dict[max(W1_decay_dict.keys())]
-    high_pT_W2_decay_product = W2_decay_dict[max(W2_decay_dict.keys())]
-    Ws_decay_dict = {high_pT_W1_decay_product.pt(): high_pT_W1_decay_product,
-                    high_pT_W2_decay_product.pt(): high_pT_W2_decay_product}
-    truth_leading_lepton = Ws_decay_dict[max(Ws_decay_dict.keys())]
-    truth_trailing_lepton = Ws_decay_dict[min(Ws_decay_dict.keys())]
+    decay_dict = {}
+    for key in SourceParticles:
+        source_pid = config_dict['SourceParticles'][key]['SourcePID']
+        antiparticle_source = config_dict['SourceParticles'][key]['AntiParticleSource']
+        num_min_products = config_dict['SourceParticles'][key]['NumMinProducts']
+        target_pid_array = np.array(config_dict['SourceParticles'][key]['TargetPIDs'])
+        particle = tools.FindDecayProduct(truth_particles, source_pid, num_min_products, target_pid_array)
+        if antiparticle_source:
+            antiparticle = tools.FindDecayProduct(truth_particles, -1*source_pid, num_min_products, -1*target_pid_array)    
+        decay_dict[particle.pt()] = particle
+        decay_dict[antiparticle.pt()] = antiparticle
+    truth_leading_lepton = decay_dict[max(decay_dict.keys())]
+    truth_trailing_lepton = decay_dict[min(decay_dict.keys())]
 
     if ((abs(truth_leading_lepton.particleID().pid()) == 13) and (abs(truth_trailing_lepton.particleID().pid()) == 13)):
         tDecay_process_array[:] = np.array([1,0,0], dtype=np.float32)

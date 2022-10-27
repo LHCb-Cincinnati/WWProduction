@@ -1,5 +1,5 @@
 # General Options
-OutputFile: 'Test.root'
+OutputFile: 'WW_mue_LHCbMC_Pythia_LO.root'
 log_file: ''
 cross_section: 1
 PrintFrequency: 1000
@@ -18,6 +18,10 @@ DDDBtag: 'dddb-20150724'
 # CondDBtag: 'sim-20170721-2-vc-md100'
 # DDDBtag: 'dddb-20170721-3'
 
-# Signal Options
-signal_pid: 24
-num_min_products: 3
+# Particle Options
+SourceParticles:
+  W+:
+    SourcePID: 24
+    AntiParticleSource: True
+    NumMinProducts: 2
+    TargetPIDs: [-11, -13]

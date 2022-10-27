@@ -25,3 +25,38 @@ def DeltaRMatching(reco_particle, mc_particles_collection, max_deltar_val=0.1):
     else:
         min_deltar_index = deltar_list.index(min(deltar_list))
         return(mc_particles_list[min_deltar_index])
+
+def FindDecayProduct(truth_particles, source_pid, num_min_products, target_particles_list):
+    source_particles_dict = {particle.pt():particle for particle in truth_particles
+                    if (particle.particleID().pid()==source_pid
+                        and len(particle.endVertices()[0].products()) >= num_min_products
+                        and CheckOriginVertex(particle))}
+    highest_pT_source = sorted(source_particles_dict.keys(), reverse=True)[0]
+    source_particle = source_particles_dict[highest_pT_source]
+    source_decay_products_dict = {particle_ref.pt():particle_ref.target() for particle_ref
+                        in source_particle.endVertices()[0].products()
+                        if CheckMotherDaughterCharge(particle_ref)
+                        and (particle_ref.particleID().pid() in target_particles_list)}
+    highest_pT_target = source_decay_products_dict[max(source_decay_products_dict.keys())]
+    return(highest_pT_target)
+
+def CheckOriginVertex(particle):
+    mother = particle.mother()
+    if particle.originVertex().type()==1:
+        return(True)
+    elif not mother:
+        return(False)
+    else:
+        return(CheckOriginVertex(mother))
+
+def CheckMotherDaughterCharge(particle, same_polarity=True):
+    mother = particle.mother()
+    if not mother:
+        return(False)
+    mother_charge = mother.particleID().threeCharge()
+    daughter_charge = particle.particleID().threeCharge()
+    polarity_ratio = daughter_charge / mother_charge
+    if polarity_ratio>0:
+        return(True)
+    else:
+        return(False)
