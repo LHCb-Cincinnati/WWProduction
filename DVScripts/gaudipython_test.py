@@ -88,7 +88,7 @@ gaudi.run(1)
 evtmax = 100
 counter = 0
 
-# while (evtnum<evtmax):
+#while (evtnum<evtmax):
 while bool(tes['/Event']):
     # Putting this gaud.run(1) here skips the first event in preference of
     # simplicity.
@@ -103,14 +103,24 @@ while bool(tes['/Event']):
     W_list = [particle for particle in truth_particles
              if ((abs(particle.particleID().pid())==24)
                 and (particle.originVertex().type()==1))]
-    W_decay_dict = {particle_ref.pt():particle_ref.target() for W in W_list
-                    for particle_ref in W.endVertices()[0].products()
+    W1_decay_dict = {particle_ref.pt():particle_ref.target()
+                for particle_ref in W_list[0].endVertices()[0].products()
                     if (abs(particle_ref.particleID().pid())==11
                         or abs(particle_ref.particleID().pid())==13)
-                        and (W.particleID().pid()
+                        and (W_list[0].particleID().pid()
                             / particle_ref.particleID().pid() < 0)}
-    truth_leading_lepton = W_decay_dict[max(W_decay_dict.keys())]
-    truth_trailing_lepton = W_decay_dict[min(W_decay_dict.keys())]
+    W2_decay_dict = {particle_ref.pt():particle_ref.target()
+            for particle_ref in W_list[1].endVertices()[0].products()
+                if (abs(particle_ref.particleID().pid())==11
+                    or abs(particle_ref.particleID().pid())==13)
+                    and (W_list[1].particleID().pid()
+                        / particle_ref.particleID().pid() < 0)}
+    high_pT_W1_decay_product = W1_decay_dict[max(W1_decay_dict.keys())]
+    high_pT_W2_decay_product = W2_decay_dict[max(W2_decay_dict.keys())]
+    Ws_decay_dict = {high_pT_W1_decay_product.pt(): high_pT_W1_decay_product,
+                    high_pT_W2_decay_product.pt(): high_pT_W2_decay_product}
+    truth_leading_lepton = Ws_decay_dict[max(Ws_decay_dict.keys())]
+    truth_trailing_lepton = Ws_decay_dict[min(Ws_decay_dict.keys())]
 
     if ((abs(truth_leading_lepton.particleID().pid()) == 13) and (abs(truth_trailing_lepton.particleID().pid()) == 13)):
         tDecay_process_array[:] = np.array([1,0,0], dtype=np.float32)
