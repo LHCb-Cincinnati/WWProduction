@@ -42,14 +42,14 @@ rDilepton_vec = rLeading_lepton_vec + rTrailing_lepton_vec
 # Masks
 tEvt_num = tree['tEvt_num'].array().to_list()
 rEvt_num = tree['rEvt_num'].array().to_list()
-truth_lepton_acceptance_mask = ((tLeading_lepton_vec.eta>1.594)
-                                & (tTrailing_lepton_vec.eta>1.594))
+truth_lepton_acceptance_mask = ((tLeading_lepton_vec.eta>1.596)
+                                & (tTrailing_lepton_vec.eta>1.596))
 process_mask = (tree['tDecay_process_array'].array()['mue'] == 1)
 good_reco_event_mask = [process_mask[tEvt_num.index(evt)] for evt in rEvt_num]
-full_truth_mask = process_mask & truth_lepton_acceptance_mask
 high_pT_lepton_mask = ((tTrailing_lepton_vec.pt>15) | (tTrailing_lepton_vec.pt>15))
-one_lepton_acc_mask = ((tLeading_lepton_vec.eta>1.594) 
-                        | (tTrailing_lepton_vec.eta>1.594))
+one_lepton_acc_mask = ((tLeading_lepton_vec.eta>1.596) 
+                        | (tTrailing_lepton_vec.eta>1.596))
+full_truth_mask = process_mask & truth_lepton_acceptance_mask & high_pT_lepton_mask
 
 
 # Mask Vectors and Extract Lepton Info
@@ -68,9 +68,9 @@ tElectron_vec = ak.where((abs(tLeading_lepton_vec.pid)==11), tLeading_lepton_vec
 
 # Calculate Quantitites
 # # Truth Quantities
-tDelta_phi_array = np.abs(tLeading_lepton_vec.deltaphi(tTrailing_lepton_vec))
-tDelta_eta_array = np.abs(tLeading_lepton_vec.deltaeta(tTrailing_lepton_vec))
-tDelta_r_array = np.abs(tLeading_lepton_vec.deltaR(tTrailing_lepton_vec))
+tDelta_phi_array = np.abs(tMuon_vec.deltaphi(tElectron_vec))
+tDelta_eta_array = np.abs(tMuon_vec.deltaeta(tElectron_vec))
+tDelta_r_array = np.abs(tMuon_vec.deltaR(tElectron_vec))
 # # Reco Quantities
 # rDelta_phi_array = np.abs(rMuon_vec.deltaphi(rElectron_vec))
 # rDelta_eta_array = np.abs(rMuon_vec.deltaeta(rElectron_vec))
@@ -87,7 +87,9 @@ os.chdir(file_path)
 # Truth Plots
 at.create_hist(tDilepton_vec.m / GeV, 'Truth DiLepton Mass', bins=50, range=(0,500),
             weights=at.calculate_weights(tDilepton_vec, cross_section))
-at.create_hist(tDilepton_vec.pt / GeV, 'Truth DiLepton pT', yscale='log', bins=50, range=(0,150),
+at.create_hist(tDilepton_vec.pt / GeV, 'Truth DiLepton pT Log', yscale='log', bins=50, range=(0,500),
+            weights=at.calculate_weights(tDilepton_vec, cross_section))
+at.create_hist(tDilepton_vec.pt / GeV, 'Truth DiLepton pT Linear', bins=50, range=(0,500),
             weights=at.calculate_weights(tDilepton_vec, cross_section))
 at.create_hist(tMuon_vec.pt / GeV, 'Truth Muon pT Log', yscale='log', bins=50, range=(0,150),
             weights=at.calculate_weights(tMuon_vec.pt, cross_section))

@@ -1,34 +1,38 @@
 # Imports
+# Standard Library Packages
 import sys
+import yaml
 import pdb
 import inspect
-from collections import OrderedDict
-
+# Standard Packages
 import numpy as np
+# Specific Packages
 import ROOT
-
 import GaudiPython
 from GaudiConf import IOHelper
 from Configurables import DaVinci
 from Configurables import ApplicationMgr 
+# Personal Packages
+import DVoption_Sequences as DVSequences
+from DVoption_tools import DeltaRMatching
+
+# Parse Inputs
+with open('DVScripts/config.yaml', 'r') as file:
+    config_dict = yaml.safe_load(file)
 
 # Configure DaVinci
 DaVinci().InputType = 'DST'
-DaVinci().PrintFreq = 1000
-DaVinci().DataType = '2016'
+DaVinci().PrintFreq = config_dict['PrintFrequency']
+DaVinci().DataType = config_dict['DataType']
 DaVinci().Simulation = True
 # Only ask for luminosity information when not using simulated data
 DaVinci().Lumi = not DaVinci().Simulation
-# DaVinci().CondDBtag = 'sim-20170721-2-vc-md100'
-# DaVinci().DDDBtag = 'dddb-20170721-3'
-DaVinci().CondDBtag = 'sim-20161124-2-vc-md100'
-DaVinci().DDDBtag = 'dddb-20150724'
+DaVinci().CondDBtag = config_dict['CondDBtag']
+DaVinci().DDDBtag = config_dict['DDDBtag']
 
 # Use the local input data
-WW_data = '00057387_00000003_3.AllStreams.dst'
-tautau_data = '00144995_00000138_7.AllStreams.dst'
 IOHelper().inputFiles([
-    '~/WWProduction/Data/TestFiles/' + WW_data
+    '~/WWProduction/Data/TestFiles/' + config_dict['DataFile']
 ], clear=True)
 
 # Containers for ROOT Tree
@@ -45,7 +49,8 @@ rMuonid_array = np.array(2*[0], dtype=np.float32)
 rElectronid_array = np.array(2*[0], dtype=np.float32)
 
 # Create ROOT Tree
-ofile = ROOT.TFile('~/WWProduction/Data/DVTuples/ofile.root', 'RECREATE')
+ofile_name = config_dict['OutputFile']
+ofile = ROOT.TFile(f'~/WWProduction/Data/DVTuples/{ofile_name}', 'RECREATE')
 tree = ROOT.TTree('Tree', 'Tree')
 
 # Truth Branches
@@ -61,9 +66,6 @@ tree.Branch('rMuonid_array', rMuonid_array, 'leading/F:trailing/F')
 tree.Branch('rElectronid_array', rElectronid_array, 'leading/F:trailing/F')
 
 # Set up DaVinci Objects
-import DVoption_Sequences as DVSequences
-from DVoption_tools import DeltaRMatching
-
 dilepton_seq = DVSequences.GetDiLeptonSequence()
 # mc_particle_flow = DVSequences.GetMCParticleFlow()
 # mc_jet_builder = DVSequences.GetMCJetBuilder(mc_particle_flow)
@@ -77,7 +79,6 @@ DaVinci().appendToMainSequence([dilepton_seq])
 # Configure GaudiPython
 gaudi = GaudiPython.AppMgr()
 tes   = gaudi.evtsvc()
-
 genTool = gaudi.toolsvc().create(
     'DaVinciSmartAssociator',
     interface = 'IParticle2MCWeightedAssociator')
@@ -85,13 +86,11 @@ genTool = gaudi.toolsvc().create(
 # Run
 evtnum = 0
 gaudi.run(1)
-evtmax = 100
+evtmax = config_dict['EvtMax']
 counter = 0
 
-#while (evtnum<evtmax):
-while bool(tes['/Event']):
-    # Putting this gaud.run(1) here skips the first event in preference of
-    # simplicity.
+while (evtnum<evtmax):
+# while bool(tes['/Event']):
     evtnum += 1
 
     # Initialize Truth Arrays
@@ -101,8 +100,11 @@ while bool(tes['/Event']):
     # Truth Stuff
     truth_particles = tes['MC/Particles']
     W_list = [particle for particle in truth_particles
-             if ((abs(particle.particleID().pid())==24)
-                and (particle.originVertex().type()==1))]
+             if ((abs(particle.particleID().pid())==6)
+             and particle.originVertex().type()==1)]
+    pdb.set_trace()
+    if len(W_list)!=2:
+        pdb.set_trace()
     W1_decay_dict = {particle_ref.pt():particle_ref.target()
                 for particle_ref in W_list[0].endVertices()[0].products()
                     if (abs(particle_ref.particleID().pid())==11
@@ -115,6 +117,9 @@ while bool(tes['/Event']):
                     or abs(particle_ref.particleID().pid())==13)
                     and (W_list[1].particleID().pid()
                         / particle_ref.particleID().pid() < 0)}
+    if (not W1_decay_dict) or (not W2_decay_dict):
+        gaudi.run(1)
+        continue
     high_pT_W1_decay_product = W1_decay_dict[max(W1_decay_dict.keys())]
     high_pT_W2_decay_product = W2_decay_dict[max(W2_decay_dict.keys())]
     Ws_decay_dict = {high_pT_W1_decay_product.pt(): high_pT_W1_decay_product,

@@ -36,8 +36,8 @@ def GetDiLeptonSequence():
     # All the cuts here are fake to accept almost any lepton pair
     # within the LHCb acceptance.
     dilepton_decay_products = {
-        'mu+': '(PT > 5000*MeV) & (ETA < 5) & (ETA > 2)',
-        'e-': '(PT > 5000*MeV) & (ETA < 5) & (ETA > 2)'
+        'mu+': '(PT > 5000*MeV) & (ETA > 1.596)',
+        'e-': '(PT > 5000*MeV) & (ETA > 1.596)'
     }
     dilepton_comb = '(AM > 100*MeV)'
     dilepton_mother = '(MM > 100*MeV)'

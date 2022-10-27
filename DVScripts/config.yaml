@@ -1,0 +1,23 @@
+# General Options
+OutputFile: 'Test.root'
+log_file: ''
+cross_section: 1
+PrintFrequency: 1000
+DataType: '2016'
+EvtMax: 1000
+# WW Data
+DataFile: '00057387_00000003_3.AllStreams.dst'
+CondDBtag: 'sim-20161124-2-vc-md100'
+DDDBtag: 'dddb-20150724'
+# # ttbar Data
+# DataFile: '00169514_00000248_7.AllStreams.dst'
+# CondDBtag: 'sim-20170721-2-vc-md100'
+# DDDBtag: 'dddb-20170721-3'
+# # tautau Data
+# DataFile: '00144995_00000138_7.AllStreams.dst'
+# CondDBtag: 'sim-20170721-2-vc-md100'
+# DDDBtag: 'dddb-20170721-3'
+
+# Signal Options
+signal_pid: 24
+num_min_products: 3
