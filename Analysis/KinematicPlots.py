@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import awkward as ak
 import uproot
 import vector
+from hepunits.units import keV, MeV, GeV
 
 import analysis_tools as at
 
@@ -42,7 +43,7 @@ rDilepton_vec = rLeading_lepton_vec + rTrailing_lepton_vec
 tEvt_num = tree['tEvt_num'].array().to_list()
 rEvt_num = tree['rEvt_num'].array().to_list()
 truth_lepton_acceptance_mask = ((tLeading_lepton_vec.eta>1.594)
-                                & (tTrailing_lepton_vec.eta<1.594))
+                                & (tTrailing_lepton_vec.eta>1.594))
 process_mask = (tree['tDecay_process_array'].array()['mue'] == 1)
 good_reco_event_mask = [process_mask[tEvt_num.index(evt)] for evt in rEvt_num]
 full_truth_mask = process_mask & truth_lepton_acceptance_mask
@@ -53,11 +54,11 @@ one_lepton_acc_mask = ((tLeading_lepton_vec.eta>1.594)
 
 # Mask Vectors and Extract Lepton Info
 # Truth Vectors
-tLeading_lepton_vec = tLeading_lepton_vec
-tTrailing_lepton_vec = tTrailing_lepton_vec
-tDilepton_vec = tDilepton_vec
-# tMuon_vec = ak.where((abs(tLeading_lepton_vec.pid)==13), tLeading_lepton_vec, tTrailing_lepton_vec)
-# tElectron_vec = ak.where((abs(tLeading_lepton_vec.pid)==11), tLeading_lepton_vec, tTrailing_lepton_vec)
+tLeading_lepton_vec = tLeading_lepton_vec[full_truth_mask]
+tTrailing_lepton_vec = tTrailing_lepton_vec[full_truth_mask]
+tDilepton_vec = tDilepton_vec[full_truth_mask]
+tMuon_vec = ak.where((abs(tLeading_lepton_vec.pid)==13), tLeading_lepton_vec, tTrailing_lepton_vec)
+tElectron_vec = ak.where((abs(tLeading_lepton_vec.pid)==11), tLeading_lepton_vec, tTrailing_lepton_vec)
 # Reco Vectors
 # rLeading_lepton_vec = rLeading_lepton_vec[good_reco_event_mask]
 # rTrailing_lepton_vec = rTrailing_lepton_vec[good_reco_event_mask]
@@ -82,48 +83,30 @@ os.chdir(file_path)
 
 # Testing
 
-# # Plots
-# Testing
-at.create_hist(tLeading_lepton_vec.pt / 1000, 'Truth Leading Lepton Pt', bins=100, range=(0,200),
-                density=True)
-at.create_hist(tTrailing_lepton_vec.pt / 1000, 'Truth Trailing Lepton Pt', bins=100, range=(0,200),
-                density=True)
-at.create_hist(tLeading_lepton_vec.eta, 'Truth Leading Lepton Eta', bins=50, range=(-7,7),
-                density=True)
-at.create_hist(tTrailing_lepton_vec.eta, 'Truth Trailing Lepton Eta', bins=50, range=(-7,7),
-                density=True)
-at.create_hist(tDilepton_vec.m / 1000, 'Truth DiLepton Mass', bins=100, range=(0,500),
-                density=True)
-at.create_hist(tDilepton_vec.pt / 1000, 'Truth DiLepton pT', bins=100, range=(0,200),
-                density=True)
+# Plots
+# Truth Plots
+at.create_hist(tDilepton_vec.m / GeV, 'Truth DiLepton Mass', bins=50, range=(0,500),
+            weights=at.calculate_weights(tDilepton_vec, cross_section))
+at.create_hist(tDilepton_vec.pt / GeV, 'Truth DiLepton pT', yscale='log', bins=50, range=(0,150),
+            weights=at.calculate_weights(tDilepton_vec, cross_section))
+at.create_hist(tMuon_vec.pt / GeV, 'Truth Muon pT Log', yscale='log', bins=50, range=(0,150),
+            weights=at.calculate_weights(tMuon_vec.pt, cross_section))
+at.create_hist(tElectron_vec.pt / GeV, 'Truth Electron pT Log', yscale='log', bins=50, range=(0,150),
+            weights=at.calculate_weights(tElectron_vec.pt, cross_section))
+at.create_hist(tMuon_vec.pt / GeV, 'Truth Muon pT Linear', bins=50, range=(0,150),
+            weights=at.calculate_weights(tMuon_vec.pt, cross_section))
+at.create_hist(tElectron_vec.pt / GeV, 'Truth Electron pT Linear', bins=50, range=(0,150),
+            weights=at.calculate_weights(tElectron_vec.pt, cross_section))
+at.create_hist(tMuon_vec.eta, 'Truth Muon Eta', bins=50, range=(1.5, 7),
+            weights=at.calculate_weights(tMuon_vec, cross_section))
+at.create_hist(tElectron_vec.eta, 'Truth Electron Eta', bins=50, range=(1.5, 7),
+            weights=at.calculate_weights(tElectron_vec, cross_section))
 at.create_hist(tDelta_phi_array, 'Truth Delta Phi', bins=50,
-                density=True)
-at.create_hist(tDelta_r_array, 'Truth Delta R', bins=50, range=(0, 7),
-                density=True)
+            weights=at.calculate_weights(tDelta_phi_array, cross_section))
+at.create_hist(tDelta_r_array, 'Truth Delta R', bins=50, range=(0, 5),
+            weights=at.calculate_weights(tDelta_r_array, cross_section))
 at.create_hist(tDelta_eta_array, 'Truth Delta Eta', bins=50, range=(0, 3),
-                density=True)
-
-# # Truth Plots
-# at.create_hist(tDilepton_vec.m, 'Truth DiLepton Mass', bins=50, range=(0,200000),
-#                weights=at.calculate_weights(tDilepton_vec, cross_section))
-# at.create_hist(tDilepton_vec.m, 'Truth DiLepton Mass', bins=50, range=(0,200000),
-#             weights=at.calculate_weights(tDilepton_vec, cross_section))
-# at.create_hist(tDilepton_vec.pt, 'Truth Lepton Pair pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(tDilepton_vec, cross_section))
-# at.create_hist(tMuon_vec.pt, 'Truth Muon pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(tMuon_vec.pt, cross_section))
-# at.create_hist(tElectron_vec.pt, 'Truth Electron pT', yscale='log', bins=50, range=(0,150000),
-#             weights=at.calculate_weights(tElectron_vec.pt, cross_section))
-# at.create_hist(tMuon_vec.eta, 'Truth Muon Eta', bins=50, range=(2, 5),
-#             weights=at.calculate_weights(tMuon_vec, cross_section))
-# at.create_hist(tElectron_vec.eta, 'Truth Electron Eta', bins=50, range=(2, 5),
-#             weights=at.calculate_weights(tElectron_vec, cross_section))
-# at.create_hist(tDelta_phi_array, 'Truth Delta Phi', bins=50,
-#             weights=at.calculate_weights(tDelta_phi_array, cross_section))
-# at.create_hist(tDelta_r_array, 'Truth Delta R', bins=50, range=(0, 4),
-#             weights=at.calculate_weights(tDelta_r_array, cross_section))
-# at.create_hist(tDelta_eta_array, 'Truth Delta Eta', bins=50, range=(0, 3),
-#             weights=at.calculate_weights(tDelta_eta_array, cross_section))
+            weights=at.calculate_weights(tDelta_eta_array, cross_section))
 # # Reco Plots
 # at.create_hist(rDilepton_vec.m, 'Reco DiLepton Mass', bins=50, range=(0,200000),
 #             weights=at.calculate_weights(rDilepton_vec, cross_section, nsim=len(tDelta_phi_array)))
