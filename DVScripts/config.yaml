@@ -1,18 +1,18 @@
 # General Options
-OutputFile: 'WW_mue_LHCbMC_Pythia_LO.root'
+OutputFile: 'ttbar_mue_LHCbMC_Pythia_LO.root'
 log_file: ''
 cross_section: 1
 PrintFrequency: 1000
 DataType: '2016'
-EvtMax: 1000
+EvtMax: 10000
 # WW Data
-DataFile: '00057387_00000003_3.AllStreams.dst'
-CondDBtag: 'sim-20161124-2-vc-md100'
-DDDBtag: 'dddb-20150724'
+# DataFile: '00057387_00000003_3.AllStreams.dst'
+# CondDBtag: 'sim-20161124-2-vc-md100'
+# DDDBtag: 'dddb-20150724'
 # # ttbar Data
-# DataFile: '00169514_00000248_7.AllStreams.dst'
-# CondDBtag: 'sim-20170721-2-vc-md100'
-# DDDBtag: 'dddb-20170721-3'
+DataFile: '00169514_00000248_7.AllStreams.dst'
+CondDBtag: 'sim-20170721-2-vc-md100'
+DDDBtag: 'dddb-20170721-3'
 # # tautau Data
 # DataFile: '00144995_00000138_7.AllStreams.dst'
 # CondDBtag: 'sim-20170721-2-vc-md100'
@@ -20,8 +20,13 @@ DDDBtag: 'dddb-20150724'
 
 # Particle Options
 SourceParticles:
-  W+:
-    SourcePID: 24
+  top:
+    SourcePID: 6
     AntiParticleSource: True
-    NumMinProducts: 2
+    NumMinProducts: 3
     TargetPIDs: [-11, -13]
+  # W+:
+  #   SourcePID: 24
+  #   AntiParticleSource: True
+  #   NumMinProducts: 2
+  #   TargetPIDs: [-11, -13]

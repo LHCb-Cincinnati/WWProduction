@@ -1,7 +1,11 @@
+""" Stuff to add:
+    - Make CheckRadiativeDecay Faster.
+"""
+# Imports
+import pdb
+from numpy import sqrt
 
 def DeltaR(particle1, particle2):
-    from math import sqrt
-
     p1_vec = particle1.momentum()
     p2_vec = particle2.momentum()
     delta_eta = p1_vec.eta() - p2_vec.eta()
@@ -29,7 +33,7 @@ def DeltaRMatching(reco_particle, mc_particles_collection, max_deltar_val=0.1):
 def FindDecayProduct(truth_particles, source_pid, num_min_products, target_particles_list):
     source_particles_dict = {particle.pt():particle for particle in truth_particles
                     if (particle.particleID().pid()==source_pid
-                        and len(particle.endVertices()[0].products()) >= num_min_products
+                        and not CheckRadiativeDecay(particle)
                         and CheckOriginVertex(particle))}
     highest_pT_source = sorted(source_particles_dict.keys(), reverse=True)[0]
     source_particle = source_particles_dict[highest_pT_source]
@@ -39,6 +43,15 @@ def FindDecayProduct(truth_particles, source_pid, num_min_products, target_parti
                         and (particle_ref.particleID().pid() in target_particles_list)}
     highest_pT_target = source_decay_products_dict[max(source_decay_products_dict.keys())]
     return(highest_pT_target)
+
+def CheckRadiativeDecay(particle):
+    particle_pid = particle.particleID().pid()
+    decay_products = particle.endVertices()[0].products()
+    decay_pid = [particle.particleID().pid() for particle in decay_products]
+    if particle_pid in decay_pid:
+        return(True)
+    else:
+        return(False)
 
 def CheckOriginVertex(particle):
     mother = particle.mother()

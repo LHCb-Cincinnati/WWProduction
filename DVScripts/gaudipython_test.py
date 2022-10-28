@@ -92,7 +92,7 @@ SourceParticles = config_dict['SourceParticles']
 counter = 0
 
 # while (evtnum<evtmax):
-while bool(tes['/Event']):
+while bool(tes['/Event']) and (evtnum<evtmax):
     evtnum += 1
 
     # Initialize Truth Arrays
