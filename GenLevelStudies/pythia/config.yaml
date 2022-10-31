@@ -1,9 +1,0 @@
-card_file: "WeakDoubleBosonDecay.cmnd"
-output_file: "WeakDoubleBosonDecay.root"
-log_file: ""
-additional_particles:
-  6: "Top"
-  5: "Bottom"
-  -6: "TopBar"
-  -5: "BottomBar"
-
