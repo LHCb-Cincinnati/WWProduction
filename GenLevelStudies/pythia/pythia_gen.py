@@ -39,8 +39,8 @@ for line in cfg:
 sys.path.insert(0, lib)
 
 # Inputs
-card_file_name = "WeakDoubleBosonDecay.cmnd"
-ofile_name = "WeakDoubleBosonDecay.root"
+card_file_name = "ttbarProduction.cmnd"
+ofile_name = "ttbarProduction.root"
 target_pid = -24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
