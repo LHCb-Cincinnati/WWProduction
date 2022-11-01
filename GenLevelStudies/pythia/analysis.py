@@ -24,19 +24,19 @@ tree = ifile['Tree'].arrays()
 
 # Create Vectors
 lminus_vec = vector.zip({
-    'px': tree['LeptonMinus'].px,
-    'py': tree['LeptonMinus'].py,
-    'pz': tree['LeptonMinus'].pz,
-    'e': tree['LeptonMinus'].energy,
-    'pid': tree['LeptonMinus'].id
+    'px': tree['TargetLepton'].px,
+    'py': tree['TargetLepton'].py,
+    'pz': tree['TargetLepton'].pz,
+    'e': tree['TargetLepton'].energy,
+    'pid': tree['TargetLepton'].id
 })
 
 lplus_vec = vector.zip({
-    'px': tree['LeptonPlus'].px,
-    'py': tree['LeptonPlus'].py,
-    'pz': tree['LeptonPlus'].pz,
-    'e': tree['LeptonPlus'].energy,
-    'pid': tree['LeptonPlus'].id
+    'px': tree['TargetAntiLepton'].px,
+    'py': tree['TargetAntiLepton'].py,
+    'pz': tree['TargetAntiLepton'].pz,
+    'e': tree['TargetAntiLepton'].energy,
+    'pid': tree['TargetAntiLepton'].id
 })
 dilepton_vec = lminus_vec + lplus_vec
 muon_vec = ak.where((abs(lminus_vec.pid)==13), lminus_vec, lplus_vec)
@@ -58,6 +58,7 @@ drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 # Apply Masks
 muon_vec = muon_vec[lepton_mask]
 electron_vec = electron_vec[lepton_mask]
+dilepton_vec = dilepton_vec[lepton_mask]
 
 # Calculate Quantitites
 delta_phi_array = np.abs(muon_vec.deltaphi(electron_vec))

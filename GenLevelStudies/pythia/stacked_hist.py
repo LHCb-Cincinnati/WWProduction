@@ -55,6 +55,7 @@ def GetAnalysisArray(tree):
     drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 
     # Apply Masks
+    dilepton_vec = dilepton_vec[lepton_mask]
     muon_vec = muon_vec[lepton_mask]
     electron_vec = electron_vec[lepton_mask]
     leading_lepton_vec = leading_lepton_vec[lepton_mask]
@@ -88,37 +89,68 @@ for index, file_name in enumerate(args.input_files):
 # pdb.set_trace()
 # Create output directory if it does not yet exist
 # and change current directory to output directory
-file_path = at.create_folder_path("Stacked_Hist.root", False)
+file_path = at.create_folder_path("Stacked_Hist_WW_ttbar.root", False)
 os.chdir(file_path)
+label_list = ["WW", "ttbar"]
 
 # Plots
 at.create_stacked_hist([data_list[index].delta_eta for index in range(len(data_list))],
                         "Standalone Delta Eta",
                         weights=[weight_list[index] for index in range(len(data_list))],
                         bins=50, range=(0, 3),
-                        label=["WW", "ttbar"])
+                        label=label_list)
 at.create_stacked_hist([data_list[index].delta_phi for index in range(len(data_list))],
                         "Standalone Delta Phi",
                         weights=[weight_list[index] for index in range(len(data_list))],
                         bins=50,
-                        label=["WW", "ttbar"])
+                        label=label_list)
 at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
                         "Standalone Delta R",
                         weights=[weight_list[index] for index in range(len(data_list))],
                         bins=50, range=(0, 5),
-                        label=["WW", "ttbar"])
+                        label=label_list)
 at.create_stacked_hist([data_list[index].dilepton_vec.m for index in range(len(data_list))],
                         "Standalone Dilepton Mass",
                         weights=[weight_list[index] for index in range(len(data_list))],
                         bins=50, range=(0, 500),
-                        label=["WW", "ttbar"])
-at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
-                        "Standalone Delta Eta",
+                        label=label_list)
+at.create_stacked_hist([data_list[index].dilepton_vec.pt for index in range(len(data_list))],
+                        "Standalone Dilepton pT Linear",
                         weights=[weight_list[index] for index in range(len(data_list))],
-                        bins=50, range=(0, 5),
-                        label=["WW", "ttbar"])
-at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
-                        "Standalone Delta Eta",
+                        bins=50, range=(0, 500),
+                        label=label_list)
+at.create_stacked_hist([data_list[index].dilepton_vec.pt for index in range(len(data_list))],
+                        "Standalone Dilepton pT Log",
                         weights=[weight_list[index] for index in range(len(data_list))],
-                        bins=50, range=(0, 5),
-                        label=["WW", "ttbar"])
+                        bins=50, range=(0, 500), yscale='log',
+                        label=label_list)
+at.create_stacked_hist([data_list[index].muon_vec.pt for index in range(len(data_list))],
+                        "Standalone Muon pT Linear",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 150),
+                        label=label_list)
+at.create_stacked_hist([data_list[index].muon_vec.pt for index in range(len(data_list))],
+                        "Standalone Muon pT Log",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 150), yscale='log',
+                        label=label_list)
+at.create_stacked_hist([data_list[index].electron_vec.pt for index in range(len(data_list))],
+                        "Standalone Electron pT Linear",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 150),
+                        label=label_list)
+at.create_stacked_hist([data_list[index].electron_vec.pt for index in range(len(data_list))],
+                        "Standalone Electron pT Log",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 150), yscale='log',
+                        label=label_list)
+at.create_stacked_hist([data_list[index].electron_vec.eta for index in range(len(data_list))],
+                        "Standalone Electron Eta",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(1.5, 5),
+                        label=label_list)
+at.create_stacked_hist([data_list[index].muon_vec.eta for index in range(len(data_list))],
+                        "Standalone Muon Eta",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(1.5, 5),
+                        label=label_list)
