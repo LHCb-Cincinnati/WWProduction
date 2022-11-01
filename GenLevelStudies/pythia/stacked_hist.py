@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import awkward as ak
+from sklearn.decomposition import dict_learning
 import uproot
 import vector
 sys.path.append('../../Analysis') # This is Awesome!
@@ -17,10 +18,6 @@ parser = at.Parser(sys.argv[1:])
 args = parser.args
 file_name =  args.input_files[0].name
 cross_section = args.cross_section[0] # Cross section in fb
-
-# Open the file
-ifile = uproot.open(file_name)
-tree = ifile['Tree'].arrays()
 
 # Functions
 def GetAnalysisArray(tree):
@@ -60,6 +57,8 @@ def GetAnalysisArray(tree):
     # Apply Masks
     muon_vec = muon_vec[lepton_mask]
     electron_vec = electron_vec[lepton_mask]
+    leading_lepton_vec = leading_lepton_vec[lepton_mask]
+    trailing_lepton_vec = trailing_lepton_vec[lepton_mask]
 
     # Calculate Quantitites
     delta_phi_array = np.abs(muon_vec.deltaphi(electron_vec))
@@ -69,16 +68,57 @@ def GetAnalysisArray(tree):
     array = ak.zip({'delta_phi': delta_phi_array,
                     'delta_eta': delta_eta_array,
                     'delta_r': delta_r_array,
+                    'dilepton_vec': dilepton_vec,
                     'muon_vec': muon_vec,
                     'electron_vec': electron_vec,
                     'leading_lepton_vec': leading_lepton_vec,
                     'trailing_lepton_vec': trailing_lepton_vec})
     return(array)
 
+# Open the file
+data_list = [0]*len(args.input_files)
+weight_list = [0]*len(args.input_files)
+for index, file_name in enumerate(args.input_files):
+    ifile = uproot.open(file_name.name)
+    tree = ifile['Tree'].arrays()
+    data_list[index] = GetAnalysisArray(tree)
+    weight_list[index] = at.calculate_weights(data_list[index].delta_phi,
+                                              args.cross_section[index])
 
+# pdb.set_trace()
 # Create output directory if it does not yet exist
 # and change current directory to output directory
-file_path = at.create_folder_path(file_name, args.testing)
+file_path = at.create_folder_path("Stacked_Hist.root", False)
 os.chdir(file_path)
 
 # Plots
+at.create_stacked_hist([data_list[index].delta_eta for index in range(len(data_list))],
+                        "Standalone Delta Eta",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 3),
+                        label=["WW", "ttbar"])
+at.create_stacked_hist([data_list[index].delta_phi for index in range(len(data_list))],
+                        "Standalone Delta Phi",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50,
+                        label=["WW", "ttbar"])
+at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
+                        "Standalone Delta R",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 5),
+                        label=["WW", "ttbar"])
+at.create_stacked_hist([data_list[index].dilepton_vec.m for index in range(len(data_list))],
+                        "Standalone Dilepton Mass",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 500),
+                        label=["WW", "ttbar"])
+at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
+                        "Standalone Delta Eta",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 5),
+                        label=["WW", "ttbar"])
+at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
+                        "Standalone Delta Eta",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 5),
+                        label=["WW", "ttbar"])
