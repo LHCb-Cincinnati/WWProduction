@@ -20,10 +20,10 @@ HardQCD:all = off
 Top:gg2ttbar = on
 Top:qqbar2ttbar = on
 Top:qq2tq(t:W) = off
-Top:ffbar2ttbar(s:gmZ) = on
+Top:ffbar2ttbar(s:gmZ) = off
 Top:ffbar2tqbar(s:W) = off
-Top:gmgm2ttbar = on
-Top:ggm2ttbar = on
+Top:gmgm2ttbar = off
+Top:ggm2ttbar = off
 
 
 # Single Bosons

@@ -40,8 +40,8 @@ sys.path.insert(0, lib)
 
 # Inputs
 card_file_name = "WeakDoubleBosonDecay.cmnd"
-ofile_name = "Test.root"
-target_pid = 24
+ofile_name = "WeakDoubleBosonDecay.root"
+target_pid = -24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
 
@@ -91,15 +91,15 @@ for iEvent in range(nEvent):
     
     for idaughter in pythia.event[itarget_particle].daughterList():
         daughter = pythia.event[idaughter]
-        if daughter.id() in -1*lepton_pid_array:
+        if daughter.id() in lepton_pid_array:
             ilepton_plus = idaughter
-        elif daughter.id() in neutrino_pid_array:
+        elif daughter.id() in -1*neutrino_pid_array:
             ineutrino_plus = idaughter
     for idaughter in pythia.event[itarget_antiparticle].daughterList():
         daughter = pythia.event[idaughter]
-        if daughter.id() in lepton_pid_array:
+        if daughter.id() in -1*lepton_pid_array:
             ilepton_minus = idaughter
-        elif daughter.id() in -1*neutrino_pid_array:
+        elif daughter.id() in neutrino_pid_array:
             ineutrino_minus = idaughter
 
     target_particle_array = fill_array(target_particle_array, pythia.event,

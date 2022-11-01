@@ -28,10 +28,10 @@ Top:ggm2ttbar = off
 
 # Single Bosons
 WeakSingleBoson:all = off
-WeakSingleBoson:ffbar2gmZ = on
+WeakSingleBoson:ffbar2gmZ = off
 WeakSingleBoson:ffbar2W = off
 WeakSingleBoson:ffbar2ffbar(s:gm) = off
-WeakSingleBoson:ffbar2ffbar(s:gmZ) = off
+WeakSingleBoson:ffbar2ffbar(s:gmZ) = on
 WeakSingleBoson:ffbar2ffbar(s:W) = off
 # Double Bosons
 WeakDoubleBoson:all = off
@@ -46,17 +46,18 @@ WeakDoubleBoson:ffbar2WW= off
 23:onMode = off
 #22:onMode = off
 
-# Shut all decay modes off from top quark
+# Shut all decay modes off from Fermions
 6:onMode = off
+15:onMode = off
 
 # Turn relavant decay modes on for Bosons
 #22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
-23:onIfAny: 13 // Turn on decays for Z -> u+ + u-
+23:onIfAny: 15 // Turn on decays for Z -> tau+ + tau-
 #24:onIfAny: -13 -11 // Turn on decays of W+ -> u+
 #-24:onIfAny: 13 12// Turn on decays of W- -> u-
 
 # Turn relavant decay modes on for Fermions
-
+15:onIfAny: 11 13
 
 
 

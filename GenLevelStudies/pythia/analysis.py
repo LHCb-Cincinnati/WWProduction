@@ -20,7 +20,7 @@ cross_section = args.cross_section[0] # Cross section in fb
 
 # Open the file
 ifile = uproot.open(file_name)
-tree = ifile['AnalysisTree'].arrays()
+tree = ifile['Tree'].arrays()
 
 # Create Vectors
 lminus_vec = vector.zip({
@@ -48,12 +48,11 @@ trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_v
 both_lepton_acc_mask = ((lminus_vec.eta>1.596) & (lplus_vec.eta>1.596))
 high_pT_lepton_mask = ((lminus_vec.pt>15) | (lplus_vec.pt>15))
 low_pT_lepton_mask = ((lminus_vec.pt>5) & (lplus_vec.pt>5))
-mumu_decay_mask = ((tree['LeptonMinus'].id==13) & (tree['LeptonPlus'].id==-13))
 mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                     | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
 one_lepton_acc_mask = ((lminus_vec.eta>1.596) | (lplus_vec.eta>1.596))
 invariant_mass_mask = (dilepton_vec.m>10)
-lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mumu_decay_mask
+lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mue_decay_mask
 drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 
 # Apply Masks
