@@ -17,6 +17,7 @@ parser = at.Parser(sys.argv[1:])
 args = parser.args
 file_name =  args.input_files[0].name
 cross_section = args.cross_section[0] # Cross section in fb
+jets = args.jets
 
 # Open the file
 ifile = uproot.open(file_name)
@@ -38,6 +39,7 @@ lplus_vec = vector.zip({
     'e': tree['TargetAntiLepton'].energy,
     'pid': tree['TargetAntiLepton'].id
 })
+
 dilepton_vec = lminus_vec + lplus_vec
 muon_vec = ak.where((abs(lminus_vec.pid)==13), lminus_vec, lplus_vec)
 electron_vec = ak.where((abs(lminus_vec.pid)==11), lminus_vec, lplus_vec)
@@ -56,9 +58,27 @@ lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mue_de
 drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 
 # Apply Masks
-muon_vec = muon_vec[lepton_mask]
-electron_vec = electron_vec[lepton_mask]
-dilepton_vec = dilepton_vec[lepton_mask]
+muon_vec = muon_vec
+electron_vec = electron_vec
+dilepton_vec = dilepton_vec
+
+# Jets
+if jets:
+    jet_vec = vector.zip({
+        'px': tree['TargetJet'].px,
+        'py': tree['TargetJet'].py,
+        'pz': tree['TargetJet'].pz,
+        'e': tree['TargetJet'].energy,
+        'pid': tree['TargetJet'].id
+    })
+
+    antijet_vec = vector.zip({
+        'px': tree['TargetAntiJet'].px,
+        'py': tree['TargetAntiJet'].py,
+        'pz': tree['TargetAntiJet'].pz,
+        'e': tree['TargetAntiJet'].energy,
+        'pid': tree['TargetAntiJet'].id
+    })
 
 # Calculate Quantitites
 delta_phi_array = np.abs(muon_vec.deltaphi(electron_vec))
@@ -71,27 +91,93 @@ file_path = at.create_folder_path(file_name, args.testing)
 os.chdir(file_path)
 
 # Plots
-at.create_hist(dilepton_vec.m, 'Standalone DiLepton Mass', bins=50, range=(0,500),
-            weights=at.calculate_weights(dilepton_vec, cross_section))
-at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Log', yscale='log', bins=50, range=(0,500),
-            weights=at.calculate_weights(dilepton_vec, cross_section))
-at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Linear', bins=50, range=(0,500),
-            weights=at.calculate_weights(dilepton_vec, cross_section))
-at.create_hist(muon_vec.pt, 'Standalone Muon pT Log', yscale='log', bins=50, range=(0,150),
-            weights=at.calculate_weights(muon_vec.pt, cross_section))
-at.create_hist(electron_vec.pt, 'Standalone Electron pT Log', yscale='log', bins=50, range=(0,150),
-            weights=at.calculate_weights(electron_vec.pt, cross_section))
-at.create_hist(muon_vec.pt, 'Standalone Muon pT Linear', bins=50, range=(0,150),
-            weights=at.calculate_weights(muon_vec.pt, cross_section))
-at.create_hist(electron_vec.pt, 'Standalone Electron pT Linear', bins=50, range=(0,150),
-            weights=at.calculate_weights(electron_vec.pt, cross_section))
-at.create_hist(muon_vec.eta, 'Standalone Muon Eta', bins=50, range=(1.5, 5),
-            weights=at.calculate_weights(muon_vec, cross_section))
-at.create_hist(electron_vec.eta, 'Standalone Electron Eta', bins=50, range=(1.5, 5),
-            weights=at.calculate_weights(electron_vec, cross_section))
-at.create_hist(delta_phi_array, 'Standalone Delta Phi', bins=50,
-            weights=at.calculate_weights(delta_phi_array, cross_section))
-at.create_hist(delta_r_array, 'Standalone Delta R', bins=50, range=(0, 5),
-            weights=at.calculate_weights(delta_r_array, cross_section))
-at.create_hist(delta_eta_array, 'Standalone Delta Eta', bins=50, range=(0, 3),
-            weights=at.calculate_weights(delta_eta_array, cross_section))
+# 2D eta plots
+fig, axs = plt.subplots()
+hist, x_edges, y_edges = np.histogram2d(leading_lepton_vec.eta.to_numpy(),
+                                        jet_vec.eta.to_numpy(),
+                                        bins=(14,14),
+                                        range = ((-7,7),(-7,7)))
+X, Y = np.meshgrid(x_edges, y_edges)
+color_mesh = axs.pcolormesh(X, Y, hist)
+fig.colorbar(color_mesh, ax=axs)
+plt.title('ttbar Leading Lepton Eta vs Jet Eta')
+plt.xlabel('Leading Lepton Eta')
+plt.ylabel('Jet Eta')
+fig.savefig('ttbar_LeadingEtaVsJetEta' + '.png')
+
+fig, axs = plt.subplots()
+hist, x_edges, y_edges = np.histogram2d(trailing_lepton_vec.eta.to_numpy(),
+                                        jet_vec.eta.to_numpy(),
+                                        bins=(14,14),
+                                        range = ((-7,7),(-7,7)))
+X, Y = np.meshgrid(x_edges, y_edges)
+color_mesh = axs.pcolormesh(X, Y, hist)
+fig.colorbar(color_mesh, ax=axs)
+plt.title('ttbar Trailing Lepton Eta vs Jet Eta')
+plt.xlabel('Trailing Lepton Eta')
+plt.ylabel('Jet Eta')
+fig.savefig('ttbar_TrailingEtaVsJetEta' + '.png')
+
+fig, axs = plt.subplots()
+hist, x_edges, y_edges = np.histogram2d(leading_lepton_vec.eta.to_numpy(),
+                                        antijet_vec.eta.to_numpy(),
+                                        bins=(14,14),
+                                        range = ((-7,7),(-7,7)))
+X, Y = np.meshgrid(x_edges, y_edges)
+color_mesh = axs.pcolormesh(X, Y, hist)
+fig.colorbar(color_mesh, ax=axs)
+plt.title('ttbar Leading Lepton Eta vs AntiJet Eta')
+plt.xlabel('Leading Lepton Eta')
+plt.ylabel('AntiJet Eta')
+fig.savefig('ttbar_LeadingEtaVsAntiJetEta' + '.png')
+
+fig, axs = plt.subplots()
+hist, x_edges, y_edges = np.histogram2d(trailing_lepton_vec.eta.to_numpy(),
+                                        antijet_vec.eta.to_numpy(),
+                                        bins=(14,14),
+                                        range = ((-7,7),(-7,7)))
+X, Y = np.meshgrid(x_edges, y_edges)
+color_mesh = axs.pcolormesh(X, Y, hist)
+fig.colorbar(color_mesh, ax=axs)
+plt.title('ttbar Trailing Lepton Eta vs AntiJet Eta')
+plt.xlabel('Trailing Lepton Eta')
+plt.ylabel('AntiJet Eta')
+fig.savefig('ttbar_TrailingEtaVsAntiJetEta' + '.png')
+
+fig, axs = plt.subplots()
+hist, x_edges, y_edges = np.histogram2d(jet_vec.eta.to_numpy(),
+                                        antijet_vec.eta.to_numpy(),
+                                        bins=(14,14),
+                                        range = ((-7,7),(-7,7)))
+X, Y = np.meshgrid(x_edges, y_edges)
+color_mesh = axs.pcolormesh(X, Y, hist)
+fig.colorbar(color_mesh, ax=axs)
+plt.title('ttbar Jet Eta vs AntiJet Eta')
+plt.xlabel('Jet Eta')
+plt.ylabel('AntiJet Eta')
+fig.savefig('ttbar_JetEtaVsAntiJetEta' + '.png')
+
+# at.create_hist(dilepton_vec.m, 'Standalone DiLepton Mass', bins=50, range=(0,500),
+#             weights=at.calculate_weights(dilepton_vec, cross_section))
+# at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Log', yscale='log', bins=50, range=(0,500),
+#             weights=at.calculate_weights(dilepton_vec, cross_section))
+# at.create_hist(dilepton_vec.pt, 'Standalone DiLepton pT Linear', bins=50, range=(0,500),
+#             weights=at.calculate_weights(dilepton_vec, cross_section))
+# at.create_hist(muon_vec.pt, 'Standalone Muon pT Log', yscale='log', bins=50, range=(0,150),
+#             weights=at.calculate_weights(muon_vec.pt, cross_section))
+# at.create_hist(electron_vec.pt, 'Standalone Electron pT Log', yscale='log', bins=50, range=(0,150),
+#             weights=at.calculate_weights(electron_vec.pt, cross_section))
+# at.create_hist(muon_vec.pt, 'Standalone Muon pT Linear', bins=50, range=(0,150),
+#             weights=at.calculate_weights(muon_vec.pt, cross_section))
+# at.create_hist(electron_vec.pt, 'Standalone Electron pT Linear', bins=50, range=(0,150),
+#             weights=at.calculate_weights(electron_vec.pt, cross_section))
+# at.create_hist(muon_vec.eta, 'Standalone Muon Eta', bins=50, range=(1.5, 5),
+#             weights=at.calculate_weights(muon_vec, cross_section))
+# at.create_hist(electron_vec.eta, 'Standalone Electron Eta', bins=50, range=(1.5, 5),
+#             weights=at.calculate_weights(electron_vec, cross_section))
+# at.create_hist(delta_phi_array, 'Standalone Delta Phi', bins=50,
+#             weights=at.calculate_weights(delta_phi_array, cross_section))
+# at.create_hist(delta_r_array, 'Standalone Delta R', bins=50, range=(0, 5),
+#             weights=at.calculate_weights(delta_r_array, cross_section))
+# at.create_hist(delta_eta_array, 'Standalone Delta Eta', bins=50, range=(0, 3),
+#             weights=at.calculate_weights(delta_eta_array, cross_section))

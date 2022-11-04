@@ -104,8 +104,11 @@ class Parser(argparse.ArgumentParser):
                             a new output folder should be created for this
                             analysis.  -t means that all plots will go in
                             folder labelled Test.''')
-        self.add_argument('-p', '--production', dest='testing',
-                            action='store_false', help='''Flag to indicate if
+        self.add_argument('-p', '--production', help=''' Flag to indicate if
+                            jet data is available in the user input file.''')
+        self.add_argument('-j', '--jets',
+                            action='store_true', default=False, 
+                            help='''Flag to indicate if
                             a new output folder should be created for this
                             analysis.  -p means that all plots will be put
                             into a new output folder withthe same name as
