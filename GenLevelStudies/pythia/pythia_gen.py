@@ -21,6 +21,15 @@ def fill_array(array, event, index):
                 particle.charge(), particle.status())
     return(array)
 
+def GetTargetChildren(target_index, event, child_index_list):
+    target = event[target_index]
+    for idaughter in target.daughterList():
+        child_index_list.append(idaughter)
+        if abs(event[idaughter].id()) == 24:
+            child_index_list = GetTargetChildren(idaughter, event,
+                                                child_index_list)
+    return(child_index_list)
+
 def check_mother(event, particle, pid):
     imother = particle.mother1()
     mother = event[imother]
@@ -40,10 +49,11 @@ sys.path.insert(0, lib)
 
 # Inputs
 card_file_name = "ttbarProduction.cmnd"
-ofile_name = "ttbarProduction.root"
-target_pid = -24
+ofile_name = "Test.root"
+target_pid = -6
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
+jet_array = np.array([-5,-3,-1])
 
 # Read in Card File
 pythia = pythia8.Pythia()
@@ -62,6 +72,9 @@ target_neutrino_array = np.array([0]*12, dtype=np.float32)
 target_antiparticle_array = np.array([0]*12, dtype=np.float32)
 target_antilepton_array = np.array([0]*12, dtype=np.float32)
 target_antineutrino_array = np.array([0]*12, dtype=np.float32)
+if jet_array.any():
+    target_jet_array = np.array([0]*12, dtype=np.float32)
+    target_antijet_array = np.array([0]*12, dtype=np.float32)
 
 # Set up ROOT
 file = ROOT.TFile.Open(ofile_name,"RECREATE")
@@ -73,6 +86,9 @@ tree.Branch('TargetNeutrino', target_neutrino_array, var_str)
 tree.Branch('TargetAntiParticle', target_antiparticle_array, var_str)
 tree.Branch('TargetAntiLepton', target_antilepton_array, var_str)
 tree.Branch('TargetAntiNeutrino', target_antineutrino_array, var_str)
+if jet_array.any():
+    tree.Branch('TargetJet', target_jet_array, var_str)
+    tree.Branch('TargetAntiJet', target_antijet_array, var_str)
 
 # Testing
 counter1 = 0
@@ -89,18 +105,22 @@ for iEvent in range(nEvent):
         elif particle.id()==-1*target_pid:
             itarget_antiparticle = index
     
-    for idaughter in pythia.event[itarget_particle].daughterList():
+    for idaughter in GetTargetChildren(itarget_particle, pythia.event,[]):
         daughter = pythia.event[idaughter]
         if daughter.id() in lepton_pid_array:
             ilepton_plus = idaughter
         elif daughter.id() in -1*neutrino_pid_array:
             ineutrino_plus = idaughter
-    for idaughter in pythia.event[itarget_antiparticle].daughterList():
+        elif daughter.id() in jet_array:
+            ijet = idaughter
+    for idaughter in GetTargetChildren(itarget_antiparticle, pythia.event,[]):
         daughter = pythia.event[idaughter]
         if daughter.id() in -1*lepton_pid_array:
             ilepton_minus = idaughter
         elif daughter.id() in neutrino_pid_array:
             ineutrino_minus = idaughter
+        elif daughter.id() in -1*jet_array:
+            iantijet = idaughter
 
     target_particle_array = fill_array(target_particle_array, pythia.event,
                                         itarget_particle)
@@ -114,6 +134,11 @@ for iEvent in range(nEvent):
                                         ilepton_minus)
     target_antineutrino_array = fill_array(target_antineutrino_array, pythia.event,
                                         ineutrino_minus)
+    if jet_array.any():
+        target_jet_array = fill_array(target_jet_array, pythia.event,
+                                        ijet)
+        target_antijet_array = fill_array(target_antijet_array, pythia.event,
+                                        iantijet)
     # if check_mother(pythia.event, pythia.event[iW_plus], 6):
     #     counter1+=1
     # if check_mother(pythia.event, pythia.event[iW_minus], -6):
