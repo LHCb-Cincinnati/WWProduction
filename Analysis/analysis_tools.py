@@ -104,8 +104,11 @@ class Parser(argparse.ArgumentParser):
                             a new output folder should be created for this
                             analysis.  -t means that all plots will go in
                             folder labelled Test.''')
-        self.add_argument('-p', '--production', help=''' Flag to indicate if
-                            jet data is available in the user input file.''')
+        self.add_argument('-p', '--production', dest='testing',
+                            action='store_false', help='''Flag to indicate if
+                            a new output folder should be created for this
+                            analysis.  -p means that all plots will go in
+                            a designated folder.''')
         self.add_argument('-j', '--jets',
                             action='store_true', default=False, 
                             help='''Flag to indicate if
@@ -298,12 +301,13 @@ def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
     plt.subplots_adjust(top=0.85)
     hist, bins, patches = axs.hist(array_list, stacked=True, **kwargs)
     plt.yscale(yscale)
-    plt.title(title)
-    plt.legend()
+    axs.set_xlabel(title)
+    axs.set_ylabel("Event Yield")
+    axs.legend()
 
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
-    plt.savefig(save_str + '.png')
+    plt.savefig(save_str + '.png', dpi=600)
 
 def create_2D_hist(array1, array2, **kwargs):
     import matplotlib.pyplot as plt

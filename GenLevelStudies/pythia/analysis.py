@@ -58,9 +58,9 @@ lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mue_de
 drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
 
 # Apply Masks
-muon_vec = muon_vec
-electron_vec = electron_vec
-dilepton_vec = dilepton_vec
+muon_vec = muon_vec[lepton_mask]
+electron_vec = electron_vec[lepton_mask]
+dilepton_vec = dilepton_vec[lepton_mask]
 
 # Jets
 if jets:
@@ -85,6 +85,7 @@ delta_phi_array = np.abs(muon_vec.deltaphi(electron_vec))
 delta_eta_array = np.abs(muon_vec.deltaeta(electron_vec))
 delta_r_array = np.abs(muon_vec.deltaR(electron_vec))
 
+pdb.set_trace()
 # Create output directory if it does not yet exist
 # and change current directory to output directory
 file_path = at.create_folder_path(file_name, args.testing)
@@ -92,70 +93,18 @@ os.chdir(file_path)
 
 # Plots
 # 2D eta plots
-fig, axs = plt.subplots()
-hist, x_edges, y_edges = np.histogram2d(leading_lepton_vec.eta.to_numpy(),
-                                        jet_vec.eta.to_numpy(),
-                                        bins=(14,14),
-                                        range = ((-7,7),(-7,7)))
-X, Y = np.meshgrid(x_edges, y_edges)
-color_mesh = axs.pcolormesh(X, Y, hist)
-fig.colorbar(color_mesh, ax=axs)
-plt.title('ttbar Leading Lepton Eta vs Jet Eta')
-plt.xlabel('Leading Lepton Eta')
-plt.ylabel('Jet Eta')
-fig.savefig('ttbar_LeadingEtaVsJetEta' + '.png')
-
-fig, axs = plt.subplots()
-hist, x_edges, y_edges = np.histogram2d(trailing_lepton_vec.eta.to_numpy(),
-                                        jet_vec.eta.to_numpy(),
-                                        bins=(14,14),
-                                        range = ((-7,7),(-7,7)))
-X, Y = np.meshgrid(x_edges, y_edges)
-color_mesh = axs.pcolormesh(X, Y, hist)
-fig.colorbar(color_mesh, ax=axs)
-plt.title('ttbar Trailing Lepton Eta vs Jet Eta')
-plt.xlabel('Trailing Lepton Eta')
-plt.ylabel('Jet Eta')
-fig.savefig('ttbar_TrailingEtaVsJetEta' + '.png')
-
-fig, axs = plt.subplots()
-hist, x_edges, y_edges = np.histogram2d(leading_lepton_vec.eta.to_numpy(),
-                                        antijet_vec.eta.to_numpy(),
-                                        bins=(14,14),
-                                        range = ((-7,7),(-7,7)))
-X, Y = np.meshgrid(x_edges, y_edges)
-color_mesh = axs.pcolormesh(X, Y, hist)
-fig.colorbar(color_mesh, ax=axs)
-plt.title('ttbar Leading Lepton Eta vs AntiJet Eta')
-plt.xlabel('Leading Lepton Eta')
-plt.ylabel('AntiJet Eta')
-fig.savefig('ttbar_LeadingEtaVsAntiJetEta' + '.png')
-
-fig, axs = plt.subplots()
-hist, x_edges, y_edges = np.histogram2d(trailing_lepton_vec.eta.to_numpy(),
-                                        antijet_vec.eta.to_numpy(),
-                                        bins=(14,14),
-                                        range = ((-7,7),(-7,7)))
-X, Y = np.meshgrid(x_edges, y_edges)
-color_mesh = axs.pcolormesh(X, Y, hist)
-fig.colorbar(color_mesh, ax=axs)
-plt.title('ttbar Trailing Lepton Eta vs AntiJet Eta')
-plt.xlabel('Trailing Lepton Eta')
-plt.ylabel('AntiJet Eta')
-fig.savefig('ttbar_TrailingEtaVsAntiJetEta' + '.png')
-
-fig, axs = plt.subplots()
-hist, x_edges, y_edges = np.histogram2d(jet_vec.eta.to_numpy(),
-                                        antijet_vec.eta.to_numpy(),
-                                        bins=(14,14),
-                                        range = ((-7,7),(-7,7)))
-X, Y = np.meshgrid(x_edges, y_edges)
-color_mesh = axs.pcolormesh(X, Y, hist)
-fig.colorbar(color_mesh, ax=axs)
-plt.title('ttbar Jet Eta vs AntiJet Eta')
-plt.xlabel('Jet Eta')
-plt.ylabel('AntiJet Eta')
-fig.savefig('ttbar_JetEtaVsAntiJetEta' + '.png')
+# fig, axs = plt.subplots()
+# hist, x_edges, y_edges = np.histogram2d(leading_lepton_vec.eta.to_numpy(),
+#                                         jet_vec.eta.to_numpy(),
+#                                         bins=(14,14),
+#                                         range = ((-7,7),(-7,7)))
+# X, Y = np.meshgrid(x_edges, y_edges)
+# color_mesh = axs.pcolormesh(X, Y, hist)
+# fig.colorbar(color_mesh, ax=axs)
+# plt.title('ttbar Leading Lepton Eta vs Jet Eta')
+# plt.xlabel('Leading Lepton Eta')
+# plt.ylabel('Jet Eta')
+# fig.savefig('ttbar_LeadingEtaVsJetEta' + '.png')
 
 # at.create_hist(dilepton_vec.m, 'Standalone DiLepton Mass', bins=50, range=(0,500),
 #             weights=at.calculate_weights(dilepton_vec, cross_section))
