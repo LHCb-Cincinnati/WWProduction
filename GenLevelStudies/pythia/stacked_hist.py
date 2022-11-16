@@ -46,15 +46,19 @@ def GetAnalysisArray(tree):
     trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_vec)
 
     # Masks
-    both_lepton_acc_mask = ((lminus_vec.eta>1.596) & (lplus_vec.eta>1.596))
+    both_lepton_loose_acc_mask = ((lminus_vec.eta>1.596)
+                                    & (lplus_vec.eta>1.596))
+    both_lepton_tight_acc_mask = ((lminus_vec.eta>2)
+                                    & (lminus_vec.eta<5)
+                                    & (lplus_vec.eta>2)
+                                    & (lplus_vec.eta<5))                                
     high_pT_lepton_mask = ((lminus_vec.pt>15) | (lplus_vec.pt>15))
     low_pT_lepton_mask = ((lminus_vec.pt>5) & (lplus_vec.pt>5))
     mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                         | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
     one_lepton_acc_mask = ((lminus_vec.eta>1.596) | (lplus_vec.eta>1.596))
     invariant_mass_mask = (dilepton_vec.m>10)
-    lepton_mask = both_lepton_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mue_decay_mask
-    drellyan_mask = both_lepton_acc_mask&low_pT_lepton_mask&invariant_mass_mask
+    lepton_mask = both_lepton_tight_acc_mask&high_pT_lepton_mask&low_pT_lepton_mask&mue_decay_mask
 
     # Apply Masks
     dilepton_vec = dilepton_vec[lepton_mask]
