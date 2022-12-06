@@ -309,6 +309,44 @@ def create_stacked_hist(array_list ,title, yscale='linear', **kwargs):
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png', dpi=600)
 
+def create_imposed_hist(array_list ,title, yscale='linear', **kwargs):
+    ''' Create several 1D histograms from numpy arrays and save it.
+
+    Create a plot with several 1D histograms from several numpy arrays, and
+    saves it to a file.  The file name will be derived from the title of the
+    histogram.  The recommended usage of this function is to specify more
+    keyword arguments than is required.
+    Ex: create_imposed_hist((array1, array2), 'Histogram 1', yscale='log',
+                            bins=50, range=(0,100),
+                            label=['array1 label', 'array2 label'])
+
+    Args:
+    array_list (list[np.array]): A list of numpy arrays full of the data to be
+        histogrammed.
+    title (str): The title of the new histogram.
+    yscale (str): The type of scale used for the yaxis of this histogram.
+        Should be either 'linear' or 'log'.
+    **kwargs:  Any additional keyword arguments are fed into the matplotlib 
+        hist function.
+
+    Returns:
+    None
+
+    '''
+    import matplotlib.pyplot as plt
+
+    fig, axs = plt.subplots()
+    plt.subplots_adjust(top=0.85)
+    hist, bins, patches = axs.hist(array_list, histtype='step', **kwargs)
+    plt.yscale(yscale)
+    axs.set_xlabel(title)
+    axs.set_ylabel("Event Yield")
+    axs.legend()
+
+    #Slightly fancy to remove whitespace
+    save_str = ''.join(title.split())
+    plt.savefig(save_str + '.png', dpi=600)
+
 def create_2D_hist(array1, array2, **kwargs):
     import matplotlib.pyplot as plt
     import numpy as np

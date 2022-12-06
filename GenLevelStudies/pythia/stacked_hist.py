@@ -72,6 +72,20 @@ def GetAnalysisArray(tree):
     delta_eta_array = np.abs(muon_vec.deltaeta(electron_vec))
     delta_r_array = np.abs(muon_vec.deltaR(electron_vec))
 
+    # More Cuts
+    delta_phi_cut = (delta_phi_array<2.4)
+
+    # Apply More Masks
+    dilepton_vec = dilepton_vec[delta_phi_cut]
+    muon_vec = muon_vec[delta_phi_cut]
+    electron_vec = electron_vec[delta_phi_cut]
+    leading_lepton_vec = leading_lepton_vec[delta_phi_cut]
+    trailing_lepton_vec = trailing_lepton_vec[delta_phi_cut]
+    delta_phi_array = delta_phi_array[delta_phi_cut]
+    delta_eta_array = delta_eta_array[delta_phi_cut]
+    delta_r_array = delta_r_array[delta_phi_cut]
+
+    #arrays
     array = ak.zip({'delta_phi': delta_phi_array,
                     'delta_eta': delta_eta_array,
                     'delta_r': delta_r_array,
@@ -101,28 +115,39 @@ os.chdir(file_path)
 label_list = ["$W^+ W^-$", "$t \\bar{t}$", "$\\tau^+ \\tau^-$"]
 
 # Plots
+at.create_imposed_hist([data_list[index].delta_phi for index in range(len(data_list))],
+                        "$\\Delta \\phi$",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        yscale='linear',
+                        bins=50,
+                        label=label_list)
+at.create_imposed_hist([data_list[index].dilepton_vec.m for index in range(len(data_list))],
+                        "$M_{ll}$",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        yscale='linear',
+                        bins=50, range=(0, 500),
+                        label=label_list)
+at.create_imposed_hist([data_list[index].muon_vec.pt for index in range(len(data_list))],
+                        "Muon pT",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        bins=50, range=(0, 150), yscale='linear',
+                        label=label_list)
+at.create_imposed_hist([data_list[index].muon_vec.eta for index in range(len(data_list))],
+                        "Muon $\\eta$",
+                        weights=[weight_list[index] for index in range(len(data_list))],
+                        yscale='linear',
+                        bins=50, range=(2, 5),
+                        label=label_list)
 # at.create_stacked_hist([data_list[index].delta_eta for index in range(len(data_list))],
 #                         "Standalone Delta Eta",
 #                         weights=[weight_list[index] for index in range(len(data_list))],
 #                         bins=50, range=(0, 3),
 #                         label=label_list)
-at.create_stacked_hist([data_list[index].delta_phi for index in range(len(data_list))],
-                        "$\\Delta \\phi$",
-                        weights=[weight_list[index] for index in range(len(data_list))],
-                        yscale='log',
-                        bins=50,
-                        label=label_list)
 # at.create_stacked_hist([data_list[index].delta_r for index in range(len(data_list))],
 #                         "Standalone Delta R",
 #                         weights=[weight_list[index] for index in range(len(data_list))],
 #                         bins=50, range=(0, 5),
 #                         label=label_list)
-at.create_stacked_hist([data_list[index].dilepton_vec.m for index in range(len(data_list))],
-                        "$M_{ll}$",
-                        weights=[weight_list[index] for index in range(len(data_list))],
-                        yscale='log',
-                        bins=50, range=(0, 500),
-                        label=label_list)
 # at.create_stacked_hist([data_list[index].dilepton_vec.pt for index in range(len(data_list))],
 #                         "Standalone Dilepton pT Linear",
 #                         weights=[weight_list[index] for index in range(len(data_list))],
@@ -138,11 +163,6 @@ at.create_stacked_hist([data_list[index].dilepton_vec.m for index in range(len(d
 #                         weights=[weight_list[index] for index in range(len(data_list))],
 #                         bins=50, range=(0, 150),
 #                         label=label_list)
-at.create_stacked_hist([data_list[index].muon_vec.pt for index in range(len(data_list))],
-                        "Muon pT",
-                        weights=[weight_list[index] for index in range(len(data_list))],
-                        bins=50, range=(0, 150), yscale='log',
-                        label=label_list)
 # at.create_stacked_hist([data_list[index].electron_vec.pt for index in range(len(data_list))],
 #                         "Standalone Electron pT Linear",
 #                         weights=[weight_list[index] for index in range(len(data_list))],
@@ -158,9 +178,3 @@ at.create_stacked_hist([data_list[index].muon_vec.pt for index in range(len(data
 #                         weights=[weight_list[index] for index in range(len(data_list))],
 #                         bins=50, range=(1.5, 5),
 #                         label=label_list)
-at.create_stacked_hist([data_list[index].muon_vec.eta for index in range(len(data_list))],
-                        "Muon $\\eta$",
-                        weights=[weight_list[index] for index in range(len(data_list))],
-                        yscale='log',
-                        bins=50, range=(1.5, 5),
-                        label=label_list)
