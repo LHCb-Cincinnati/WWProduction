@@ -46,8 +46,8 @@ tTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
 rEvt_num = np.array([0], dtype=np.float32)
 rLeading_lepton_array = np.array(5*[0], dtype=np.float32)
 rTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
-rMuonid_array = np.array(2*[0], dtype=np.float32)
-rElectronid_array = np.array(2*[0], dtype=np.float32)
+rLeading_lepton_id_array = np.array(9*[0], dtype=np.float32)
+rTrailing_lepton_id_array = np.array(9*[0], dtype=np.float32)
 
 # Create ROOT Tree
 ofile_name = config_dict['OutputFile']
@@ -63,8 +63,9 @@ tree.Branch('tDecay_process_array', tDecay_process_array, 'mumu/F:mue/F:ee/F')
 tree.Branch('rEvt_num', rEvt_num, 'rEvt_num/F')
 tree.Branch('rLeading_lepton_array', rLeading_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
 tree.Branch('rTrailing_lepton_array', rTrailing_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
-tree.Branch('rMuonid_array', rMuonid_array, 'leading/F:trailing/F')
-tree.Branch('rElectronid_array', rElectronid_array, 'leading/F:trailing/F')
+tree.Branch('rLeading_lepton_id_array', rLeading_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
+tree.Branch('rTrailing_lepton_id_array', rTrailing_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
+
 
 # Set up DaVinci Objects
 dilepton_seq = DVSequences.GetDiLeptonSequence()
@@ -147,7 +148,9 @@ while bool(tes['/Event']) and (evtnum<evtmax):
 
     # Reco Stuff
     # If collection is not filled, skip the loop
-    if (not bool(tes['Phys/StdAllLooseMuons/Particles']) or not bool(tes['Phys/StdAllLooseElectrons/Particles'])):
+    if (not bool(tes['Phys/StdAllLooseMuons/Particles'])
+        or not bool(tes['Phys/StdAllLooseElectrons/Particles'])
+        or not bool(tes[dilepton_seq.outputLocation()])):
         gaudi.run(1) 
         continue
 
@@ -158,46 +161,83 @@ while bool(tes['/Event']) and (evtnum<evtmax):
     # hlt_jets = tes[hlt_jet_builder.Output]
     # reg_jets = tes['Phys/StdHltJets/Particles']
 
-    for index in range(len(candidates)):
+    candidates_dilepton_pT_sum = [sum([candidate[1].momentum().pt(),
+                                    candidate[2].momentum().pt()])
+                                    for candidate in candidates]
+    best_candidate_index = candidates_dilepton_pT_sum.index(
+                            max(candidates_dilepton_pT_sum))
 
-        # Initialize Reco Arrays
-        rEvt_num[:] = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
-        rMuonid_array[:] = np.array(2*[0], dtype=np.float32)
-        rElectronid_array[:] = np.array(2*[0], dtype=np.float32)
+    # pdb.set_trace()
 
-        reco_leptons_dict = {particle.pt():particle for particle
-                            in candidates[index].daughters()}
-        reco_leading_lepton = reco_leptons_dict[max(reco_leptons_dict.keys())]
-        reco_trailing_lepton = reco_leptons_dict[min(reco_leptons_dict.keys())]
-        # test_ele = genTool.relatedMCPs(candidates[index].daughters()[electron_index])
-        # test_muon = genTool.relatedMCPs(candidates[index].daughters()[muon_index])
+    # Initialize Reco Arrays
+    rEvt_num[:] = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
+    rLeading_lepton_id_array[:] = np.array(9*[0], dtype=np.float32)
+    rTrailing_lepton_id_array[:] = np.array(9*[0], dtype=np.float32)
 
-        rLeading_lepton_array[:] = np.array((
-                            reco_leading_lepton.momentum().X(),
-                            reco_leading_lepton.momentum().Y(),
-                            reco_leading_lepton.momentum().Z(),
-                            reco_leading_lepton.momentum().E(),
-                            reco_leading_lepton.particleID().pid()),
-                            dtype=np.float32)
-        rTrailing_lepton_array[:] = np.array((
-                            reco_trailing_lepton.momentum().X(),
-                            reco_trailing_lepton.momentum().Y(),
-                            reco_trailing_lepton.momentum().Z(),
-                            reco_trailing_lepton.momentum().E(),
-                            reco_trailing_lepton.particleID().pid()),
-                            dtype=np.float32)
-        if (not bool(reco_leading_lepton.proto().muonPID()) or not bool(reco_trailing_lepton.proto().muonPID())):
-            rMuonid_array[:] = np.array((0,0), dtype=np.float32)
-            counter +=1
-        else:
-            rMuonid_array[:] = np.array((reco_leading_lepton.proto().muonPID().IsMuon(),
-                                        reco_trailing_lepton.proto().muonPID().IsMuon()),
-                                        dtype=np.float32)
+    reco_leptons_dict = {particle.pt():particle for particle
+                        in candidates[best_candidate_index].daughters()}
+    reco_leading_lepton = reco_leptons_dict[max(reco_leptons_dict.keys())]
+    reco_trailing_lepton = reco_leptons_dict[min(reco_leptons_dict.keys())]
+    # test_ele = genTool.relatedMCPs(candidates[index].daughters()[electron_index])
+    # test_muon = genTool.relatedMCPs(candidates[index].daughters()[muon_index])
 
-        tree.GetBranch("rEvt_num").Fill()                                
-        tree.GetBranch("rLeading_lepton_array").Fill()
-        tree.GetBranch("rTrailing_lepton_array").Fill()
-        tree.GetBranch("rMuonid_array").Fill()
+    rLeading_lepton_array[:] = np.array((
+                        reco_leading_lepton.momentum().X(),
+                        reco_leading_lepton.momentum().Y(),
+                        reco_leading_lepton.momentum().Z(),
+                        reco_leading_lepton.momentum().E(),
+                        reco_leading_lepton.particleID().pid()),
+                        dtype=np.float32)
+    rTrailing_lepton_array[:] = np.array((
+                        reco_trailing_lepton.momentum().X(),
+                        reco_trailing_lepton.momentum().Y(),
+                        reco_trailing_lepton.momentum().Z(),
+                        reco_trailing_lepton.momentum().E(),
+                        reco_trailing_lepton.particleID().pid()),
+                        dtype=np.float32)
+    # This is a catch-all for the one or two times the muonPID object
+    # is undefined.
+    if (not bool(reco_leading_lepton.proto().muonPID()) or not bool(reco_trailing_lepton.proto().muonPID())):
+        counter +=1
+    else:
+        # Just a reminder the lepton id array is currently filled as
+        # impact parameter
+        # isMuon
+        # isMuonLoose
+        # isMuonTight
+        # energy deposited in ECal
+        # energy deposited in HCal
+        # Energy deposited in PRS
+        # Track Momentum
+        # pT in a cone of angle ...
+        rLeading_lepton_id_array[:] = np.array((0,
+                                    reco_leading_lepton.proto().muonPID().IsMuon(),
+                                    reco_leading_lepton.proto().muonPID().IsMuonLoose(),
+                                    reco_leading_lepton.proto().muonPID().IsMuonTight(),
+                                    reco_leading_lepton.proto().extraInfo()[332],
+                                    reco_leading_lepton.proto().extraInfo()[333],
+                                    reco_leading_lepton.proto().extraInfo()[349],
+                                    0,
+                                    0),
+                                    dtype=np.float32)
+        rTrailing_lepton_id_array[:] = np.array((0,
+                                    reco_trailing_lepton.proto().muonPID().IsMuon(),
+                                    reco_trailing_lepton.proto().muonPID().IsMuonLoose(),
+                                    reco_trailing_lepton.proto().muonPID().IsMuonTight(),
+                                    reco_trailing_lepton.proto().extraInfo()[332],
+                                    reco_trailing_lepton.proto().extraInfo()[333],
+                                    reco_trailing_lepton.proto().extraInfo()[349],
+                                    0,
+                                    0),
+                                    dtype=np.float32)
+
+    tree.GetBranch("rEvt_num").Fill()                                
+    tree.GetBranch("rLeading_lepton_array").Fill()
+    tree.GetBranch("rTrailing_lepton_array").Fill()
+    tree.GetBranch("rLeading_lepton_id_array").Fill()
+    tree.GetBranch("rTrailing_lepton_id_array").Fill()
+
+    # Continue on with the event loop
     gaudi.run(1) 
 
 
