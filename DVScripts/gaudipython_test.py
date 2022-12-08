@@ -48,6 +48,8 @@ rLeading_lepton_array = np.array(5*[0], dtype=np.float32)
 rTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
 rLeading_lepton_id_array = np.array(9*[0], dtype=np.float32)
 rTrailing_lepton_id_array = np.array(9*[0], dtype=np.float32)
+rLeading_lepton_deltaRmatch = np.array([0], dtype=np.float32)
+rTrailing_lepton_deltaRmatch = np.array([0], dtype=np.float32)
 
 # Create ROOT Tree
 ofile_name = config_dict['OutputFile']
@@ -65,6 +67,8 @@ tree.Branch('rLeading_lepton_array', rLeading_lepton_array, 'px/F:py/F:pz/F:e/F:
 tree.Branch('rTrailing_lepton_array', rTrailing_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
 tree.Branch('rLeading_lepton_id_array', rLeading_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
 tree.Branch('rTrailing_lepton_id_array', rTrailing_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
+tree.Branch('rLeading_lepton_deltaRmatch', rLeading_lepton_deltaRmatch, 'rLeading_lepton_deltaRmatch/F')
+tree.Branch('rTrailing_lepton_deltaRmatch', rTrailing_lepton_deltaRmatch, 'rTrailing_lepton_deltaRmatch/F')
 
 
 # Set up DaVinci Objects
@@ -195,6 +199,8 @@ while bool(tes['/Event']) and (evtnum<evtmax):
                         reco_trailing_lepton.momentum().E(),
                         reco_trailing_lepton.particleID().pid()),
                         dtype=np.float32)
+    rLeading_lepton_deltaRmatch[:] = np.array([tools.DeltaR(reco_leading_lepton, truth_leading_lepton)], dtype=np.float32)
+    rTrailing_lepton_deltaRmatch[:] = np.array([tools.DeltaR(reco_trailing_lepton, truth_trailing_lepton)], dtype=np.float32)
     # This is a catch-all for the one or two times the muonPID object
     # is undefined.
     if (not bool(reco_leading_lepton.proto().muonPID()) or not bool(reco_trailing_lepton.proto().muonPID())):
@@ -236,6 +242,8 @@ while bool(tes['/Event']) and (evtnum<evtmax):
     tree.GetBranch("rTrailing_lepton_array").Fill()
     tree.GetBranch("rLeading_lepton_id_array").Fill()
     tree.GetBranch("rTrailing_lepton_id_array").Fill()
+    tree.GetBranch("rLeading_lepton_deltaRmatch").Fill()
+    tree.GetBranch("rTrailing_lepton_deltaRmatch").Fill()
 
     # Continue on with the event loop
     gaudi.run(1) 
