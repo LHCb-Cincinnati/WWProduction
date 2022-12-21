@@ -46,8 +46,8 @@ tTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
 rEvt_num = np.array([0], dtype=np.float32)
 rLeading_lepton_array = np.array(5*[0], dtype=np.float32)
 rTrailing_lepton_array = np.array(5*[0], dtype=np.float32)
-rLeading_lepton_id_array = np.array(9*[0], dtype=np.float32)
-rTrailing_lepton_id_array = np.array(9*[0], dtype=np.float32)
+rLeading_lepton_id_array = np.array(10*[0], dtype=np.float32)
+rTrailing_lepton_id_array = np.array(10*[0], dtype=np.float32)
 rLeading_lepton_deltaRmatch = np.array([0], dtype=np.float32)
 rTrailing_lepton_deltaRmatch = np.array([0], dtype=np.float32)
 
@@ -65,8 +65,8 @@ tree.Branch('tDecay_process_array', tDecay_process_array, 'mumu/F:mue/F:ee/F')
 tree.Branch('rEvt_num', rEvt_num, 'rEvt_num/F')
 tree.Branch('rLeading_lepton_array', rLeading_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
 tree.Branch('rTrailing_lepton_array', rTrailing_lepton_array, 'px/F:py/F:pz/F:e/F:pid/F')
-tree.Branch('rLeading_lepton_id_array', rLeading_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
-tree.Branch('rTrailing_lepton_id_array', rTrailing_lepton_id_array, 'ip/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
+tree.Branch('rLeading_lepton_id_array', rLeading_lepton_id_array, 'ip/F:ipchi2/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
+tree.Branch('rTrailing_lepton_id_array', rTrailing_lepton_id_array, 'ip/F:ipchi2/F:isMuon/F:isMuonLoose/F:isMuonTight/F:EcalE/F:HcalE/F:PRSE/F:TrackP/F:ConepT/F')
 tree.Branch('rLeading_lepton_deltaRmatch', rLeading_lepton_deltaRmatch, 'rLeading_lepton_deltaRmatch/F')
 tree.Branch('rTrailing_lepton_deltaRmatch', rTrailing_lepton_deltaRmatch, 'rTrailing_lepton_deltaRmatch/F')
 
@@ -88,6 +88,13 @@ tes   = gaudi.evtsvc()
 genTool = gaudi.toolsvc().create(
     'DaVinciSmartAssociator',
     interface = 'IParticle2MCWeightedAssociator')
+pvrTool = gaudi.toolsvc().create(
+    "GenericParticle2PVRelator<_p2PVWithIPChi2, "
+    "OfflineDistanceCalculatorName>/P2PVWithIPChi2",
+    interface = "IRelatedPVFinder")
+dstTool = gaudi.toolsvc().create(
+    "LoKi::TrgDistanceCalculator",
+    interface = "IDistanceCalculator")
 
 # Run
 evtnum = 0
@@ -159,6 +166,7 @@ while bool(tes['/Event']) and (evtnum<evtmax):
         continue
 
     candidates =  tes[dilepton_seq.outputLocation()]
+    primary_verts = tes['Rec/Vertex/Primary']
     # mc_pfs = tes[mc_particle_flow.Output]
     # mc_jets = tes[mc_jet_builder.Output]
     # hlt_pfs = tes[hlt_particle_flow.Output]
@@ -175,8 +183,8 @@ while bool(tes['/Event']) and (evtnum<evtmax):
 
     # Initialize Reco Arrays
     rEvt_num[:] = np.array(tes['DAQ/ODIN'].eventNumber(), dtype=np.float32)
-    rLeading_lepton_id_array[:] = np.array(9*[0], dtype=np.float32)
-    rTrailing_lepton_id_array[:] = np.array(9*[0], dtype=np.float32)
+    rLeading_lepton_id_array[:] = np.array(10*[0], dtype=np.float32)
+    rTrailing_lepton_id_array[:] = np.array(10*[0], dtype=np.float32)
 
     reco_leptons_dict = {particle.pt():particle for particle
                         in candidates[best_candidate_index].daughters()}
@@ -206,8 +214,24 @@ while bool(tes['/Event']) and (evtnum<evtmax):
     if (not bool(reco_leading_lepton.proto().muonPID()) or not bool(reco_trailing_lepton.proto().muonPID())):
         counter +=1
     else:
+        # Find IP
+        leading_lepton_ip = np.array([0], dtype=np.double)
+        leading_lepton_ipchi2 = np.array([0], dtype=np.double)
+        leading_lepton_primary_vert = pvrTool.relatedPV(reco_leading_lepton,
+                                                        primary_verts)
+        dstTool.distance(reco_leading_lepton, leading_lepton_primary_vert,
+                         leading_lepton_ip, leading_lepton_ipchi2)
+        
+        trailing_lepton_ip = np.array([0], dtype=np.double)
+        trailing_lepton_ipchi2 = np.array([0], dtype=np.double)
+        trailing_lepton_primary_vert = pvrTool.relatedPV(reco_trailing_lepton,
+                                                        primary_verts)
+        dstTool.distance(reco_trailing_lepton, trailing_lepton_primary_vert,
+                         trailing_lepton_ip, trailing_lepton_ipchi2)
+
         # Just a reminder the lepton id array is currently filled as
         # impact parameter
+        # impact parameter chi2
         # isMuon
         # isMuonLoose
         # isMuonTight
@@ -216,24 +240,26 @@ while bool(tes['/Event']) and (evtnum<evtmax):
         # Energy deposited in PRS
         # Track Momentum
         # pT in a cone of angle ...
-        rLeading_lepton_id_array[:] = np.array((0,
+        rLeading_lepton_id_array[:] = np.array((leading_lepton_ip,
+                                    leading_lepton_ipchi2,
                                     reco_leading_lepton.proto().muonPID().IsMuon(),
                                     reco_leading_lepton.proto().muonPID().IsMuonLoose(),
                                     reco_leading_lepton.proto().muonPID().IsMuonTight(),
                                     reco_leading_lepton.proto().extraInfo()[332],
                                     reco_leading_lepton.proto().extraInfo()[333],
-                                    reco_leading_lepton.proto().extraInfo()[349],
-                                    0,
+                                    reco_leading_lepton.proto().extraInfo()[331],
+                                    reco_leading_lepton.proto().extraInfo()[504],
                                     0),
                                     dtype=np.float32)
-        rTrailing_lepton_id_array[:] = np.array((0,
+        rTrailing_lepton_id_array[:] = np.array((trailing_lepton_ip,
+                                    trailing_lepton_ipchi2,
                                     reco_trailing_lepton.proto().muonPID().IsMuon(),
                                     reco_trailing_lepton.proto().muonPID().IsMuonLoose(),
                                     reco_trailing_lepton.proto().muonPID().IsMuonTight(),
                                     reco_trailing_lepton.proto().extraInfo()[332],
                                     reco_trailing_lepton.proto().extraInfo()[333],
-                                    reco_trailing_lepton.proto().extraInfo()[349],
-                                    0,
+                                    reco_trailing_lepton.proto().extraInfo()[331],
+                                    reco_trailing_lepton.proto().extraInfo()[504],
                                     0),
                                     dtype=np.float32)
 

@@ -30,6 +30,13 @@ def DeltaRMatching(reco_particle, mc_particles_collection, max_deltar_val=0.1):
         min_deltar_index = deltar_list.index(min(deltar_list))
         return(mc_particles_list[min_deltar_index])
 
+def DeltaRMatchBool(reco_particle, mc_particle, max_deltar_val=0.1):
+    delta_r = DeltaR(reco_particle, mc_particle)
+    if (delta_r > max_deltar_val):
+        return(False)
+    else:
+        return(True)
+
 def FindDecayProduct(truth_particles, source_pid, num_min_products, target_particles_list):
     source_particles_dict = {particle.pt():particle for particle in truth_particles
                     if (particle.particleID().pid()==source_pid
