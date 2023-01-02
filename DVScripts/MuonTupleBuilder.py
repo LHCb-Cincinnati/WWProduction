@@ -28,8 +28,8 @@ DaVinci().DataType = '2016'
 DaVinci().Simulation = True
 # Only ask for luminosity information when not using simulated data
 DaVinci().Lumi = not DaVinci().Simulation
-DaVinci().CondDBtag = 'sim-20161124-2-vc-md100'
-DaVinci().DDDBtag = 'dddb-20150724'
+DaVinci().CondDBtag = config_dict['CondDBtag']
+DaVinci().DDDBtag = config_dict['DDDBtag']
 
 # Use the local input data
 IOHelper().inputFiles([
@@ -47,7 +47,7 @@ rMuon_id_array = np.array(10*[0], dtype=np.float32)
 rMuon_deltaRmatch = np.array([0], dtype=np.float32)
 
 # Create ROOT Tree
-ofile_name = 'MuonEfficiencyTuple.root'
+ofile_name = 'MuonEfficiencyTuplettbar.root'
 ofile = ROOT.TFile(f'~/WWProduction/Data/DVTuples/{ofile_name}', 'RECREATE')
 tree = ROOT.TTree('Tree', 'Tree')
 
