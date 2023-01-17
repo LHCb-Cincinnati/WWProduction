@@ -61,4 +61,12 @@ os.chdir(file_path)
 
 # Plots
 # Reco Plots
-at.create_hist(rLeading_lepton_id_array.ip, 'Leading Lepton IP', bins=10, range=(0,0.05))
+leading_lepton_log_ip = np.log10(rLeading_lepton_id_array.ip.to_numpy())
+trailing_lepton_log_ip = np.log10(rTrailing_lepton_id_array.ip.to_numpy())
+at.create_hist(rLeading_lepton_id_array.ip, 'Leading Lepton IP ttbar', bins=10, range=(0,0.05))
+at.create_hist(rTrailing_lepton_id_array.ip, 'Trailing Lepton IP ttbar', bins=10, range=(0,0.05))
+at.create_hist(leading_lepton_log_ip, 'Leading Lepton Log(IP) ttbar', bins=10, range=(-4,0))
+at.create_hist(trailing_lepton_log_ip, 'Trailing Lepton Log(IP) ttbar', bins=10, range=(-4,0))
+at.create_hist(rLeading_lepton_id_array.ip / rTrailing_lepton_id_array.ip, 'Lepton IP Ratio ttbar', bins=10, range=(0,5))
+at.create_hist(rLeading_lepton_id_array.ip - rTrailing_lepton_id_array.ip, 'Lepton IP Difference ttbar', bins=10, range=(-1,1))
+at.create_hist((rLeading_lepton_id_array.ip - rTrailing_lepton_id_array.ip) / (rLeading_lepton_id_array.ip + rTrailing_lepton_id_array.ip), 'Lepton IP What1 ttbar', bins=10, range=(-1,1))
