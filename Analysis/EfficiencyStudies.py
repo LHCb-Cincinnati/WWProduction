@@ -43,6 +43,14 @@ rLeading_lepton_deltaRmatch_array = tree[rLeading_lepton_deltaRmatch_key].array(
 # Masks
 truth_lepton_acceptance_mask = (tLeading_lepton_vec.eta>1.596)
 rgood_muon_match_mask = (rLeading_lepton_deltaRmatch_array<0.1)
+
+rwmass_eta_cut = ((rLeading_lepton_vec[rgood_muon_match_mask].eta>2.2)&(rLeading_lepton_vec[rgood_muon_match_mask].eta<4.4))
+rwmass_pt_cut = ((rLeading_lepton_vec[rgood_muon_match_mask].pt>28000)&(rLeading_lepton_vec[rgood_muon_match_mask].eta<52000))
+rwmass_mask = rwmass_eta_cut&rwmass_pt_cut
+twmass_eta_cut = ((tLeading_lepton_vec.eta>2.2)&(tLeading_lepton_vec.eta<4.4))
+twmass_pt_cut = ((tLeading_lepton_vec.pt>28000))
+twmass_mask = twmass_eta_cut&twmass_pt_cut
+
 # rgood_muon_match_evts = [evt for index,evt in enumerate(rEvt_num) if rgood_muon_match_mask[index]]
 # tevt_mask = [np.size(np.where(tEvt_num==evt))>0 for evt in rgood_muon_match_evts]
 
@@ -72,22 +80,29 @@ file_path = at.create_folder_path('EfficiencyPlots.root', args.testing)
 os.chdir(file_path)
 
 # Testing
+
+# Acceptance Plots
+at.create_imposed_hist([tLeading_lepton_vec.eta, truth_matched_vec.eta], "Muon Eta", bins=50, range=(0, 7), label=['MC', 'Reco'], color=['red', 'green'])
+at.create_imposed_hist([tLeading_lepton_vec.pt / 1000, truth_matched_vec.rho / 1000], "Muon PT", bins=50, range=(0, 150), label=['MC', 'Reco'], color=['red', 'green'])
+
+at.create_imposed_hist([tLeading_lepton_vec.eta[twmass_mask], truth_matched_vec.eta[rwmass_mask]], "Muon Eta (W Mass Cuts)", bins=50, range=(0, 7), label=['MC', 'Reco'], color=['red', 'green'])
+at.create_imposed_hist([tLeading_lepton_vec.pt[twmass_mask] / 1000, truth_matched_vec.rho[rwmass_mask] / 1000], "Muon PT (W Mass Cuts)", bins=50, range=(0, 150), label=['MC', 'Reco'], color=['red', 'green'])
 # Truth Hist
 truth_hist, tx_edges, ty_edges = np.histogram2d(
-                            tLeading_lepton_vec.rho.to_numpy() / 1000,
-                            tLeading_lepton_vec.eta.to_numpy(),
+                            tLeading_lepton_vec[twmass_mask].rho.to_numpy() / 1000,
+                            tLeading_lepton_vec[twmass_mask].eta.to_numpy(),
                             bins=(8, 5),
                             range=((0, 160), (1, 6)))
 # Loose Reco Hist
 loose_reco_hist, rx_edges, ry_edges = np.histogram2d(
-                            truth_matched_vec.rho.to_numpy() / 1000,
-                            truth_matched_vec.eta.to_numpy(),
+                            truth_matched_vec[rwmass_mask].rho.to_numpy() / 1000,
+                            truth_matched_vec[rwmass_mask].eta.to_numpy(),
                             bins=(8, 5),
                             range=((0, 160), (1, 6)))
 # Tight Reco Hist
 tight_reco_hist, rx_edges, ry_edges = np.histogram2d(
-                            truth_matched_vec[(rLeading_lepton_id_array.isMuon==1)].rho.to_numpy() / 1000,
-                            truth_matched_vec[(rLeading_lepton_id_array.isMuon==1)].eta.to_numpy(),
+                            truth_matched_vec[(rLeading_lepton_id_array.isMuon==1)&rwmass_mask].rho.to_numpy() / 1000,
+                            truth_matched_vec[(rLeading_lepton_id_array.isMuon==1)&rwmass_mask].eta.to_numpy(),
                             bins=(8, 5),
                             range=((0, 160), (1, 6)))
 
