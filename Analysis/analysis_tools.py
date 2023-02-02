@@ -342,6 +342,7 @@ def create_imposed_hist(array_list ,title, yscale='linear', **kwargs):
     axs.set_xlabel(title)
     axs.set_ylabel("Event Yield")
     axs.legend()
+    #axs.legend(loc="upper left") # Keep this around for quick access.
 
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())

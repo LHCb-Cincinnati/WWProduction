@@ -116,7 +116,7 @@ label_list = ["$W^+ W^-$", "$t \\bar{t}$", "$\\tau^+ \\tau^-$"]
 
 # Plots
 at.create_imposed_hist([data_list[index].delta_phi for index in range(len(data_list))],
-                        "$\\Delta \\phi$",
+                        "$\\Delta \\phi_{ll}$",
                         weights=[weight_list[index] for index in range(len(data_list))],
                         yscale='linear',
                         bins=50,
