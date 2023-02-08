@@ -335,14 +335,16 @@ def create_imposed_hist(array_list ,title, yscale='linear', **kwargs):
     '''
     import matplotlib.pyplot as plt
 
+    plt.rcParams.update({'font.size': 16})
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
     hist, bins, patches = axs.hist(array_list, histtype='step', **kwargs)
     plt.yscale(yscale)
+    axs.xaxis.labelpad = -5 # Keep this around for quick access.
     axs.set_xlabel(title)
     axs.set_ylabel("Event Yield")
-    axs.legend()
-    #axs.legend(loc="upper left") # Keep this around for quick access.
+    #axs.legend()
+    axs.legend(loc="upper left") # Keep this around for quick access.
 
     #Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
