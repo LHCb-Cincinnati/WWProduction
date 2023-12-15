@@ -6,6 +6,12 @@ Main:numberOfEvents = 100000        # number of events to generate
 Main:timesAllowErrors = 10         # how many aborts before run stops
 Init:showChangedSettings = on      # list changed settings
 Init:showChangedParticleData = on  # list changed particle data
+TimeShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTdampMatch = 1 #Apply damping
+TimeShower:pTdampMatch = 1 #Apply damping
+SpaceShower:rapidityOrder = off #pT ordering!
+SpaceShower:phiIntAsym = off #Pythia asymmetric showering bug
 
 # Beam Parameters
 Beams:idA = 2212. # Colliding Protons
