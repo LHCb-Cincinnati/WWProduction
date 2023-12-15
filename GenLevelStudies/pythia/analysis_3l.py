@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 import awkward as ak
 import uproot
 import vector
-sys.path.append('../../Analysis') # This is Awesome!
-import analysis_tools as at
+
+import AnalysisTools as at
 
 # Parse Inputs
 parser = at.Parser(sys.argv[1:])
 args = parser.args
 file_name =  args.input_files[0].name
-cross_section = args.cross_section[0] # Cross section in fb
+cross_section = args.cross_section # Cross section in fb
 
 # Open the file
 ifile = uproot.open(file_name)
