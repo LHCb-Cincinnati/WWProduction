@@ -48,8 +48,8 @@ for line in cfg:
 sys.path.insert(0, lib)
 
 # Inputs
-card_file_name = "ttbarProduction.cmnd"
-ofile_name = "Test.root"
+card_file_name = "WjetsProduction.cmnd"
+ofile_name = "WjetsProduction.root"
 target_pid = -6
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
@@ -134,11 +134,11 @@ for iEvent in range(nEvent):
                                         ilepton_minus)
     target_antineutrino_array = fill_array(target_antineutrino_array, pythia.event,
                                         ineutrino_minus)
-    if jet_array.any():
-        target_jet_array = fill_array(target_jet_array, pythia.event,
-                                        ijet)
-        target_antijet_array = fill_array(target_antijet_array, pythia.event,
-                                        iantijet)
+    # if jet_array.any():
+    #     target_jet_array = fill_array(target_jet_array, pythia.event,
+    #                                     ijet)
+    #     target_antijet_array = fill_array(target_antijet_array, pythia.event,
+    #                                     iantijet)
     # if check_mother(pythia.event, pythia.event[iW_plus], 6):
     #     counter1+=1
     # if check_mother(pythia.event, pythia.event[iW_minus], -6):
