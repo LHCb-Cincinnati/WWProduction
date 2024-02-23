@@ -7,6 +7,7 @@ import numpy as np
 
 import pythia8
 import ROOT
+import AnalysisTools as at
 
 # Functions
 def fill_array(array, event, index):
@@ -40,9 +41,12 @@ def check_mother(event, particle, pid):
     else:
         return(False)
 
+# Setting up Path
+ww_path = at.find_WW_path()
+
 #  Set up makefile configuration.
-cfg = open("Makefile.inc")
-lib = "/Applications/pythia8307/lib"
+cfg = open(ww_path + "/GenLevelStudies/pythia/Makefile.inc")
+lib = "/Applications/pythia8310/lib"
 for line in cfg:
     if line.startswith("PREFIX_LIB="): lib = line[11:-1]; break
 sys.path.insert(0, lib)
@@ -53,7 +57,7 @@ ofile_name = "WjetsProduction.root"
 
 # Read in Card File
 pythia = pythia8.Pythia()
-pythia.readFile(card_file_name)
+pythia.readFile(ww_path + "/GenLevelStudies/pythia/" + card_file_name)
 
 # Initialize Pythia
 pythia.init()
@@ -66,7 +70,8 @@ target_lepton_array = np.array([0]*12, dtype=np.float32)
 target_jet_array = np.array([0]*12, dtype=np.float32)
 
 # Set up ROOT
-file = ROOT.TFile.Open(ofile_name,"RECREATE")
+file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/pythia/" + ofile_name,
+                       "RECREATE")
 tree = ROOT.TTree("Tree", "Tree")
 tree.Branch('Event', evt_array, 'Event/F')
 tree.Branch('TargetLepton', target_lepton_array, var_str)

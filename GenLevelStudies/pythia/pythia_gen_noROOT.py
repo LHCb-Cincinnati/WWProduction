@@ -6,6 +6,7 @@ import numpy as np
 
 import pythia8
 import awkward as ak
+import AnalysisTools as at
 
 # Functions
 def fill_array(array, event, index):
@@ -39,9 +40,12 @@ def check_mother(event, particle, pid):
     else:
         return(False)
 
+# Setting up Path
+ww_path = at.find_WW_path()
+
 #  Set up makefile configuration.
-cfg = open("Makefile.inc")
-lib = "/Applications/pythia8307/lib"
+cfg = open(ww_path + "/GenLevelStudies/pythia/Makefile.inc")
+lib = "/Applications/pythia8310/lib"
 for line in cfg:
     if line.startswith("PREFIX_LIB="): lib = line[11:-1]; break
 sys.path.insert(0, lib)
@@ -56,7 +60,7 @@ jet_array = np.array([-5,-3,-1])
 
 # Read in Card File
 pythia = pythia8.Pythia()
-pythia.readFile(card_file_name)
+pythia.readFile(ww_path + "/GenLevelStudies/pythia/" + card_file_name)
 
 # Initialize Pythia
 pythia.init()

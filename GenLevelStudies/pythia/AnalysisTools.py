@@ -195,7 +195,7 @@ def find_WW_path():
     '''
 
     cwd_list = os.getcwd().split('/')
-    WW_index = cwd_list.index('WWProduction/GenLevelStudies/pythia')
+    WW_index = cwd_list.index('WWProduction')
     path = '/'.join(cwd_list[:WW_index+1])
     return(path)
 
