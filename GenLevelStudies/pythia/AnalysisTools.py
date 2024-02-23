@@ -1,10 +1,6 @@
-'''  Provides a series of functions and classes to use my physics analysis.
+'''  Provides a series of functions and classes to use in my physics analysis.
 
-Provides a series of functions and classes to use my physics analysis.
-
-To-Dos:
-- Make a function that grabs all the normal kinematic variables from a ROOT
-    Tree.
+Provides a series of functions and classes to use in my physics analysis.
 '''
 
 # Imports
@@ -317,3 +313,82 @@ def create_stacked_stair(hist_list, title, label_list, yscale='linear', luminosi
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png')
     plt.close()
+
+def fill_array(array, event, index):
+    ''' Fills a numpy array with particle information from a pythia event.
+
+    Fills a given numpy array with information about a specific particle
+    from a pythia event..
+
+    Args:
+    array (np.array): Numpy array to be filled.  Should have 12 elements.
+    event (pythia.event): Pythia event log.
+    index (int): Index of the specific particle to be looked at within the
+        pythia event.
+
+    Returns:
+    array (np.array): Filled Numpy array with information from the specific
+                        particle.
+    '''
+
+    particle = event[index]
+    px = particle.px()
+    py = particle.py()
+    pz = particle.pz()
+    p = np.sqrt(px*px + py*py + pz*pz)
+    array[:] = (px, py, pz,
+                particle.pT(), p, particle.eta(), particle.e(),
+                particle.phi(), particle.m0(), particle.id(),
+                particle.charge(), particle.status())
+    return(array)
+
+def get_target_children(target_index, event, child_index_list=[]):
+    ''' Gets index of non-radiative target children in a pythia event.
+
+    Finds the indicies of the children of a given target particle within a 
+    given pythia event.  Children that are radiative decays 
+    (target -> target + photon) are ignored.
+
+    Args:
+    target_index (int): Index of target particle in a pythia event.
+    event (pythia.event): Pythia event log.
+    child_index_list (list[int]): List of indices of the daughters of the 
+        target particle.  This list is given as a optional argument for use 
+        in recursive function calls and should generally not be needed by 
+        the user.
+
+    Returns:
+    child_index_list (list[int]): As described above.
+    '''
+
+    target = event[target_index]
+    for idaughter in target.daughterList():
+        child_index_list.append(idaughter)
+        if abs(event[idaughter].id()) == abs(target.id()):
+            child_index_list = get_target_children(idaughter, event,
+                                                child_index_list)
+    return(child_index_list)
+
+def check_mother_pid(event, particle, pid):
+    ''' Checks if a particles mother has a given pid.
+
+    Checks if a particle's mother has a given pid.  Radiative decays 
+    (target -> target + photon) are ignored.
+
+    Args:
+    event (pythia.event): Pythia event log.
+    particle (pythia.particle): Pythia particle to be investigated.
+    pid (int): PID the mother of particles needs to be chcked against.
+
+    Returns:
+    bool: True if particle's mother has the given pid.  False if not.
+    '''
+
+    imother = particle.mother1()
+    mother = event[imother]
+    if mother.id() == pid:
+        return(True)
+    elif mother.id() == particle.id():
+        return(check_mother(event, mother, pid))
+    else:
+        return(False)
