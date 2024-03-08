@@ -12,6 +12,9 @@ from collections import namedtuple
 # 3rd Party Packages
 import numpy as np
 import matplotlib.pyplot as plt
+# HEP Packages
+import boost_histogram as bh
+
 
 class Parser(argparse.ArgumentParser):
     """ A user input parser for my analysis.
@@ -195,7 +198,7 @@ def find_WW_path():
     path = '/'.join(cwd_list[:WW_index+1])
     return(path)
 
-def calculate_hist_stats(hist):
+def calculate_hist_stats(hist, bins):
     ''' Calculate count, mean, and variance for a numpy histogram.
 
     Calculate count, mean, and variance of the given histogram using the
@@ -212,27 +215,28 @@ def calculate_hist_stats(hist):
 
     '''
 
-    hist_count = hist.sum().value
-    hist_mids = 0.5*(hist.axes[0].edges[1:] + hist.axes[0].edges[:-1])
-    hist_mean = np.average(hist_mids, weights=(hist.view().value/hist_count))
+    hist_count = np.sum(hist)
+    hist_mids = 0.5*(bins[1:] + bins[:-1])
+    hist_mean = np.average(hist_mids, weights=(hist/hist_count))
     hist_var = np.sqrt(np.average((hist_mids - hist_mean)**2,
-                       weights=(hist.view().value/hist_count)))
+                       weights=(hist/hist_count)))
     return(hist_count, hist_mean, hist_var)
 
-def create_stair(hist, title, yscale='linear', luminosity=False, normalize=False, **kwargs):
-    ''' Plots a 1D BH histogram and saves it.
+def create_stair(array, title, yscale='linear', normalize=False, **kwargs):
+    ''' Create a 1D histogram from a numpy array and save it.
 
-    Plots a 1D BH histogram, and saves it to
+    Create a 1D histogram from a numpy array, and save it to
     a file.  The file name will be derived from the title of the histogram.
-    Ex: create_stair(array1, 'Histogram 1', yscale='log')
+    The recommended usage of this function is to specify more keyword
+    arguments than is required.
+    Ex: create__hist(array1, 'Histogram 1', yscale='log', bins=50,
+                    range=(0,100))
 
     Args:
-    hist (bh.Histogram): A histogram from the boosted histogram package.
+    array (np.array): A numpy array of the data to be histogrammed.
     title (str): The title of the new histogram.
     yscale (str): The type of scale used for the yaxis of this histogram.
         Should be either 'linear' or 'log'.
-    luminosity (float): Adds a luminosity texbox with input luminosity in the
-        text.  Default unit is fb^-1.
     **kwargs:  Any additional keyword arguments are fed into the matplotlib 
         hist function.
 
@@ -243,50 +247,46 @@ def create_stair(hist, title, yscale='linear', luminosity=False, normalize=False
 
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
+    hist, bins, patches = axs.hist(array, **kwargs)
     if normalize:
-        hist_sum = hist.view().value.sum()
-        plt.stairs(hist.view().value / hist_sum, edges=hist.axes[0].edges, **kwargs)
+        hist_sum = np.sum(hist)
+        plt.stairs(hist / hist_sum, edges=hist.axes[0].edges, **kwargs)
     else: 
-        plt.stairs(hist.view().value, edges=hist.axes[0].edges, **kwargs)
-    hist_count, hist_mean, hist_var = calculate_hist_stats(hist)
+        plt.stairs(hist, edges=bins, **kwargs)
+    hist_count, hist_mean, hist_var = calculate_hist_stats(hist, bins)
     plt.yscale(yscale)
     plt.title(title)
     fig_string = (f"Statistics:\n"
                   f"Count: {hist_count:.2f}\n"
                   f"Mean:  {hist_mean:.2f}\n"
                   f"Sigma: {hist_var:.2f}")
+
     axs.text(0.8, 1.02, fig_string, transform=axs.transAxes,
               bbox=dict(facecolor='none', edgecolor='0.7', pad=3.0))
-    if luminosity:
-        axs.text(0, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
-                transform=axs.transAxes, fontsize=12)
+
     # Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png')
     plt.close()
 
-def create_stacked_stair(hist_list, title, label_list, yscale='linear', luminosity = False, normalize=False, **kwargs):
-    '''Stacks several 1D BH histograms into a single plot.
+def create_stacked_stair(array_list, title, label_list, yscale='linear', normalize=False, **kwargs):
+    ''' Create a 1D histogram from a numpy array and save it.
 
-    Stacks several 1D BH histograms into a single plot, and saves it to
+    Create a 1D histogram from a numpy array, and save it to
     a file.  The file name will be derived from the title of the histogram.
-    Ex: create_stacked_stair([hist1, hist2], 'Histogram 1', ["hist1", "hist2"],
-                            yscale='log', luminosity=5.4, normalize=False)
+    The recommended usage of this function is to specify more keyword
+    arguments than is required.
+    Ex: create__hist(array1, 'Histogram 1', yscale='log', bins=50,
+                    range=(0,100))
 
     Args:
-    hist_list list[bh.Histogram]: A list of histograms from the boosted
-        histogram package.
+    array_list (list[np.array]): A list of  numpy arrays containing the data
+        to be histogrammed.
     title (str): The title of the new histogram.
-    label_list list[str]: A list of strings for the legend of the plot.  The
-        number of histograms in hist_list should match the labels here.
     yscale (str): The type of scale used for the yaxis of this histogram.
         Should be either 'linear' or 'log'.
-    normalize (bool): Boolean to decide if the histograms should be normalized.
-        If yes, they are normalized to their own sum.
-    luminosity (float): Adds a luminosity texbox with input luminosity in the
-        text.  Default unit is fb^-1.
     **kwargs:  Any additional keyword arguments are fed into the matplotlib 
-        stair function.
+        hist function.
 
     Returns:
     None
@@ -295,20 +295,27 @@ def create_stacked_stair(hist_list, title, label_list, yscale='linear', luminosi
 
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
-    for index, hist in enumerate(hist_list):
+    for index, array in enumerate(array_list):
+        hist, bins, patches = axs.hist(array, **kwargs)
         if normalize:
-            hist_sum = hist.view().value.sum()
-            plt.stairs(hist.view().value / hist_sum, edges=hist.axes[0].edges,
-                        label=label_list[index], **kwargs)
+            hist_sum = np.sum(hist)
+            plt.stairs(
+                hist / hist_sum,
+                edges=bins,
+                label=label_list[index],
+                **kwargs
+            )
         else: 
-            plt.stairs(hist.view().value, edges=hist.axes[0].edges,
-                        label=label_list[index], **kwargs)
-    if luminosity:
-        axs.text(0.8, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
-                transform=axs.transAxes, fontsize=12)
+            plt.stairs(
+                hist / hist_sum,
+                edges=bins,
+                label=label_list[index],
+                **kwargs
+            )
     plt.yscale(yscale)
     plt.title(title)
     plt.legend()
+
     # Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png')
