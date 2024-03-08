@@ -35,22 +35,22 @@ antineutrino_index = 7
 cut_string = f"(Particle.Eta[:,{lepton_index}] > 0) & (Particle.Eta[:,{antilepton_index}] > 0)"
 
 # Creating Arrays
-lepton_array = vector.Array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, lepton_index],
+lepton_array = vector.array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, lepton_index],
                           'py': tree.arrays("Particle.Py", cut_string, how=tuple)[0][:, lepton_index],
                           'pz': tree.arrays("Particle.Pz", cut_string, how=tuple)[0][:, lepton_index],
                           'E': tree.arrays("Particle.E", cut_string, how=tuple)[0][:, lepton_index]})
 
-antilepton_array = vector.Array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, antilepton_index],
+antilepton_array = vector.array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, antilepton_index],
                           'py': tree.arrays("Particle.Py", cut_string, how=tuple)[0][:, antilepton_index],
                           'pz': tree.arrays("Particle.Pz", cut_string, how=tuple)[0][:, antilepton_index],
                           'E': tree.arrays("Particle.E", cut_string, how=tuple)[0][:, antilepton_index]})
 
-neutrino_array = vector.Array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, neutrino_index],
+neutrino_array = vector.array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, neutrino_index],
                           'py': tree.arrays("Particle.Py", cut_string, how=tuple)[0][:, neutrino_index],
                           'pz': tree.arrays("Particle.Pz", cut_string, how=tuple)[0][:, neutrino_index],
                           'E': tree.arrays("Particle.E", cut_string, how=tuple)[0][:, neutrino_index]})
 
-antineutrino_array = vector.Array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, antineutrino_index],
+antineutrino_array = vector.array({'px': tree.arrays("Particle.Px", cut_string, how=tuple)[0][:, antineutrino_index],
                           'py': tree.arrays("Particle.Py", cut_string, how=tuple)[0][:, antineutrino_index],
                           'pz': tree.arrays("Particle.Pz", cut_string, how=tuple)[0][:, antineutrino_index],
                           'E': tree.arrays("Particle.E", cut_string, how=tuple)[0][:, antineutrino_index]})
