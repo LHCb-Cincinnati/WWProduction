@@ -8,13 +8,10 @@ Provides a series of functions and classes to use in my physics analysis.
 import argparse 
 import pdb
 import os
-from collections import namedtuple
 # 3rd Party Packages
 import numpy as np
 import matplotlib.pyplot as plt
 # HEP Packages
-import boost_histogram as bh
-
 
 class Parser(argparse.ArgumentParser):
     """ A user input parser for my analysis.
@@ -96,8 +93,6 @@ class Parser(argparse.ArgumentParser):
         debug_str = f"Debug Flag: {self.args.debug}"
         return(file_str+xsection_str+lum_string+test_str+output_str+debug_str)
 
-
-
     def check_args(self):
         ''' Checks self.args input for any potential errors after parsing.
 
@@ -175,7 +170,7 @@ def create_folder_path(folder_name, test_mode_flag):
 
     if test_mode_flag:
         folder_name = 'Test'
-    path = find_WW_path() + '/Figures/' + folder_name
+    path = find_WW_path() + '/GenLevelStudies/Figures/' + folder_name
     if not os.path.exists(path):
         os.mkdir(path)
     return(path)
@@ -222,7 +217,7 @@ def calculate_hist_stats(hist, bins):
                        weights=(hist/hist_count)))
     return(hist_count, hist_mean, hist_var)
 
-def create_stair(array, title, yscale='linear', normalize=False, **kwargs):
+def create_stair(array, title, yscale='linear', luminosity=False, normalize=False, **kwargs):
     ''' Create a 1D histogram from a numpy array and save it.
 
     Create a 1D histogram from a numpy array, and save it to
@@ -237,6 +232,10 @@ def create_stair(array, title, yscale='linear', normalize=False, **kwargs):
     title (str): The title of the new histogram.
     yscale (str): The type of scale used for the yaxis of this histogram.
         Should be either 'linear' or 'log'.
+    normalize (bool): Boolean to decide if the histograms should be normalized.
+        If yes, they are normalized to their own sum.
+    luminosity (float): Adds a luminosity texbox with input luminosity in the
+        text.  Default unit is fb^-1.
     **kwargs:  Any additional keyword arguments are fed into the matplotlib 
         hist function.
 
@@ -259,11 +258,13 @@ def create_stair(array, title, yscale='linear', normalize=False, **kwargs):
     fig_string = (f"Statistics:\n"
                   f"Count: {hist_count:.2f}\n"
                   f"Mean:  {hist_mean:.2f}\n"
-                  f"Sigma: {hist_var:.2f}")
-
+                  f"Sigma: {hist_var:.2f}"
+                )
     axs.text(0.8, 1.02, fig_string, transform=axs.transAxes,
               bbox=dict(facecolor='none', edgecolor='0.7', pad=3.0))
-
+    if luminosity:
+        axs.text(0, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
+                transform=axs.transAxes, fontsize=12)
     # Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
     plt.savefig(save_str + '.png')
@@ -396,6 +397,6 @@ def check_mother_pid(event, particle, pid):
     if mother.id() == pid:
         return(True)
     elif mother.id() == particle.id():
-        return(check_mother(event, mother, pid))
+        return(check_mother_pid(event, mother, pid))
     else:
         return(False)
