@@ -247,11 +247,12 @@ def create_stair(array, title, yscale='linear', luminosity=False, normalize=Fals
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
     hist, bins, patches = axs.hist(array, **kwargs)
+    plt.cla()
     if normalize:
         hist_sum = np.sum(hist)
-        plt.stairs(hist / hist_sum, edges=hist.axes[0].edges, **kwargs)
+        axs.stairs(hist / hist_sum, edges=bins)
     else: 
-        plt.stairs(hist, edges=bins, **kwargs)
+        axs.stairs(hist, edges=bins)
     hist_count, hist_mean, hist_var = calculate_hist_stats(hist, bins)
     plt.yscale(yscale)
     plt.title(title)
@@ -297,21 +298,19 @@ def create_stacked_stair(array_list, title, label_list, yscale='linear', normali
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
     for index, array in enumerate(array_list):
-        hist, bins, patches = axs.hist(array, **kwargs)
+        hist, bins = np.histogram(array, **kwargs)
         if normalize:
             hist_sum = np.sum(hist)
             plt.stairs(
                 hist / hist_sum,
                 edges=bins,
-                label=label_list[index],
-                **kwargs
+                label=label_list[index]
             )
         else: 
             plt.stairs(
                 hist / hist_sum,
                 edges=bins,
-                label=label_list[index],
-                **kwargs
+                label=label_list[index]
             )
     plt.yscale(yscale)
     plt.title(title)
