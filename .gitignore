@@ -3,9 +3,12 @@
 .venv/*
 *.lhe
 *.root
+*.dst
 *.exe
+*.pkl
 /Data/Figures/*
 *.log
+*.txt
 *.png
 *~
 *_ex*
