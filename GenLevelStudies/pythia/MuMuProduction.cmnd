@@ -1,0 +1,77 @@
+# File: WBosonDecay.cmnd
+# File meant for WBosonDecay.cc
+
+# General Settings
+Main:numberOfEvents = 100        # number of events to generate
+Main:timesAllowErrors = 10         # how many aborts before run stops
+Init:showChangedSettings = on      # list changed settings
+Init:showChangedParticleData = on  # list changed particle data
+TimeShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTdampMatch = 1 #Apply damping
+TimeShower:pTdampMatch = 1 #Apply damping
+SpaceShower:rapidityOrder = off #pT ordering!
+SpaceShower:phiIntAsym = off #Pythia asymmetric showering bug
+PhaseSpace:mHatMin = 0 # Testing
+PartonLevel:all = off
+
+# Beam Parameters
+Beams:idA = 2212. # Colliding Protons
+Beams:idB = 2212. # Colliding Protons
+Beams:eCM = 13000 # Beam CM Energy
+
+# PDF Settings
+PDF:pSet = 12
+
+# Process Parameters
+# QCD
+HardQCD:all = off
+# Top Production
+#Top:all = off
+Top:gg2ttbar = off
+Top:qqbar2ttbar = off
+Top:qq2tq(t:W) = off
+Top:ffbar2ttbar(s:gmZ) = off
+Top:ffbar2tqbar(s:W) = off
+Top:gmgm2ttbar = off
+Top:ggm2ttbar = off
+
+# Single Bosons
+WeakSingleBoson:all = off
+WeakSingleBoson:ffbar2gmZ = on
+WeakSingleBoson:ffbar2W = off
+WeakSingleBoson:ffbar2ffbar(s:gm) = off
+WeakSingleBoson:ffbar2ffbar(s:gmZ) = off
+WeakSingleBoson:ffbar2ffbar(s:W) = off
+# Double Bosons
+WeakDoubleBoson:all = off
+WeakDoubleBoson:ffbar2gmZgmZ = off
+WeakDoubleBoson:ffbar2ZW = off
+WeakDoubleBoson:ffbar2WW= off
+
+# Additional Options
+# TauDecays:externalMode = 1
+# TauDecays:mode = 1
+
+# Decays
+# Shut all decay modes off from W
+#24:onMode = off
+#-24:onMode = off
+23:onMode = off
+#22:onMode = off
+
+# Shut all decay modes off from Fermions
+6:onMode = off
+15:onMode = off
+
+# Turn relavant decay modes on for Bosons
+#22:onIfAny: 13 // Turn on decays for gamma -> u+ + u-
+23:onIfAny: 13 // Turn on decays for Z -> tau+ + tau-
+#24:onIfAny: -13 -11 // Turn on decays of W+ -> u+
+#-24:onIfAny: 13 12// Turn on decays of W- -> u-
+
+# Turn relavant decay modes on for Fermions
+# 15:onIfAny: 11 13
+
+
+
