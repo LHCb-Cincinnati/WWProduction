@@ -8,10 +8,20 @@ Provides a series of functions and classes to use in my physics analysis.
 import argparse 
 import pdb
 import os
+import warnings
+import logging
 # 3rd Party Packages
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import boost_histogram as bh
 # HEP Packages
+import mplhep as hep
+
+# General Plotting Settings
+matplotlib.use('AGG') # Change matplotlib backend
+# Load style sheet
+plt.style.use(hep.style.LHCb2)  # or ATLAS/LHCb2
 
 class Parser(argparse.ArgumentParser):
     """ A user input parser for my analysis.
@@ -193,7 +203,7 @@ def find_WW_path():
     path = '/'.join(cwd_list[:WW_index+1])
     return(path)
 
-def calculate_hist_stats(hist, bins):
+def calculate_hist_stats(hist):
     ''' Calculate count, mean, and variance for a numpy histogram.
 
     Calculate count, mean, and variance of the given histogram using the
@@ -208,32 +218,34 @@ def calculate_hist_stats(hist, bins):
     hist_mean (float): The average value of hist.
     hist_variance (float): The variance of the samples in hist.
 
+    Raise:
+    Warning: If a histogram has no entries in it.
     '''
 
-    hist_count = np.sum(hist)
-    hist_mids = 0.5*(bins[1:] + bins[:-1])
-    hist_mean = np.average(hist_mids, weights=(hist/hist_count))
-    hist_var = np.sqrt(np.average((hist_mids - hist_mean)**2,
-                       weights=(hist/hist_count)))
-    return(hist_count, hist_mean, hist_var)
+    hist_count = hist.sum().value
+    hist_mids = 0.5*(hist.axes[0].edges[1:] + hist.axes[0].edges[:-1])
+    if hist_count == 0:
+        warnings.warn(f"Histogram has no entries in it:", stacklevel=3)
+        return(0, 0, 0)
+    else:
+        hist_mean = np.average(hist_mids, weights=(hist.view().value/hist_count))
+        hist_var = np.sqrt(np.average((hist_mids - hist_mean)**2,
+                        weights=(hist.view().value/hist_count)))
+        return(hist_count, hist_mean, hist_var)
 
-def create_stair(array, title, yscale='linear', luminosity=False, normalize=False, **kwargs):
-    ''' Create a 1D histogram from a numpy array and save it.
 
-    Create a 1D histogram from a numpy array, and save it to
+def create_stair(hist, title, yscale='linear', luminosity=False, normalize=False, **kwargs):
+    ''' Plots a 1D BH histogram and saves it.
+
+    Plots a 1D BH histogram, and saves it to
     a file.  The file name will be derived from the title of the histogram.
-    The recommended usage of this function is to specify more keyword
-    arguments than is required.
-    Ex: create__hist(array1, 'Histogram 1', yscale='log', bins=50,
-                    range=(0,100))
+    Ex: create_stair(array1, 'Histogram 1', yscale='log')
 
     Args:
-    array (np.array): A numpy array of the data to be histogrammed.
+    hist (bh.Histogram): A histogram from the boosted histogram package.
     title (str): The title of the new histogram.
     yscale (str): The type of scale used for the yaxis of this histogram.
         Should be either 'linear' or 'log'.
-    normalize (bool): Boolean to decide if the histograms should be normalized.
-        If yes, they are normalized to their own sum.
     luminosity (float): Adds a luminosity texbox with input luminosity in the
         text.  Default unit is fb^-1.
     **kwargs:  Any additional keyword arguments are fed into the matplotlib 
@@ -244,23 +256,32 @@ def create_stair(array, title, yscale='linear', luminosity=False, normalize=Fals
 
     '''
 
+    # Load style sheet
+    plt.style.use(hep.style.LHCb2)  # or ATLAS/LHCb2
+
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
-    hist, bins, patches = axs.hist(array, **kwargs)
-    plt.cla()
     if normalize:
-        hist_sum = np.sum(hist)
-        axs.stairs(hist / hist_sum, edges=bins)
+        hist_vals_array = hist.view().value / hist.view().value.sum()
+        hist_errs_array = np.sqrt(hist.view().variance) / hist.view().value.sum()
     else: 
-        axs.stairs(hist, edges=bins)
-    hist_count, hist_mean, hist_var = calculate_hist_stats(hist, bins)
+        hist_vals_array = hist.view().value
+        hist_errs_array = np.sqrt(hist.view().variance)
+    plt.bar(
+        hist.axes[0].centers,
+        hist_vals_array,
+        width = hist.axes[0].widths,
+        yerr = hist_errs_array,
+        fill = False,
+        **kwargs
+        )
+    hist_count, hist_mean, hist_var = calculate_hist_stats(hist)
     plt.yscale(yscale)
     plt.title(title)
     fig_string = (f"Statistics:\n"
                   f"Count: {hist_count:.2f}\n"
                   f"Mean:  {hist_mean:.2f}\n"
-                  f"Sigma: {hist_var:.2f}"
-                )
+                  f"Sigma: {hist_var:.2f}")
     axs.text(0.8, 1.02, fig_string, transform=axs.transAxes,
               bbox=dict(facecolor='none', edgecolor='0.7', pad=3.0))
     if luminosity:
@@ -271,55 +292,195 @@ def create_stair(array, title, yscale='linear', luminosity=False, normalize=Fals
     plt.savefig(save_str + '.png')
     plt.close()
 
-def create_stacked_stair(array_list, title, label_list, yscale='linear', normalize=False, **kwargs):
-    ''' Create a 1D histogram from a numpy array and save it.
+def create_stacked_stair(hist_list, title, label_list, yscale='linear', luminosity = False, normalize=False, **kwargs):
+    '''Stacks several 1D BH histograms into a single plot.
 
-    Create a 1D histogram from a numpy array, and save it to
+    Stacks several 1D BH histograms into a single plot, and saves it to
     a file.  The file name will be derived from the title of the histogram.
-    The recommended usage of this function is to specify more keyword
-    arguments than is required.
-    Ex: create__hist(array1, 'Histogram 1', yscale='log', bins=50,
-                    range=(0,100))
+    Ex: create_stacked_stair([hist1, hist2], 'Histogram 1', ["hist1", "hist2"],
+                            yscale='log', luminosity=5.4, normalize=False)
 
     Args:
-    array_list (list[np.array]): A list of  numpy arrays containing the data
-        to be histogrammed.
+    hist_list list[bh.Histogram]: A list of histograms from the boosted
+        histogram package.
     title (str): The title of the new histogram.
+    label_list list[str]: A list of strings for the legend of the plot.  The
+        number of histograms in hist_list should match the labels here.
     yscale (str): The type of scale used for the yaxis of this histogram.
         Should be either 'linear' or 'log'.
+    normalize (bool): Boolean to decide if the histograms should be normalized.
+        If yes, they are normalized to their own sum.
+    luminosity (float): Adds a luminosity texbox with input luminosity in the
+        text.  Default unit is fb^-1.
     **kwargs:  Any additional keyword arguments are fed into the matplotlib 
-        hist function.
+        stair function.
 
     Returns:
     None
 
     '''
-
+    
+    logging.debug(
+        "Arguments given to create_stacked_hist: \n"
+        + f"Histograms: {hist_list}\n"
+        + f"Title: {title}\n"
+        + f"Label List: {label_list}\n"
+        + f"yscale: {yscale}\n"
+        + f"Luminosity: {luminosity}\n"
+        + f"Normalize: {normalize}\n"
+        + f"kwargs: {kwargs}")
     fig, axs = plt.subplots()
     plt.subplots_adjust(top=0.85)
-    for index, array in enumerate(array_list):
-        hist, bins = np.histogram(array, **kwargs)
+    for index, hist in enumerate(hist_list):
         if normalize:
-            hist_sum = np.sum(hist)
-            plt.stairs(
-                hist / hist_sum,
-                edges=bins,
-                label=label_list[index]
-            )
+            hist_sum = hist.view().value.sum()
+            axs.stairs(hist.view().value / hist_sum, edges=hist.axes[0].edges,
+                        label=label_list[index], **kwargs)
         else: 
-            plt.stairs(
-                hist / hist_sum,
-                edges=bins,
-                label=label_list[index]
-            )
-    plt.yscale(yscale)
-    plt.title(title)
-    plt.legend()
-
+            axs.stairs(hist.view().value, edges=hist.axes[0].edges,
+                        label=label_list[index], **kwargs)
+    if luminosity:
+        axs.text(0.8, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
+                transform=axs.transAxes, fontsize=12)
+    axs.set_yscale(yscale)
+    axs.set_title(title)
+    hist_handles, hist_labels = axs.get_legend_handles_labels()
+    axs.legend(hist_handles, hist_labels, loc = "lower center")
     # Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
+    fig.savefig(save_str + '.png')
+    plt.close()
+
+def plot_2dhist(hist, hist_name,
+    yscale='linear', luminosity=False, normalize=False,
+    **kwargs
+    ):
+
+    if normalize:
+        norm_factor = np.sum(hist.view().value)
+    else:
+        norm_factor = 1
+    colormesh = plt.pcolormesh(
+        hist.axes[0].edges,
+        hist.axes[1].edges,
+        hist.view().value.T / norm_factor,
+        **kwargs
+    )
+    colorbar = plt.colorbar(colormesh)
+    plt.title(hist_name)
+    plt.yscale(yscale)
+    if luminosity:
+        plt.text(0, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
+            transform=plt.transAxes, fontsize=24)
+    save_str = ''.join((hist_name + "_" + yscale).split())
     plt.savefig(save_str + '.png')
     plt.close()
+
+
+def get_index(flattened_index, size_tuple):
+    index_list = [0] * len(size_tuple)
+    for dim in range(len(size_tuple)-1):
+        #  This won't work in three dimensions.
+        #  I will need to divide the flattened index by the skipped
+        #  size dimensions.
+        index_list[dim] = int(flattened_index / np.prod(size_tuple[dim+1:]))
+    index_list[-1] = int(flattened_index % size_tuple[-1])
+    return(tuple(index_list))
+
+def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
+    """ Divides two bh histograms with binomial errors.
+
+    Divides two bh histograms, assuming the same binning scheme, binwise.
+    Independent or binomial errors can be used.
+
+    Args:
+        num_hist (bh.histogram): Numerator histogram.
+        denom_hist (bh.histogram): Denominator histogram.
+        binomial_errors (bool): Whether to use binomial errors.
+    
+    Returns:
+        div_hist (bh.histogram): num_hist / denom_hist
+    """
+    div_hist = num_hist.copy()
+    original_shape = div_hist.view().shape
+    # div_hist.reset()
+    # div_hist.view().reshape(len(div_hist.view().flatten()))
+    grouped_array = zip(
+        range(len(div_hist.view().flatten().value)),
+        num_hist.view().flatten().value,
+        denom_hist.view().flatten().value,
+        num_hist.view().flatten().variance,
+        denom_hist.view().flatten().variance
+    )
+    for (index, num_value, denom_value, num_var, denom_var) in grouped_array:
+        if denom_value == 0:
+            continue
+            warnings.warn(f"Denominator value of zero in hist: {denom_hist}")
+        div_value = num_value / denom_value
+        # print(div_val_array[index])
+        if binomial_error:
+            div_var = (
+                (1/denom_value)
+                * np.sqrt(
+                    num_value
+                    * (1- (num_value / denom_value))
+                )
+            )
+        else:
+            div_var = (
+                (num_value / denom_value)
+                * np.sqrt(
+                    (np.sqrt(num_var) / num_value)**2
+                    + (np.sqrt(denom_var) / denom_value)**2
+                )
+            )
+        index_list = get_index(index, original_shape)
+        div_hist[index_list] = [div_value, div_var]
+    # div_hist.view().reshape(original_shape)
+    return(div_hist)
+
+
+    # div_hist = bh.Histogram(
+    #     bh.axis.Variable(num_hist.axes[0].edges),
+    #     storage=bh.storage.Weight()
+    # )
+    # for ihist_bin in range(len(num_hist.view())):
+    #     num_value = num_hist[ihist_bin].value
+    #     num_var = num_hist[ihist_bin].variance
+    #     denom_value = denom_hist[ihist_bin].value
+    #     denom_var = denom_hist[ihist_bin].variance
+    #     if denom_value == 0:
+    #         continue
+    #         warnings.warn(f"Denominator value of zero in hist: {denom_hist}")
+    #     bin_value = num_value / denom_value
+    #     if binomial_error:
+    #         bin_error = (
+    #             (1/denom_value)
+    #             * np.sqrt(
+    #                 num_value
+    #                 * (1- (num_value / denom_value))
+    #             )
+    #         )
+    #         other_form = (
+    #             np.abs((((1 - 2 * num_value / denom_value) * num_var) + (num_value**2 * denom_var / denom_value**2)) / denom_value**2)
+    #         )
+    #         print(f"Bin: {ihist_bin}")
+    #         print(f"Numerator Content: {num_hist[ihist_bin].value}")
+    #         print(f"Denominator Content: {denom_hist[ihist_bin].value}")
+    #         print(f"Numerator Variance: {num_hist[ihist_bin].variance}")
+    #         print(f"Denominator Variance: {denom_hist[ihist_bin].variance}")
+    #         print(f"Normal: {bin_error}")
+    #         print(f"New: {other_form}")
+    #     else:
+    #         bin_error = (
+    #             (num_value / denom_value)
+    #             * np.sqrt(
+    #                 (np.sqrt(num_var) / num_value)**2
+    #                 + (np.sqrt(denom_var) / denom_value)**2
+    #             )
+    #         )
+    #     div_hist[ihist_bin] = [bin_value, bin_error]
+    return(div_hist)
 
 def fill_array(array, event, index):
     ''' Fills a numpy array with particle information from a pythia event.
@@ -347,6 +508,37 @@ def fill_array(array, event, index):
                 particle.pT(), p, particle.eta(), particle.e(),
                 particle.phi(), particle.m0(), particle.id(),
                 particle.charge(), particle.status())
+    return(array)
+
+def fill_array_big(array, event, index):
+    ''' Fills a numpy array with particle information from a pythia event.
+
+    Fills a given numpy array with information about a specific particle
+    from a pythia event..
+
+    Args:
+    array (np.array): Numpy array to be filled.  Should have 12 elements.
+    event (pythia.event): Pythia event log.
+    index (int): Index of the specific particle to be looked at within the
+        pythia event.
+
+    Returns:
+    array (np.array): Filled Numpy array with information from the specific
+                        particle.
+    '''
+
+    particle = event[index]
+    px = particle.px()
+    py = particle.py()
+    pz = particle.pz()
+    p = np.sqrt(px*px + py*py + pz*pz)
+    array[:] = (px, py, pz,
+                particle.pT(), p, particle.eta(), particle.e(),
+                particle.phi(), particle.m0(), particle.id(),
+                particle.charge(), particle.status(),
+                particle.hasVertex(),
+                particle.xProd(), particle.yProd(), particle.zProd(),
+                particle.tProd())
     return(array)
 
 def get_target_children(target_index, event, child_index_list=[]):
@@ -399,3 +591,23 @@ def check_mother_pid(event, particle, pid):
         return(check_mother_pid(event, mother, pid))
     else:
         return(False)
+
+def check_radiative_decay(event, particle):
+    ''' Checks if a particle decays radiatively.
+    '''
+
+    idaughter1 = particle.daughter1()
+    idaughter2 = particle.daughter2()
+    if idaughter1 == 0:
+        return(False)
+    elif idaughter2 == 0:
+        if event[idaughter1] == particle.id():
+            return(True)
+        else:
+            return(False)
+    else:
+        for index in range(idaughter2 - idaughter1):
+            if event[idaughter1 + index] == particle.id():
+                return(True)
+        return(False)
+
