@@ -60,6 +60,12 @@ muon_eta_midUEspT_denom_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storag
 muon_eta_midUEspT_num_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
 muon_eta_highUEspT_denom_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
 muon_eta_highUEspT_num_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_lowpT_denom_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_lowpT_num_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_midpT_denom_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_midpT_num_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_highpT_denom_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
+muon_eta_highpT_num_hist = bh.Histogram(bh.axis.Regular(8, 2.2, 4.4), storage=bh.storage.Weight())
 muon_pT_denom_hist = bh.Histogram(bh.axis.Regular(50, 20, 150), storage=bh.storage.Weight())
 muon_pT_num_hist = bh.Histogram(bh.axis.Regular(50, 20, 150), storage=bh.storage.Weight())
 muon_UEspT_denom_hist = bh.Histogram(bh.axis.Regular(50, 0, 20), storage=bh.storage.Weight())
@@ -185,6 +191,18 @@ muon_highu_cut = (
     (muon_u_arr > 95)
     & (muon_u_arr < 100) 
 )
+muon_lowpT_cut = (
+    (muon_vec.pt / GeV > 20)
+    & (muon_vec.pt / GeV < 25) 
+)
+muon_midpT_cut = (
+    (muon_vec.pt / GeV > 40)
+    & (muon_vec.pt / GeV < 45) 
+)
+muon_highpT_cut = (
+    (muon_vec.pt / GeV > 60)
+    & (muon_vec.pt / GeV < 65) 
+)
 muon_lowUEspT_cut = (
     (muon_UE_arr.spTAve > 0.5)
     & (muon_UE_arr.spTAve < 0.75) 
@@ -243,6 +261,12 @@ muon_eta_midUEspT_denom_hist.fill(muon_vec[muon_midUEspT_cut].eta)
 muon_eta_midUEspT_num_hist.fill(muon_vec[muon_iso_cut&muon_midUEspT_cut].eta)
 muon_eta_highUEspT_denom_hist.fill(muon_vec[muon_highUEspT_cut].eta)
 muon_eta_highUEspT_num_hist.fill(muon_vec[muon_iso_cut&muon_highUEspT_cut].eta)
+muon_eta_lowpT_denom_hist.fill(muon_vec[muon_lowpT_cut].eta)
+muon_eta_lowpT_num_hist.fill(muon_vec[muon_iso_cut&muon_lowpT_cut].eta)
+muon_eta_midpT_denom_hist.fill(muon_vec[muon_midpT_cut].eta)
+muon_eta_midpT_num_hist.fill(muon_vec[muon_iso_cut&muon_midpT_cut].eta)
+muon_eta_highpT_denom_hist.fill(muon_vec[muon_highpT_cut].eta)
+muon_eta_highpT_num_hist.fill(muon_vec[muon_iso_cut&muon_highpT_cut].eta)
 muon_pT_denom_hist.fill(muon_vec.pt / GeV)
 muon_pT_num_hist.fill(muon_vec[muon_iso_cut].pt / GeV)
 muon_UEspT_denom_hist.fill(muon_UE_arr.spTAve)
@@ -284,6 +308,21 @@ muon_eta_midUEspT_eff_hist = at.divide_bh_histograms(
 muon_eta_highUEspT_eff_hist = at.divide_bh_histograms(
     muon_eta_highUEspT_num_hist,
     muon_eta_highUEspT_denom_hist,
+    binomial_error = True
+)
+muon_eta_lowpT_eff_hist = at.divide_bh_histograms(
+    muon_eta_lowpT_num_hist,
+    muon_eta_lowpT_denom_hist,
+    binomial_error = True
+)
+muon_eta_midpT_eff_hist = at.divide_bh_histograms(
+    muon_eta_midpT_num_hist,
+    muon_eta_midpT_denom_hist,
+    binomial_error = True
+)
+muon_eta_highpT_eff_hist = at.divide_bh_histograms(
+    muon_eta_highpT_num_hist,
+    muon_eta_highpT_denom_hist,
     binomial_error = True
 )
 muon_UEspT_eff_hist = at.divide_bh_histograms(
@@ -497,6 +536,21 @@ at.create_stair(
     luminosity=luminosity
 )
 at.create_stair(
+    muon_eta_lowpT_eff_hist, 
+    "Muon Isolation Efficiency (Eta LowpT)",
+    luminosity=luminosity
+)
+at.create_stair(
+    muon_eta_midpT_eff_hist, 
+    "Muon Isolation Efficiency (Eta MidpT)",
+    luminosity=luminosity
+)
+at.create_stair(
+    muon_eta_highpT_eff_hist, 
+    "Muon Isolation Efficiency (Eta HighpT)",
+    luminosity=luminosity
+)
+at.create_stair(
     muon_UEspT_eff_hist, 
     "Muon Isolation Efficiency (UEspT)",
     luminosity=luminosity
@@ -610,6 +664,9 @@ pickle_dict = {
     "MuonEtaLowUEspTIsoEff": [muon_eta_lowUEspT_eff_hist],
     "MuonEtaMidUEspTIsoEff": [muon_eta_midUEspT_eff_hist],
     "MuonEtaHighUEspTIsoEff": [muon_eta_highUEspT_eff_hist],
+    "MuonEtaLowpTIsoEff": [muon_eta_lowpT_eff_hist],
+    "MuonEtaMidpTIsoEff": [muon_eta_midpT_eff_hist],
+    "MuonEtaHighpTIsoEff": [muon_eta_highpT_eff_hist],
     "MuonpTIsoEff": [muon_pT_eff_hist],
     "MuonUEspTIsoEff": [muon_UEspT_eff_hist],
     "MuonuEff": [muon_u_eff_hist]
