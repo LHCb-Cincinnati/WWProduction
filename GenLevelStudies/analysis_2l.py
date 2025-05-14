@@ -213,6 +213,18 @@ at.create_stair(trailinglepton_id_pT_rghbin_hist, "Trailing Lepton pT Log Rough 
                 yscale='log', luminosity=luminosity)
 at.create_stair(trailinglepton_id_eta_rghbin_hist, "Trailing Lepton Eta Rough Binning",
                 luminosity=luminosity)
+at.create_stair(muon_id_pT_rghbin_hist, "Muon pT Linear Rough Binning",
+                luminosity=luminosity)
+at.create_stair(muon_id_pT_rghbin_hist, "Muon pT Log Rough Binning",
+                yscale='log', luminosity=luminosity)
+at.create_stair(muon_id_eta_rghbin_hist, "Muon Eta Rough Binning",
+                luminosity=luminosity)
+at.create_stair(electron_id_pT_rghbin_hist, "Electron pT Linear Rough Binning",
+                luminosity=luminosity)
+at.create_stair(electron_id_pT_rghbin_hist, "Electron pT Log Rough Binning",
+                yscale='log', luminosity=luminosity)
+at.create_stair(electron_id_eta_rghbin_hist, "Electron Eta Rough Binning",
+                luminosity=luminosity)
 at.create_stair(dilepton_id_pT_rghbin_hist, "DiLepton pT Linear Rough Binning",
                 luminosity=luminosity)
 at.create_stair(dilepton_id_pT_rghbin_hist, "DiLepton pT Log Rough Binning", yscale='log',
@@ -239,6 +251,18 @@ at.create_stair(trailinglepton_id_pT_finebin_hist, "Trailing Lepton pT Linear Fi
 at.create_stair(trailinglepton_id_pT_finebin_hist, "Trailing Lepton pT Log Fine Binning",
                 yscale='log', luminosity=luminosity)
 at.create_stair(trailinglepton_id_eta_finebin_hist, "Trailing Lepton Eta Fine Binning",
+                luminosity=luminosity)
+at.create_stair(muon_id_pT_finebin_hist, "Muon pT Linear Fine Binning",
+                luminosity=luminosity)
+at.create_stair(muon_id_pT_finebin_hist, "Muon pT Log Fine Binning",
+                yscale='log', luminosity=luminosity)
+at.create_stair(muon_id_eta_finebin_hist, "Muon Eta Fine Binning",
+                luminosity=luminosity)
+at.create_stair(electron_id_pT_finebin_hist, "Electron pT Linear Fine Binning",
+                luminosity=luminosity)
+at.create_stair(electron_id_pT_finebin_hist, "Electron pT Log Fine Binning",
+                yscale='log', luminosity=luminosity)
+at.create_stair(electron_id_eta_finebin_hist, "Electron Eta Fine Binning",
                 luminosity=luminosity)
 at.create_stair(dilepton_id_pT_finebin_hist, "DiLepton pT Linear Fine Binning",
                 luminosity=luminosity)
