@@ -5,6 +5,7 @@ import pdb
 import pickle
 import sys
 import logging
+from collections import namedtuple
 # Scikit Imports
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +14,7 @@ from hepunits.units import MeV, GeV
 import awkward as ak
 import uproot
 import vector
+import boost_histogram as bh
 # Personal Imports
 import AnalysisTools as at
 
@@ -40,38 +42,8 @@ logging.info(f"Arguments: {args}")
 
 # Define Variables
 data_list = [0] * len(file_list)
-label_list = ["No Ws", "MadSpin"]
+label_list = ["$ W^+ W^- $", "$ t \\bar{t} $"]
 logging.info(f"Label list provided: {label_list}")
-bin_dict= {
-    "LeadingLeptonpT": 50,
-    "LeadingLeptonEta": 50,
-    "TrailingLeptonpT": 50,
-    "TrailingLeptonEta":50,
-    "ElectronpT": 50,
-    "ElectronEta": 50,
-    "MuonpT": 50,
-    "MuonEta": 50,
-    "DiLeptonpT": 50,
-    "DiLeptonMass": 50,
-    "DeltaPhi": 50,
-    "DeltaEta": 50,
-    "DeltaR": 50
-}
-range_dict= {
-    "LeadingLeptonpT": (20, 150),
-    "LeadingLeptonEta": (2.2, 4.4),
-    "TrailingLeptonpT": (20, 150),
-    "TrailingLeptonEta": (2.2, 4.4),
-    "ElectronpT": (20, 150),
-    "ElectronEta": (2.2, 4.4),
-    "MuonpT": (20, 150),
-    "MuonEta": (2.2, 4.4),
-    "DiLeptonpT": (20, 150),
-    "DiLeptonMass": (20, 300),
-    "DeltaPhi": (0, 3.14),
-    "DeltaEta": (0, 3),
-    "DeltaR": (0, 5)
-}
 
 # Retrieve Histos
 # Here data are the histograms and index is the index of the file in the
@@ -104,14 +76,8 @@ for hist_tag in data_list[0].keys():
         logging.debug(f"Added {file[hist_tag]} to hist_draw_list")
     # Draw the histogram.  Only the first histograms corresponding to the
     # number of labels given are drawn.
-    at.create_stacked_stair(
-        hist_draw_list[:len(label_list)],
-        hist_tag,
-        label_list,
-        normalize=True,
-        bins=bin_dict[hist_tag],
-        range=range_dict[hist_tag] 
-    )
-    # at.create_stacked_stair(hist_draw_list[:len(label_list)], hist_tag + "_Log", label_list,
-    #                         yscale="log", luminosity=luminosity, normalize=True)
+    at.create_stacked_stair(hist_draw_list[:len(label_list)], hist_tag, label_list,
+                            luminosity=luminosity, normalize=False)
+    at.create_stacked_stair(hist_draw_list[:len(label_list)], hist_tag + "_Log", label_list,
+                            yscale="log", luminosity=luminosity, normalize=False)
     logging.debug(f"Finished Drawing {hist_tag}")
