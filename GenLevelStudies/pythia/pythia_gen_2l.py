@@ -2,35 +2,84 @@
 # STL Packages
 import sys
 import pdb
-import yaml
 # Scikit Packages
 import numpy as np
 # HEP Packages
 import pythia8
 import ROOT
 # Personal Packages
+sys.path.append(".") # Not great form.
 import AnalysisTools as at
+
+def deltaR(vec1, vec2):
+    delta_r = np.sqrt(
+        (vec1.phi() - vec2.phi())**2
+        + (vec1.eta() - vec2.eta())**2
+    )
+    return(delta_r)
+
+def fill_UE_array(array, pythia, lepton_index):
+    lepton_vec = pythia.event[lepton_index].p()
+    spT_sum = 0
+    num_good_cones = 0
+    isGoodCone_array = [0]*7
+    spT_array = [0]*7
+    for i in range(7):
+        cone_spT = 0
+        is_good_cone = True
+        lepton_vec.rot(0, (2*np.pi) / 6)
+        for particle in pythia.event:
+            if ((deltaR(particle.p(), lepton_vec) < 0.50) and (particle.pT() < 20)):
+                cone_spT += particle.pT()
+            elif (particle.pT() > 20):
+                is_good_cone = False
+                isGoodCone_array[i] = False
+                spT_array[i] = 0
+                break
+        isGoodCone_array[i] = True
+        spT_array[i] = cone_spT
+        num_good_cones +=1
+        spT_sum += cone_spT
+    array[:] = (
+        spT_sum,
+        num_good_cones,
+        spT_array[0],
+        isGoodCone_array[0],
+        spT_array[1],
+        isGoodCone_array[1],
+        spT_array[2],
+        isGoodCone_array[2],
+        spT_array[3],
+        isGoodCone_array[3],
+        spT_array[4],
+        isGoodCone_array[4],
+        spT_array[5],
+        isGoodCone_array[5]
+    )
+    return(array)
 
 # Setting up Path
 ww_path = at.find_WW_path()
 
 #  Set up makefile configuration.
 cfg = open(ww_path + "/GenLevelStudies/pythia/Makefile.inc")
-lib = "/Applications/pythia8310/lib"
+lib = "/data/home/ganowak/WWProduction/pythia8311/lib"
 for line in cfg:
     if line.startswith("PREFIX_LIB="): lib = line[11:-1]; break
 sys.path.insert(0, lib)
 
 # Inputs
-card_file_name = "WjetsProduction.cmnd"
-ofile_name = "WjetsProduction.root"
-target_pid = -6
+card_file_name = "ttbarProduction.cmnd"
+ofile_name = "ttbarProduction.root"
+target_pid = -24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
-jet_array = np.array([-5,-3,-1])
+# jet_array = np.array([-5,-3,-1])
+jet_array = np.array([])
 
-# Read in Card File
+# Read in Card File 
 pythia = pythia8.Pythia()
+pythia.readFile(ww_path + "/GenLevelStudies/pythia/defaults.cmnd")
 pythia.readFile(ww_path + "/GenLevelStudies/pythia/" + card_file_name)
 
 # Initialize Pythia
@@ -38,13 +87,16 @@ pythia.init()
 nEvent = pythia.mode("Main:numberOfEvents")
 
 # Initialize Arrays
-var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:energy/F:phi/F:m0/F:id/F:charge/F:status/F'
+var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:charge/F:status/F'
+ue_str = "spTAve/F:NumGoodCones/F:Cone1spT/F:Cone1isGoodCone/F:Cone2spT/F:Cone2isGoodCone/F:Cone3spT/F:Cone3isGoodCone/F:Cone4spT/F:Cone4isGoodCone/F:Cone5spT/F:Cone5isGoodCone/F:Cone6spT/F:Cone6isGoodCone/F:"
 evt_array = np.array([0], dtype=np.float32)
 target_particle_array = np.array([0]*12, dtype=np.float32)
 target_lepton_array = np.array([0]*12, dtype=np.float32)
+target_lepton_UE_array = np.array([0]*14, dtype=np.float32)
 target_neutrino_array = np.array([0]*12, dtype=np.float32)
 target_antiparticle_array = np.array([0]*12, dtype=np.float32)
 target_antilepton_array = np.array([0]*12, dtype=np.float32)
+target_antilepton_UE_array = np.array([0]*14, dtype=np.float32)
 target_antineutrino_array = np.array([0]*12, dtype=np.float32)
 if jet_array.any():
     target_jet_array = np.array([0]*12, dtype=np.float32)
@@ -57,9 +109,11 @@ tree = ROOT.TTree("Tree", "Tree")
 tree.Branch('Event', evt_array, 'Event/F')
 tree.Branch('TargetParticle', target_particle_array, var_str)
 tree.Branch('TargetLepton', target_lepton_array, var_str)
+tree.Branch('TargetLeptonUE', target_lepton_UE_array, ue_str)
 tree.Branch('TargetNeutrino', target_neutrino_array, var_str)
 tree.Branch('TargetAntiParticle', target_antiparticle_array, var_str)
 tree.Branch('TargetAntiLepton', target_antilepton_array, var_str)
+tree.Branch('TargetAntiLeptonUE', target_antilepton_UE_array, ue_str)
 tree.Branch('TargetAntiNeutrino', target_antineutrino_array, var_str)
 if jet_array.any():
     tree.Branch('TargetJet', target_jet_array, var_str)
@@ -79,8 +133,7 @@ for iEvent in range(nEvent):
             itarget_particle = index
         elif particle.id()==-1*target_pid:
             itarget_antiparticle = index
-    
-    for idaughter in at.get_target_children(itarget_particle, pythia.event):
+    for idaughter in at.get_target_children(itarget_particle, pythia.event, child_index_list=[]):
         daughter = pythia.event[idaughter]
         if daughter.id() in lepton_pid_array:
             ilepton_plus = idaughter
@@ -88,7 +141,7 @@ for iEvent in range(nEvent):
             ineutrino_plus = idaughter
         elif daughter.id() in jet_array:
             ijet = idaughter
-    for idaughter in at.get_target_children(itarget_antiparticle, pythia.event):
+    for idaughter in at.get_target_children(itarget_antiparticle, pythia.event, child_index_list=[]):
         daughter = pythia.event[idaughter]
         if daughter.id() in -1*lepton_pid_array:
             ilepton_minus = idaughter
@@ -101,23 +154,21 @@ for iEvent in range(nEvent):
                                         itarget_particle)
     target_lepton_array = at.fill_array(target_lepton_array, pythia.event,
                                         ilepton_plus)
+    target_lepton_UE_array = fill_UE_array(target_lepton_UE_array, pythia, ilepton_minus)
     target_neutrino_array = at.fill_array(target_neutrino_array, pythia.event,
                                         ineutrino_plus)
     target_antiparticle_array = at.fill_array(target_antiparticle_array, pythia.event,
                                         itarget_antiparticle)
     target_antilepton_array = at.fill_array(target_antilepton_array, pythia.event,
                                         ilepton_minus)
+    target_antilepton_UE_array = fill_UE_array(target_antilepton_UE_array, pythia, ilepton_plus)
     target_antineutrino_array = at.fill_array(target_antineutrino_array, pythia.event,
                                         ineutrino_minus)
-    # if jet_array.any():
-    #     target_jet_array = at.fill_array(target_jet_array, pythia.event,
-    #                                     ijet)
-    #     target_antijet_array = at.fill_array(target_antijet_array, pythia.event,
-    #                                     iantijet)
-    # if at.check_mother(pythia.event, pythia.event[iW_plus], 6):
-    #     counter1+=1
-    # if at.check_mother(pythia.event, pythia.event[iW_minus], -6):
-    #     counter2+=1
+    if jet_array.any():
+        target_jet_array = at.fill_array(target_jet_array, pythia.event,
+                                        ijet)
+        target_antijet_array = at.fill_array(target_antijet_array, pythia.event,
+                                        iantijet)
     tree.Fill()
 
 print(f'Counter1: {counter1}')
