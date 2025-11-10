@@ -81,6 +81,8 @@ leading_lepton_vec = ak.where((lplus_vec.pt>lminus_vec.pt), lplus_vec, lminus_ve
 trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_vec)
 
 # Masks
+one_lepton_gauss_mask = ((lminus_vec.eta>1.596) & (lminus_vec.pt / GeV >15)
+                         | (lplus_vec.eta>1.596) & (lplus_vec.pt / GeV >15))
 both_lepton_loose_acc_mask = ((lminus_vec.eta>2)
                                 & (lminus_vec.eta<5)
                                 & (lplus_vec.eta>2)
@@ -91,20 +93,35 @@ both_lepton_tight_acc_mask = (
     & (lplus_vec.eta>2.2)
     & (lplus_vec.eta<4.4)
 ) 
-high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
-low_pT_lepton_mask = ((lminus_vec.pt / GeV >5) & (lplus_vec.pt / GeV >5))
+gauss_both_lepton_tight_acc_mask = (
+    (lminus_vec[one_lepton_gauss_mask].eta>2.2)
+    & (lminus_vec[one_lepton_gauss_mask].eta<4.4)
+    & (lplus_vec[one_lepton_gauss_mask].eta>2.2)
+    & (lplus_vec[one_lepton_gauss_mask].eta<4.4)
+) 
 mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                     | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
+gauss_mue_decay_mask = (((lminus_vec[one_lepton_gauss_mask].pid==13) & (lplus_vec[one_lepton_gauss_mask].pid==-11))
+                    | ((lminus_vec[one_lepton_gauss_mask].pid==11) & (lplus_vec[one_lepton_gauss_mask].pid==-13)))
 one_lepton_loose_acc_mask = ((lminus_vec.eta>1.596) | (lplus_vec.eta>1.596))
 one_lepton_tight_acc_mask = ((lminus_vec.eta>2) | (lplus_vec.eta>2))
-one_lepton_gauss_mask = ((lminus_vec.eta>1.596) & (lminus_vec.pt / GeV >15)
-                         | (lplus_vec.eta>1.596) & (lplus_vec.pt / GeV >15))
 invariant_mass_mask = (dilepton_vec.m / GeV >100)
+deltar_mask = (np.abs(lminus_vec.deltaR(lplus_vec)) > 0.1)
+gauss_deltar_mask = (np.abs(lminus_vec[one_lepton_gauss_mask].deltaR(lplus_vec[one_lepton_gauss_mask])) > 0.1)
+gauss_high_pT_lepton_mask = ((lminus_vec[one_lepton_gauss_mask].pt / GeV >20) & (lplus_vec[one_lepton_gauss_mask].pt / GeV >20))
+gauss_total_cuts = (
+    gauss_high_pT_lepton_mask
+    & gauss_both_lepton_tight_acc_mask
+    & gauss_mue_decay_mask
+    & gauss_deltar_mask
+)
+high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
+low_pT_lepton_mask = ((lminus_vec.pt / GeV >5) & (lplus_vec.pt / GeV >5))
 lepton_mask = (
     both_lepton_tight_acc_mask
     & high_pT_lepton_mask
-    & low_pT_lepton_mask
     & mue_decay_mask
+    & deltar_mask
 )
 
 # Apply Masks
@@ -118,9 +135,14 @@ dilepton_vec = dilepton_vec[lepton_mask]
 print(f"Total number of events: {len(lminus_vec)}")
 print(f"Gauss Cuts: {sum((one_lepton_gauss_mask))}")
 print(f"Mu-E Decay Mode: {sum((mue_decay_mask))}")
-print(f"Gauss Cuts and Mu-E Decay Mode: {sum((one_lepton_gauss_mask&mue_decay_mask))}")
+print(f"Mu-E Decay Mode from Gauss Cuts: {sum(gauss_mue_decay_mask)}")
+print(f"Tight pT cuts from Gauss Cuts: {sum(gauss_high_pT_lepton_mask)}")
+print(f"Tight Eta Cuts from Gauss Cuts: {sum(gauss_both_lepton_tight_acc_mask)}")
+print(f"DeltaR cuts from Gauss Cuts: {sum(gauss_deltar_mask)}")
+print(f"Total cuts from Gaus Cuts: {sum(gauss_total_cuts)}")
 print(f"High pT Cuts: {sum((high_pT_lepton_mask))}")
 print(f"Tight Acceptance Eta Cuts: {sum(both_lepton_tight_acc_mask)}")
+print(f"Delta R Cut: {sum(deltar_mask)}")
 print(f"High Mass Cut: {sum(invariant_mass_mask)}")
 print(f"High Mass Cut and Tight Acceptance: {sum(invariant_mass_mask&lepton_mask)}")
 print(f"Total Cuts: {sum(lepton_mask)}")
