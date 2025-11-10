@@ -164,6 +164,7 @@ for hist_tag in data_list[0].keys():
     axs.fill_between(x_fine, lower_env, upper_env, color='blue', alpha=0.3, label='Envelope')
     ymax = max([max(hist.view().value) for hist in hist_draw_list])
     axs.set_ylim((0, 1.15*ymax))
+    axs.set_xlim((0, 300))
     axs.set_title("")
     axs.set_xlabel("$M_{e \\mu} (GeV)$")
     axs.set_ylabel("Reweight Factor (NLO/LO)")
@@ -180,11 +181,20 @@ for hist_tag in data_list[0].keys():
         hist_draw_list[1].axes[0].centers,
         hist_draw_list[1].view().value,
         width = hist_draw_list[1].axes[0].widths,
-        yerr = np.sqrt(hist_draw_list[1].view().variance),
+        # yerr = np.sqrt(hist_draw_list[1].view().variance),
         fill = False,
         )
+    axs.errorbar(
+        hist_draw_list[1].axes[0].centers[:-1].tolist() + [250],
+        hist_draw_list[1].view().value,
+        ecolor = "black",
+        linestyle = "",
+        # width = hist_draw_list[1].axes[0].widths,
+        yerr = np.sqrt(hist_draw_list[1].view().variance),
+    )
     ymax = max(hist_draw_list[1].view().value)
     axs.set_ylim((0, 1.15*ymax))
+    axs.set_xlim((0, 300))
     axs.set_title("")
     axs.set_xlabel("$M_{e \\mu} (GeV)$")
     axs.set_ylabel("Reweight Factor (NLO/LO)")
