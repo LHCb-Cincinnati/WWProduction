@@ -19,22 +19,29 @@ import AnalysisTools as at
 parser = at.Parser(sys.argv[1:])
 weights_bool = True
 args = parser.args
-file_name =  args.input_files[0].name
+file_name_list =  [file.name for file in args.input_files]
+cross_section = args.cross_section
 ofile_name = args.output
-cross_section = args.cross_section # Cross section in fb
 luminosity = args.luminosity # Luminosity in fb^-1
-# Scale histograms
-if not cross_section:
+
+# Get Tree
+with uproot.open(file_name_list[0]) as f:
+    # Get the Tree
+    tree = f['Tree'].arrays()
+
+# Scale Factor
+if args.cross_section == False:
     scale_factor = 1
 else:
-    scale_factor = cross_section
+    scale_factor = args.cross_section
 
-# Open the file
-ifile = uproot.open(file_name)
-tree = ifile['Tree'].arrays()
+# DFDY invariant mass cuts
+invmass_cut = 0
 
 # Binning Scheme
-bins_list = list(np.linspace(0, 100, 8)) + list(np.linspace(120, 200, 4)) + [250, 300]
+ttbar_bins_list = list(np.linspace(0, 100, 4)) + [150, 200, 2000]
+DFDY_bins_list = list(np.linspace(0, 100, 8)) + [200, 2000]
+bins_list = ttbar_bins_list
 
 # Define histograms
 dilepton_id_mass_rghbin_hist = bh.Histogram(bh.axis.Regular(26, 20, 306), storage=bh.storage.Weight())
@@ -48,6 +55,7 @@ eta_hist = bh.Histogram(
     storage=bh.storage.Weight()
 )
 if weights_bool:
+    weight_name_list = ["AUX_MUR05_MUF05", "AUX_MUR05_MUF10", "AUX_MUR05_MUF20", "AUX_MUR10_MUF05", "AUX_MUR10_MUF10", "AUX_MUR10_MUF20", "AUX_MUR20_MUF05", "AUX_MUR20_MUF10", "AUX_MUR20_MUF20"]
     weighthist_dict = {}
     lower_env_hist = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
@@ -55,7 +63,7 @@ if weights_bool:
     upper_env_hist = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
     )
-    for weight_name in tree["Weights"].fields:
+    for weight_name in weight_name_list:
         weighthist_dict[weight_name] = bh.Histogram(
             bh.axis.Variable(bins_list), storage=bh.storage.Weight()
         )
@@ -68,7 +76,6 @@ lminus_vec = vector.zip({
     'e': tree['TargetLepton'].e * GeV,
     'pid': tree['TargetLepton'].pid
 })
-
 lplus_vec = vector.zip({
     'px': tree['TargetAntiLepton'].px * GeV,
     'py': tree['TargetAntiLepton'].py * GeV,
@@ -76,15 +83,26 @@ lplus_vec = vector.zip({
     'e': tree['TargetAntiLepton'].e * GeV,
     'pid': tree['TargetAntiLepton'].pid
 })
+tau_vec = vector.zip({
+    'px': tree['TargetParticle'].px * GeV,
+    'py': tree['TargetParticle'].py * GeV,
+    'pz': tree['TargetParticle'].pz * GeV,
+    'e': tree['TargetParticle'].e * GeV,
+    'pid': tree['TargetParticle'].pid
+})
+antitau_vec = vector.zip({
+    'px': tree['TargetAntiParticle'].px * GeV,
+    'py': tree['TargetAntiParticle'].py * GeV,
+    'pz': tree['TargetAntiParticle'].pz * GeV,
+    'e': tree['TargetAntiParticle'].e * GeV,
+    'pid': tree['TargetAntiParticle'].pid
+})
 dilepton_vec = lminus_vec + lplus_vec
+ditau_vec = tau_vec + antitau_vec
 muon_vec = ak.where((abs(lminus_vec.pid)==13), lminus_vec, lplus_vec)
 electron_vec = ak.where((abs(lminus_vec.pid)==11), lminus_vec, lplus_vec)
 leading_lepton_vec = ak.where((lplus_vec.pt>lminus_vec.pt), lplus_vec, lminus_vec)
 trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_vec)
-# wgt_array = tree["Weights"].AUX_MUR05_MUF05
-# wgt_array_10_10 = tree["Weights"].AUX_MUR10_MUF10
-# wgt_array_05_05 = tree["Weights"].AUX_MUR05_MUF05
-# wgt_array_20_20 = tree["Weights"].AUX_MUR20_MUF20
 
 # Masks
 one_lepton_gauss_mask = ((lminus_vec.eta>1.596) & (lminus_vec.pt / GeV >15)
@@ -123,11 +141,13 @@ gauss_total_cuts = (
 )
 high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
 low_pT_lepton_mask = ((lminus_vec.pt / GeV >5) & (lplus_vec.pt / GeV >5))
+tautau_invmass_cut = (ditau_vec.m  / GeV < 500)
 lepton_mask = (
     both_lepton_tight_acc_mask
     & high_pT_lepton_mask
     & mue_decay_mask
     & deltar_mask
+    # & tautau_invmass_cut
 )
 
 # Apply Masks
@@ -233,7 +253,7 @@ pickle_dict = {
     # "DiLeptonMassRough": [dilepton_id_mass_rghbin_hist],
     # "DileptonMassFine": [dilepton_id_mass_finebin_hist],
     # "DileptonKFactorFine": [dilepton_id_mass_kfactorbin_hist],
-    "DileptonKFactorFine": [lower_env_hist],
+    "DileptonKFactorFine": [upper_env_hist],
     "EtaEtaYield": [eta_hist]
 }
 with open(ofile_name + ".pkl", "wb") as f:
