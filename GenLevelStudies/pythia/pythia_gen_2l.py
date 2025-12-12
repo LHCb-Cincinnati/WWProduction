@@ -11,6 +11,58 @@ import ROOT
 sys.path.append(".") # Not great form.
 import AnalysisTools as at
 
+# Classes
+# Define a custom user hook class
+class InAccHook(pythia8.UserHooks):
+    def __init__(self, target_pid, min_eta, min_pT):
+        super().__init__()
+        self.target_pid = target_pid
+        self.min_eta = min_eta
+        self.min_pT = min_pT
+        self.lepton_pid_array = np.array([11, 13])
+        self.neutrino_pid_array = np.array([12, 14])
+
+    # Allow process cross section to be modified...
+    def canModifySigma(self): return True
+
+    def multiplySigmaBy(self, sigmaProcessPtr, phaseSpacePtr, inEvent):
+        # All events should be 2 -> 2, but kill them if not.
+        if sigmaProcessPtr.nFinal() != 2: return 0.
+
+        # Extract the pT for 2 -> 2 processes in the event generation chain
+        # (inEvent = false for initialization).
+        if inEvent:
+            self.pTHat = phaseSpacePtr.pTHat()
+
+        # Here we do not modify 2 -> 2 cross sections.
+        return 1.
+
+    # Allow a veto for the interleaved evolution in pT.
+    # def canVetoPT(self): return True
+    
+    # Do the veto test at a pT scale of 5 GeV.
+    # def scaleVetoPT(self): return 5.
+
+    # The checkVetoEvent() method is called for each event before it is accepted
+    def canVetoProcessLevel(self):
+        return True  # tell PYTHIA we will sometimes veto whole events
+
+    def doVetoProcessLevel(self, process):
+        for index, particle in enumerate(pythia.process):
+            if particle.id()==self.target_pid:
+                itarget_particle = index
+            elif particle.id()==-1*self.target_pid:
+                itarget_antiparticle = index
+        targetpart_mom = pythia.process[itarget_particle].p()
+        targetantipart_mom = pythia.process[itarget_antiparticle].p()
+        targetpart_in_acc = bool((targetpart_mom.eta() > self.min_eta) & (targetpart_mom.pT() > self.min_pT))
+        targetantipart_in_acc = bool((targetantipart_mom.eta() > self.min_eta) & (targetantipart_mom.pT() > self.min_pT))
+        # veto event if mass is below threshold
+        if (not targetpart_in_acc) or (not targetantipart_in_acc):
+            return True  # veto
+        return False  # accept
+
+# Functions
 def deltaR(vec1, vec2):
     delta_r = np.sqrt(
         (vec1.phi() - vec2.phi())**2
@@ -77,10 +129,15 @@ neutrino_pid_array = np.array([12, 14])
 # jet_array = np.array([-5,-3,-1])
 jet_array = np.array([])
 
+
 # Read in Card File 
 pythia = pythia8.Pythia()
 pythia.readFile(ww_path + "/GenLevelStudies/pythia/defaults.cmnd")
 pythia.readFile(ww_path + "/GenLevelStudies/pythia/" + card_file_name)
+
+# Attach early veto hook
+# hook = InAccHook(target_pid, 1, 20)
+# pythia.setUserHooksPtr(hook)
 
 # Initialize Pythia
 pythia.init()
