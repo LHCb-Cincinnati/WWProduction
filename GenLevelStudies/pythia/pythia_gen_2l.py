@@ -10,6 +10,7 @@ import ROOT
 # Personal Packages
 sys.path.append(".") # Not great form.
 import AnalysisTools as at
+import PDFReweighter
 
 # Classes
 # Define a custom user hook class
@@ -122,13 +123,28 @@ sys.path.insert(0, lib)
 
 # Inputs
 card_file_name = "ttbarProduction.cmnd"
-ofile_name = "ttbarProduction.root"
+ofile_name = "Test.root"
 target_pid = -24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
 # jet_array = np.array([-5,-3,-1])
 jet_array = np.array([])
 
+# NNPDF31 Reweighter
+pdfrwgt_NNPDF31 = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="NNPDF31_lo_as_0130"
+)
+# CT18NLO Reweighter
+pdfrwgt_CT18LO = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="CT18LO"
+)
+# MSHT20LO Reweighter
+pdfrwgt_MSHT20LO = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="MSHT20lo_as130"
+)
 
 # Read in Card File 
 pythia = pythia8.Pythia()
@@ -146,6 +162,8 @@ nEvent = pythia.mode("Main:numberOfEvents")
 # Initialize Arrays
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:charge/F:status/F'
 ue_str = "spTAve/F:NumGoodCones/F:Cone1spT/F:Cone1isGoodCone/F:Cone2spT/F:Cone2isGoodCone/F:Cone3spT/F:Cone3isGoodCone/F:Cone4spT/F:Cone4isGoodCone/F:Cone5spT/F:Cone5isGoodCone/F:Cone6spT/F:Cone6isGoodCone/F:"
+initial_conditions_str = 'x1/F:id1/F:x2/F:id2/F'
+pdfrwgt_str = 'nnpdf31lo/F:ct18lo/F:msht20lo/F'
 evt_array = np.array([0], dtype=np.float32)
 target_particle_array = np.array([0]*12, dtype=np.float32)
 target_lepton_array = np.array([0]*12, dtype=np.float32)
@@ -155,6 +173,8 @@ target_antiparticle_array = np.array([0]*12, dtype=np.float32)
 target_antilepton_array = np.array([0]*12, dtype=np.float32)
 target_antilepton_UE_array = np.array([0]*14, dtype=np.float32)
 target_antineutrino_array = np.array([0]*12, dtype=np.float32)
+initial_conditions_array = np.array([0]*4, dtype=np.float32)
+pdfrwgt_array = np.array([0]*3, dtype=np.float32)
 if jet_array.any():
     target_jet_array = np.array([0]*12, dtype=np.float32)
     target_antijet_array = np.array([0]*12, dtype=np.float32)
@@ -164,6 +184,10 @@ file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/pythia/" + ofile_name,
                         "RECREATE")
 tree = ROOT.TTree("Tree", "Tree")
 tree.Branch('Event', evt_array, 'Event/F')
+tree.Branch(
+    'InitialConditions', initial_conditions_array, initial_conditions_str
+)
+tree.Branch('pdfReweight', pdfrwgt_array, pdfrwgt_str)
 tree.Branch('TargetParticle', target_particle_array, var_str)
 tree.Branch('TargetLepton', target_lepton_array, var_str)
 tree.Branch('TargetLeptonUE', target_lepton_UE_array, ue_str)
@@ -207,6 +231,22 @@ for iEvent in range(nEvent):
         elif daughter.id() in -1*jet_array:
             iantijet = idaughter
 
+    # Get Initial Conditions Info
+    x1pdf = pythia.infoPython().x1pdf()
+    x2pdf = pythia.infoPython().x2pdf()
+    id1pdf = pythia.infoPython().id1pdf()
+    id2pdf = pythia.infoPython().id2pdf()
+    nnpdf_reweight = pdfrwgt_NNPDF31.calculate_reweighting_factor(
+        x1pdf, x2pdf, id1pdf, id2pdf, sqrt_s=13e3
+    )
+    ct18lo_reweight = pdfrwgt_CT18LO.calculate_reweighting_factor(
+        x1pdf, x2pdf, id1pdf, id2pdf, sqrt_s=13e3
+    )
+    msht20lo_reweight = pdfrwgt_MSHT20LO.calculate_reweighting_factor(
+        x1pdf, x2pdf, id1pdf, id2pdf, sqrt_s=13e3
+    )
+    pdfrwgt_array[:] = (nnpdf_reweight, ct18lo_reweight, msht20lo_reweight)
+    initial_conditions_array[:] = (x1pdf, id1pdf, x2pdf, id2pdf)
     target_particle_array = at.fill_array(target_particle_array, pythia.event,
                                         itarget_particle)
     target_lepton_array = at.fill_array(target_lepton_array, pythia.event,
