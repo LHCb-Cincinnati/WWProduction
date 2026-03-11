@@ -59,19 +59,19 @@ deltaeta_id_finebin_hist = bh.Histogram(bh.axis.Regular(50, 0, 3), storage=bh.st
 
 # Create Vectors
 lminus_vec = vector.zip({
-    'px': tree['TargetLepton'].px * GeV,
-    'py': tree['TargetLepton'].py * GeV,
-    'pz': tree['TargetLepton'].pz * GeV,
-    'e': tree['TargetLepton'].e * GeV,
-    'pid': tree['TargetLepton'].pid
-})
-
-lplus_vec = vector.zip({
     'px': tree['TargetAntiLepton'].px * GeV,
     'py': tree['TargetAntiLepton'].py * GeV,
     'pz': tree['TargetAntiLepton'].pz * GeV,
     'e': tree['TargetAntiLepton'].e * GeV,
     'pid': tree['TargetAntiLepton'].pid
+})
+
+lplus_vec = vector.zip({
+    'px': tree['TargetLepton'].px * GeV,
+    'py': tree['TargetLepton'].py * GeV,
+    'pz': tree['TargetLepton'].pz * GeV,
+    'e': tree['TargetLepton'].e * GeV,
+    'pid': tree['TargetLepton'].pid
 })
 
 dilepton_vec = lminus_vec + lplus_vec
