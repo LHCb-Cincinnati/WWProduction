@@ -42,7 +42,7 @@ logging.info(f"Arguments: {args}")
 
 # Define Variables
 data_list = [0] * len(file_list)
-label_list = ["$ W^+ W^- $", "$ t \\bar{t} $"]
+label_list = ["$ W^+W^- $w/ MadSpin", "$ W^+W^- $ w/o MadSpin"]
 logging.info(f"Label list provided: {label_list}")
 
 # Retrieve Histos

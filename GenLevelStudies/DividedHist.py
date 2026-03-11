@@ -15,7 +15,6 @@ import ROOT
 from hepunits.units import MeV, GeV
 import awkward as ak
 import uproot
-import vector
 import boost_histogram as bh
 # Personal Imports
 import AnalysisTools as at
@@ -48,7 +47,7 @@ root_ofile = ROOT.TFile(at.find_WW_path() + "/GenLevelStudies/Histograms/" + ofi
 
 # Define Variables
 data_list = [0] * len(file_list)
-hist_title = "Weights WW Pythia LO to Madgraph NLO"
+# hist_title = "Weights Pythia LO to Madgraph NLO"
 
 # Retrieve Histos
 # Here data are the histograms and index is the index of the file in the
@@ -62,11 +61,14 @@ for index, file in enumerate(file_list):
         # logging.debug(f"Keys taken from {index} file: {data.keys()}")
         data_list[index] = data
 
+pickle_dict = {}
+
 # Save Figures
 os.chdir(folder_path)
+print(folder_path)
 for hist_tag in data_list[0].keys():
     # Add histogram to hist_draw_list from first file.
-    # logging.debug(f"Drawing {hist_tag}")
+    print(f"Drawing {hist_tag}")
     hist_draw_list = data_list[0][hist_tag]
     # logging.debug(f"Added {data_list[0][hist_tag]} to hist_draw_list")
     # Loop through other files and add other histograms with the
@@ -77,18 +79,21 @@ for hist_tag in data_list[0].keys():
             raise RuntimeWarning(f"Tag: {hist_tag} not found in file: {file}.")
         hist_draw_list+=file[hist_tag]
         # logging.debug(f"Added {file[hist_tag]} to hist_draw_list")
-    print(hist_tag)
-    div_hist = at.divide_bh_histograms(hist_draw_list[0], hist_draw_list[1],binomial_error=False)        
+# Skip profile histograms from division and store the pythia histogram.
+    if "Profile" in hist_tag:
+        pickle_dict["DiLeptonMassProfile"] = [hist_draw_list[1]]
+        continue
+    div_hist = at.divide_bh_histograms(hist_draw_list[0], hist_draw_list[1], binomial_error=False)        
     # Draw the histogram.  Only the first histograms corresponding to the
     # number of labels given are drawn.
     if len(div_hist.axes) == 1:
         at.create_stair(
             div_hist,
-            hist_title,
+            hist_tag,
         )
         at.create_stair(
             div_hist,
-            hist_title + " Log",
+            hist_tag + " Log",
             yscale="log"
         )
         # Create ROOT hist
@@ -103,6 +108,8 @@ for hist_tag in data_list[0].keys():
             root_hist.SetBinError(index + 1, div_hist.view().variance[index])
         logging.debug(f"Finished Drawing {hist_tag}")
         root_hist.Write()
+        pickle_dict["DiLeptonMass"] = [div_hist]
+        
     else:
         fig, axs = plt.subplots()
         # Messing with Color Maps
@@ -123,15 +130,12 @@ for hist_tag in data_list[0].keys():
         cmap.set_under("grey")
         # cmap.set_over("grey")
         # cmap.set_bad("white")
-        plt.savefig("Test" + ".png")
+        plt.savefig(f"{folder_path}/EtaEtaYieldRatio" + ".png")
 
-    # Save histograms
-    os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
-    pickle_dict = {
-        "DiLeptonMass": [div_hist],
-    }
-    with open(ofile_name + ".pkl", "wb") as f:
-        pickle.dump(pickle_dict, f)
-    
-    # Close ROOT File
-    root_ofile.Close()
+# Save histograms
+os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
+with open(ofile_name + ".pkl", "wb") as f:
+    pickle.dump(pickle_dict, f)
+
+# Close ROOT File
+root_ofile.Close()

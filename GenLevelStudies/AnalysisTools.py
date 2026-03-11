@@ -120,7 +120,6 @@ class Parser(argparse.ArgumentParser):
         '''
         
         self.check_min_num_files()
-        self.check_xsection_luminosity_given()
         return()
 
     def check_min_num_files(self):
@@ -141,27 +140,6 @@ class Parser(argparse.ArgumentParser):
             raise RuntimeError(f'''The number of files given is less than the
             the required number of files.  Please give at least 
             {self.min_num_files} files as input.''')
-        return()
-
-    def check_xsection_luminosity_given(self):
-        ''' Checks that the cross-section and luminosity are both given or not.
-
-        Checks that the cross-section and luminosity are either both given or
-        both not.  If not, an error is raised.
-
-        Args:
-        None
-
-        Returns:
-        None
-
-        '''
-
-        if (bool(self.args.cross_section) != bool(self.args.luminosity)):
-            raise RuntimeError(f'''Either the luminosity and cross-section
-                must be both specified or both not specified.  Their current
-                values are {self.args.cross_section} and
-                {self.args.luminosity}.''')
         return()
 
 def create_folder_path(folder_name, test_mode_flag):
@@ -267,7 +245,7 @@ def create_stair(hist, title, yscale='linear', luminosity=False, normalize=False
     else: 
         hist_vals_array = hist.view().value
         hist_errs_array = np.sqrt(hist.view().variance)
-    plt.bar(
+    axs.bar(
         hist.axes[0].centers,
         hist_vals_array,
         width = hist.axes[0].widths,
@@ -276,8 +254,8 @@ def create_stair(hist, title, yscale='linear', luminosity=False, normalize=False
         **kwargs
         )
     hist_count, hist_mean, hist_var = calculate_hist_stats(hist)
-    plt.yscale(yscale)
-    plt.title(title)
+    axs.set_yscale(yscale)
+    axs.set_title(title)
     fig_string = (f"Statistics:\n"
                   f"Count: {hist_count:.2f}\n"
                   f"Mean:  {hist_mean:.2f}\n"
@@ -342,10 +320,12 @@ def create_stacked_stair(hist_list, title, label_list, yscale='linear', luminosi
     if luminosity:
         axs.text(0.8, 1.01, "$\mathcal{L} = " + f"{luminosity}" + "fb^{-1}$",
                 transform=axs.transAxes, fontsize=12)
+    ymax = max([max(hist.view().value) for hist in hist_list])
     axs.set_yscale(yscale)
-    axs.set_title(title)
+    axs.set_ylim((0, 1.15*ymax))
+    # axs.set_title(title)
     hist_handles, hist_labels = axs.get_legend_handles_labels()
-    axs.legend(hist_handles, hist_labels, loc = "lower center")
+    axs.legend(hist_handles, hist_labels)
     # Slightly fancy to remove whitespace
     save_str = ''.join(title.split())
     fig.savefig(save_str + '.png')
@@ -387,6 +367,48 @@ def get_index(flattened_index, size_tuple):
     index_list[-1] = int(flattened_index % size_tuple[-1])
     return(tuple(index_list))
 
+def multiply_bh_histograms(num_hist, denom_hist):
+    """ Multiplies two bh histograms.
+
+    Multiplies two bh histograms, assuming the same binning scheme, binwise.
+    Independent errors are used.
+
+    Args:
+        num_hist (bh.histogram): Numerator histogram.
+        denom_hist (bh.histogram): Denominator histogram.
+
+    Returns:
+        div_hist (bh.histogram): num_hist * denom_hist
+    """
+
+    div_hist = num_hist.copy()
+    original_shape = div_hist.view().shape
+    # div_hist.reset()
+    # div_hist.view().reshape(len(div_hist.view().flatten()))
+    grouped_array = zip(
+        range(len(div_hist.view().flatten().value)),
+        num_hist.view().flatten().value,
+        denom_hist.view().flatten().value,
+        num_hist.view().flatten().variance,
+        denom_hist.view().flatten().variance
+    )
+    for (index, num_value, denom_value, num_var, denom_var) in grouped_array:
+        index_list = get_index(index, original_shape)
+        if ((num_value == 0) | (denom_value == 0)):
+            div_hist[index_list] = [0, 0]
+            continue
+        div_value = num_value * denom_value
+        div_var = (
+            (num_value * denom_value)
+            * np.sqrt(
+                (np.sqrt(num_var) / num_value)**2
+                + (np.sqrt(denom_var) / denom_value)**2
+            )
+        )
+        div_hist[index_list] = [div_value, div_var]
+    # div_hist.view().reshape(original_shape)
+    return(div_hist)
+
 def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
     """ Divides two bh histograms with binomial errors.
 
@@ -419,7 +441,7 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
         div_value = num_value / denom_value
         # print(div_val_array[index])
         if binomial_error:
-            div_var = (
+            div_var = np.square(
                 (1/denom_value)
                 * np.sqrt(
                     num_value
@@ -427,16 +449,17 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
                 )
             )
         else:
-            div_var = (
+            div_var = np.square(
                 (num_value / denom_value)
                 * np.sqrt(
                     (np.sqrt(num_var) / num_value)**2
                     + (np.sqrt(denom_var) / denom_value)**2
                 )
             )
+            div_var = num_var / denom_value
         index_list = get_index(index, original_shape)
         div_hist[index_list] = [div_value, div_var]
-    # div_hist.view().reshape(original_shape)
+    div_hist.view().reshape(original_shape)
     return(div_hist)
 
 
@@ -481,6 +504,25 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
     #         )
     #     div_hist[ihist_bin] = [bin_value, bin_error]
     return(div_hist)
+
+def calc_pdf_rms(hist_dict):
+    num_bins = hist_dict["PDFMember0Weight"].shape[0]
+    upper_rms_hist = hist_dict["PDFMember0Weight"].copy()
+    lower_rms_hist = hist_dict["PDFMember0Weight"].copy()
+    rms_diff_list = [0] * num_bins
+    num_members = len(hist_dict.keys())
+    for key in hist_dict:
+        for bin_index in range(num_bins):
+            rms_diff_list[bin_index] += hist_dict[key][bin_index].value**2
+    for bin_index in range(num_bins):
+        rms_diff_list[bin_index] = np.abs(
+            np.sqrt(rms_diff_list[bin_index]/num_members)
+        )
+        hist_dict["PDFMember0Weight"][bin_index] = [
+            hist_dict["PDFMember0Weight"][bin_index].value,
+            rms_diff_list[bin_index]
+        ]
+    return(hist_dict)
 
 def fill_array(array, event, index):
     ''' Fills a numpy array with particle information from a pythia event.
