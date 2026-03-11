@@ -1,3 +1,12 @@
+""" Program to compute the K-factor reweighting for ttbar and DFDY process.
+
+Program to compute the K-factor reweighting for ttbar and DFDY process.  
+The input for this program should be the lower envelope histogram pickle file,
+central value histogram pickle file, and the upper envelope histogram pickle 
+file in that order.  You may need to change the starting values for each of the
+central value, lower/upper env histograms to get them to converge correctly.
+"""
+
 # Imports
 # Standard Library Imports
 import os
@@ -5,16 +14,22 @@ import pdb
 import pickle
 import sys
 import logging
+import array
 from collections import namedtuple
 # Scikit Imports
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline, BSpline
 # HEP Imports
+import ROOT
 from hepunits.units import MeV, GeV
 import awkward as ak
 import uproot
 import boost_histogram as bh
+import iminuit
+from iminuit import minimize  # has same interface as scipy.optimize.minimize
+from iminuit import Minuit, describe
+from iminuit.cost import LeastSquares
 # Personal Imports
 import AnalysisTools as at
 
@@ -86,6 +101,18 @@ def histogram_points(hist):
 
     return x_vals[order], y_vals[order]
 
+# Flat function
+def flat(x, a):
+    return(0*x + a)
+
+# Linear function
+def linear(x, a, b):
+    return(a*x + b)
+
+# Exponental Decay function
+def exp_decay(x, a, b, c):
+    return(a*np.exp(c*x) + b)
+
 # Start Logger
 logging.basicConfig(
     filename='StackedHist.log',
@@ -110,8 +137,6 @@ logging.info(f"Arguments: {args}")
 
 # Define Variables
 data_list = [0] * len(file_list)
-label_list = ["Lower Envelope", "Central Value", "Upper Envelope"]
-logging.info(f"Label list provided: {label_list}")
 
 # Retrieve Histos
 # Here data are the histograms and index is the index of the file in the
@@ -125,80 +150,197 @@ for index, file in enumerate(file_list):
         logging.debug(f"Keys taken from {index} file: {data.keys()}")
         data_list[index] = data
 
-# Save Figures
+# Grab Histograms from File.
+kfactor_hist_list = [file["DiLeptonMass"][0] for file in data_list]
+profile_hist = data_list[1]["DiLeptonMassProfile"][0]
+
+# Fit K-Factor
+fit_func = exp_decay
+# Central Value Fit
+least_squares = LeastSquares(
+    profile_hist.view().value, 
+    kfactor_hist_list[1].view().value, 
+    np.sqrt(kfactor_hist_list[1].view().variance), 
+    fit_func
+)
+# m = Minuit(least_squares, a = 1)  # Starting values for DFDY flat fit.
+m = Minuit(least_squares, a = 0.5, b = 0.88, c = -0.02)  # Starting values for ttbar exponential fit.
+m.limits = [(0, 20), (0.75, 1), (None, None)] # Bounds for ttbar exponential fit.
+m.migrad()  # finds minimum of least_squares function
+m.hesse()  # accurately computes uncertainties
+print("Central Value Fit Info:")
+print(f"chi^2/n_dof = {m.fval:.1f} / {m.ndof:.0f} = {m.fmin.reduced_chi2:.1f}")
+for p, v, e in zip(m.parameters, m.values, m.errors):
+    print(f"{p} = {v:.3f} +- {e:.3f}")
+
+# Lower Envelope Fit
+lowerenv_least_squares = LeastSquares(
+    profile_hist.view().value, 
+    kfactor_hist_list[0].view().value, 
+    np.sqrt(kfactor_hist_list[0].view().variance), 
+    fit_func
+)
+# lowerenv_m = Minuit(lowerenv_least_squares, a = 0.8)  # Starting values for DFDY flat fit.
+lowerenv_m = Minuit(lowerenv_least_squares, a = 0.5, b = 0.75, c = -0.1)  # Starting values for ttbar exponential fit.
+lowerenv_m.limits = [(0.1, 5), (0.6, 0.8), (-0.2, 0)] # Bounds for ttbar exponential fit.
+lowerenv_m.migrad()  # finds minimum of least_squares function
+lowerenv_m.hesse()  # accurately computes uncertainties
+print("Lower Envelope Fit Info:")
+print(f"chi^2/n_dof = {lowerenv_m.fval:.1f} / {lowerenv_m.ndof:.0f} = {lowerenv_m.fmin.reduced_chi2:.1f}")
+for p, v, e in zip(lowerenv_m.parameters, lowerenv_m.values, lowerenv_m.errors):
+    print(f"{p} = {v:.3f} +- {e:.3f}")
+
+# Upper Envelope Fit
+upperenv_least_squares = LeastSquares(
+    profile_hist.view().value, 
+    kfactor_hist_list[2].view().value, 
+    np.sqrt(kfactor_hist_list[2].view().variance), 
+    fit_func
+)
+# upperenv_m = Minuit(upperenv_least_squares, a = 1.5)  # Starting values for DFDY flat fit.
+upperenv_m = Minuit(upperenv_least_squares, a = 0.8, b = 1.0, c = -0.01)  # Starting values for ttbar exponential fit.
+upperenv_m.limits = [(0.6, 2), (0.9, 1.1), (None, None)] # Bounds for ttbar exponential fit.
+upperenv_m.migrad()  # finds minimum of least_squares function
+upperenv_m.hesse()  # accurately computes uncertainties
+print("Upper Envelope Fit Info:")
+print(f"chi^2/n_dof = {upperenv_m.fval:.1f} / {upperenv_m.ndof:.0f} = {upperenv_m.fmin.reduced_chi2:.1f}")
+for p, v, e in zip(upperenv_m.parameters, upperenv_m.values, upperenv_m.errors):
+    print(f"{p} = {v:.3f} +- {e:.3f}")
+
+# # Save Figures
 folder_path = at.create_folder_path(ofile_name, args.testing)
 os.chdir(folder_path)
-# Loop through the histogram tags available from the first file
-for hist_tag in data_list[0].keys():
-    # Add histogram to hist_draw_list from first file.
-    logging.debug(f"Drawing {hist_tag}")
-    hist_draw_list = data_list[0][hist_tag]
-    logging.debug(f"Added {data_list[0][hist_tag]} to hist_draw_list")
-    # Loop through other files and add other histograms with the
-    # same tag to the hist_draw_list
-    for file in data_list[1:]:
-        # Check if tag is in histogram
-        if hist_tag not in file.keys():
-            raise RuntimeWarning(f"Tag: {hist_tag} not found in file: {file}.")
-        hist_draw_list+=file[hist_tag]
-        logging.debug(f"Added {file[hist_tag]} to hist_draw_list")
-    # K-Factor with scale variations
-    fig, axs = plt.subplots()
-    plt.subplots_adjust(top=0.85)
-    lower_func = hist_to_function(hist_draw_list[0])
-    upper_func = hist_to_function(hist_draw_list[2])
-    x_sparse = np.linspace(hist_draw_list[0].axes[0].edges[0], hist_draw_list[0].axes[0].edges[-1], 300)
-    x_fine = np.linspace(hist_draw_list[0].axes[0].edges[0], hist_draw_list[0].axes[0].edges[-1], 200)
-    # x_arr, lower_env = histogram_points(hist_draw_list[0])
-    # x_arr, upper_env = histogram_points(hist_draw_list[2])
-    lower_spl = make_interp_spline(x_sparse[:-1], lower_func(x_sparse)[:-1], k=3) 
-    lower_env = lower_spl(x_fine)    
-    upper_spl = make_interp_spline(x_sparse[:-1], upper_func(x_sparse)[:-1], k=3) 
-    upper_env = upper_spl(x_fine)    
-    #axs.plot(hist_draw_list[0].axes[0].centers, hist_draw_list[0].view().value,
-    #            label=label_list[1])
-    axs.stairs(hist_draw_list[1].view().value, edges=hist_draw_list[1].axes[0].edges,
-                label=label_list[1])
-    # axs.plot(hist_draw_list[2].axes[0].centers, hist_draw_list[2].view().value,
-    #             label=label_list[2])
-    axs.fill_between(x_fine, lower_env, upper_env, color='blue', alpha=0.3, label='Envelope')
-    ymax = max([max(hist.view().value) for hist in hist_draw_list])
-    axs.set_ylim((0, 1.15*ymax))
-    axs.set_xlim((0, 300))
-    axs.set_title("")
-    axs.set_xlabel("$M_{e \\mu} (GeV)$")
-    axs.set_ylabel("Reweight Factor (NLO/LO)")
-    hist_handles, hist_labels = axs.get_legend_handles_labels()
-    axs.legend(hist_handles, hist_labels, loc = "lower center")
-    # Slightly fancy to remove whitespace
-    fig.savefig('KFactorwScaleVariations.png')
-    plt.close()
+# K-Factor with scale variations
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+lower_func = hist_to_function(kfactor_hist_list[0])
+upper_func = hist_to_function(kfactor_hist_list[2])
+x_sparse = np.linspace(kfactor_hist_list[0].axes[0].edges[0], kfactor_hist_list[0].axes[0].edges[-1], 300)
+x_fine = np.linspace(kfactor_hist_list[0].axes[0].edges[0], kfactor_hist_list[0].axes[0].edges[-1], 200)
+lower_spl = make_interp_spline(x_sparse[:-1], lower_func(x_sparse)[:-1], k=3) 
+lower_env = lower_spl(x_fine)    
+upper_spl = make_interp_spline(x_sparse[:-1], upper_func(x_sparse)[:-1], k=3) 
+upper_env = upper_spl(x_fine)    
+axs.stairs(kfactor_hist_list[1].view().value, edges=kfactor_hist_list[1].axes[0].edges,
+            color="black")
+axs.errorbar(
+    profile_hist.view().value,
+    kfactor_hist_list[1].view().value,
+    ecolor = "black",
+    linestyle = "",
+    yerr = np.sqrt(kfactor_hist_list[1].view().variance),
+    label="Statistical Error"
+)
+axs.plot(
+    x_fine, 
+    fit_func(x_fine, *m.values),
+    color="black", label="Central Value Fit"
+)
+axs.fill_between(
+    x_fine, 
+    fit_func(x_fine, *lowerenv_m.values), 
+    fit_func(x_fine, *upperenv_m.values), 
+    color='blue', alpha=0.3, label='Envelope'
+)
+# axs.errorbar(
+#     profile_hist.view().value,
+#     kfactor_hist_list[0].view().value,
+#     ecolor = "blue",
+#     linestyle = "",
+#     yerr = np.sqrt(kfactor_hist_list[0].view().variance),
+#     label="Lower Envelope Statistical Error"
+# )
+# axs.errorbar(
+#     profile_hist.view().value,
+#     kfactor_hist_list[2].view().value,
+#     ecolor = "red",
+#     linestyle = "",
+#     yerr = np.sqrt(kfactor_hist_list[2].view().variance),
+#     label="Upper Envelope Statistical Error"
+# )
+# Setting axes and legend
+ymax = max([max(hist.view().value) for hist in kfactor_hist_list])
+axs.set_ylim((0, 1.15*ymax))
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("Reweight Factor (NLO/LO)")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Setting fit box above legend
+bbox = axs.legend().get_window_extent().transformed(axs.transAxes.inverted())
+text_x = bbox.x0 + 0.1
+text_y = bbox.y1 + 0.05  # small offset below the legend
+axs.text(
+    text_x, text_y,
+    f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {m.fval:.1f} / {m.ndof:.0f} = {m.fmin.reduced_chi2:.1f}",
+    transform=axs.transAxes,
+    fontsize=axs.legend().get_texts()[0].get_fontsize(),
+    verticalalignment='top',
+    # bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='black')
+)
+# Slightly fancy to remove whitespace
+fig.savefig('KFactorwScaleVariations.png')
+plt.close()
 
-    # Plot reweight histogram with errors
-    fig, axs = plt.subplots()
-    plt.subplots_adjust(top=0.85)
-    axs.bar(
-        hist_draw_list[1].axes[0].centers,
-        hist_draw_list[1].view().value,
-        width = hist_draw_list[1].axes[0].widths,
-        # yerr = np.sqrt(hist_draw_list[1].view().variance),
-        fill = False,
-        )
-    axs.errorbar(
-        hist_draw_list[1].axes[0].centers[:-1].tolist() + [250],
-        hist_draw_list[1].view().value,
-        ecolor = "black",
-        linestyle = "",
-        # width = hist_draw_list[1].axes[0].widths,
-        yerr = np.sqrt(hist_draw_list[1].view().variance),
+# Plot reweight histogram with errors
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.bar(
+    kfactor_hist_list[1].axes[0].centers,
+    kfactor_hist_list[1].view().value,
+    width = kfactor_hist_list[1].axes[0].widths,
+    # yerr = np.sqrt(kfactor_hist_list[1].view().variance),
+    fill = False,
+    label = "Reweight Factor"
     )
-    ymax = max(hist_draw_list[1].view().value)
-    axs.set_ylim((0, 1.15*ymax))
-    axs.set_xlim((0, 300))
-    axs.set_title("")
-    axs.set_xlabel("$M_{e \\mu} (GeV)$")
-    axs.set_ylabel("Reweight Factor (NLO/LO)")
-    # Slightly fancy to remove whitespace
-    fig.savefig('KFactorwErrors.png')
-    plt.close()
-    logging.debug(f"Finished Drawing {hist_tag}")
+axs.errorbar(
+    profile_hist.view().value,
+    kfactor_hist_list[1].view().value,
+    ecolor = "black",
+    linestyle = "",
+    # width = kfactor_hist_list[1].axes[0].widths,
+    yerr = np.sqrt(kfactor_hist_list[1].view().variance),
+    label="Statistical Error"
+)
+# axs.plot(
+#     kfactor_hist_list[1].axes[0].edges, 
+#     fit_func(kfactor_hist_list[1].axes[0].edges, *m.values),
+#     label = "Fit"
+# )
+ymax = np.max(
+    kfactor_hist_list[1].view().value 
+    + np.sqrt(kfactor_hist_list[1].view().variance)
+)
+axs.set_ylim((0, 1.15*ymax))
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("Reweight Factor (NLO/LO)")
+# hist_handles, hist_labels = axs.get_legend_handles_labels()
+# axs.legend(hist_handles, hist_labels)
+# Slightly fancy to remove whitespace
+fig.savefig('KFactorwErrors.png')
+plt.close()
+
+# Create ROOT histogram
+# Save Histos in ROOT
+os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
+with uproot.recreate(ofile_name + ".root") as root_file:
+    n_params = len(upperenv_m.params)
+    param_bins = array.array(
+        'd', [float(x) for x in np.arange(-0.5, n_params, 1)]
+    )
+    param_hist = ROOT.TH2D(
+        "K-Factor Parameterization Hist",
+        "K-Factor Parameterization Hist",
+        1,
+        array.array('d', [0,1]),
+        n_params,
+        param_bins
+    )
+    for index in range(n_params):
+        bin_index = param_hist.GetBin(1, index + 1)
+        param_hist.SetBinContent(bin_index, upperenv_m.values[index])
+        param_hist.SetBinError(bin_index, upperenv_m.errors[index])
+    root_file["rwgt_hist"] = param_hist
