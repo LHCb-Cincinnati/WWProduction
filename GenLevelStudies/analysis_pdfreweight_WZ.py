@@ -34,7 +34,7 @@ if args.cross_section == False:
 else:
     scale_factor = args.cross_section
 
-# Binning Scheme
+# Variables
 ttbar_bins_list = list(np.linspace(0, 100, 4)) + [150, 200, 2000]
 bins_list = ttbar_bins_list 
 
@@ -53,6 +53,17 @@ for weight_name in weight_name_list:
     weighthist_dict[weight_name] = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
     )
+nnpdf31lo_hist_dict = {}
+for member_name in tree["NNPDF31LO_Members"].fields:
+    nnpdf31lo_hist_dict[member_name] = bh.Histogram(
+        bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
+msht20lo_hist_dict = {}
+for member_name in tree["MSHT20LO_Members"].fields:
+    msht20lo_hist_dict[member_name] = bh.Histogram(
+        bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
+
 
 # Create Vectors
 lminus_vec = vector.zip({
@@ -101,7 +112,7 @@ lmwl_high_pT_mask = (
 )
 lmwl_masks = (
     lmwl_mue_decay_mask
-    & lmwl_tight_acc_mask
+    # & lmwl_tight_acc_mask
     & lmwl_high_pT_mask
 )
 # lplus and wlepton pair masks
@@ -121,7 +132,7 @@ lpwl_high_pT_mask = (
 )
 lpwl_masks = (
     lpwl_mue_decay_mask
-    & lpwl_tight_acc_mask
+    # & lpwl_tight_acc_mask
     & lpwl_high_pT_mask
 )
 # Apply Masks
@@ -153,6 +164,24 @@ for weight_name in tree["pdfReweight"].fields:
         lmwl_dilepton_vec.m, 
         weight=tree["pdfReweight"][weight_name][lmwl_masks]*scale_factor
     )
+for member_name in tree["NNPDF31LO_Members"].fields:
+    nnpdf31lo_hist_dict[member_name].fill(
+        lpwl_dilepton_vec.m, 
+        weight=tree["NNPDF31LO_Members"][member_name][lpwl_masks]
+    )
+    nnpdf31lo_hist_dict[member_name].fill(
+        lmwl_dilepton_vec.m, 
+        weight=tree["NNPDF31LO_Members"][member_name][lmwl_masks]*scale_factor
+    )
+for member_name in tree["MSHT20LO_Members"].fields:
+    msht20lo_hist_dict[member_name].fill(
+        lpwl_dilepton_vec.m, 
+        weight=tree["MSHT20LO_Members"][member_name][lpwl_masks]*scale_factor
+    )
+    msht20lo_hist_dict[member_name].fill(
+        lmwl_dilepton_vec.m, 
+        weight=tree["MSHT20LO_Members"][member_name][lmwl_masks]*scale_factor
+    )
 
 # Print Statements:
 print(f"Unweighted Events: {sum(lpwl_masks | lmwl_masks)}")
@@ -162,7 +191,6 @@ for weight_name in weight_name_list:
 
 
 if args.debug:
-    pdb.set_trace()
     exit()
 
 # Save Figures
@@ -191,7 +219,20 @@ for weight_name in tree["pdfReweight"].fields:
         f"DiLeptonMasspdfReweightBinning_{weight_name}",
         [weight_name, "CM09MTS"]
     )
-
+# NNPDF31LO RMS Plots
+at.create_stacked_stair(
+    [*at.calc_pdf_rms(nnpdf31lo_hist_dict), weighthist_dict["nnpdf31lo"]],
+    f"DiLeptonMass_PDFReweight_NNPD31LO",
+    ["Upper Envelope", "Lower Envelope", "Central Value"],
+    yscale="log"
+)
+# MSHT20LO RMS Plots
+at.create_stacked_stair(
+    [*at.calc_pdf_rms(msht20lo_hist_dict), weighthist_dict["msht20lo"]],
+    f"DiLeptonMass_PDFReweight_MSHT20LO",
+    ["Upper Envelope", "Lower Envelope", "Central Value"],
+    yscale="log"
+)
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
 axs.stairs(
