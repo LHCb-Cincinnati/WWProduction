@@ -26,24 +26,54 @@ def fill_kinematic_array(particle, array):
                 particle.status)
     return(array)
 
-# NNPDF31 Reweighter
-pdfrwgt_NNPDF31 = PDFReweighter.PDFReweighter(
-    pdf_set_from="CT09MCS",
-    pdf_set_to="NNPDF31_lo_as_0118"
-)
-# CT18NLO Reweighter
-pdfrwgt_CT18LO = PDFReweighter.PDFReweighter(
-    pdf_set_from="CT09MCS",
-    pdf_set_to="CT18LO"
-)
+def fill_scalewgt_array(event, weight_name_list):
+    array = np.array([0]*len(weight_name_list), dtype=np.float32)
+    for index, weight_name in enumerate(weight_name_list):
+        weight_index = event.weight_names.index(weight_name)
+        array[index] = event.weights[weight_index] 
+    return(array)
+
+# NNPDF31LO Reweighter
+num_NNPDF31LO_pdfsets = 101
+pdfrwgt_list_NNPDF31LO = [0] * num_NNPDF31LO_pdfsets
+nnpdf31lo_bra_str = ""
+for i in range(num_NNPDF31LO_pdfsets):
+    pdfrwgt_list_NNPDF31LO[i] = PDFReweighter.PDFReweighter(
+        pdf_set_from="CT09MCS",
+        pdf_set_to="NNPDF31_lo_as_0118",
+        pdf_set_to_num = i
+    )
+    nnpdf31lo_bra_str += f"PDFMember{i}Weight/F:"
+nnpdf31lo_bra_str = nnpdf31lo_bra_str[:-1]
+
+# CT18LO Reweighter
+num_CT18LO_pdfsets = 1
+pdfrwgt_list_CT18LO = [0] * num_CT18LO_pdfsets
+ct18lo_bra_str = ""
+for i in range(num_CT18LO_pdfsets):
+    pdfrwgt_list_CT18LO[i] = PDFReweighter.PDFReweighter(
+        pdf_set_from="CT09MCS",
+        pdf_set_to="CT18LO",
+        pdf_set_to_num = i
+    )
+    ct18lo_bra_str += f"PDFMember{i}Weight/F:"
+ct18lo_bra_str = ct18lo_bra_str[:-1]
+
 # MSHT20LO Reweighter
-pdfrwgt_MSHT20LO = PDFReweighter.PDFReweighter(
-    pdf_set_from="CT09MCS",
-    pdf_set_to="MSHT20lo_as130"
-)
+num_MSHT20LO_pdfsets = 61
+pdfrwgt_list_MSHT20LO = [0] * num_MSHT20LO_pdfsets
+msht20lo_bra_str = ""
+for i in range(num_MSHT20LO_pdfsets):
+    pdfrwgt_list_MSHT20LO[i] = PDFReweighter.PDFReweighter(
+        pdf_set_from="CT09MCS",
+        pdf_set_to="MSHT20lo_as130",
+        pdf_set_to_num = i
+    )
+    msht20lo_bra_str += f"PDFMember{i}Weight/F:"
+msht20lo_bra_str = msht20lo_bra_str[:-1]
 
 # Files
-ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/WZ_LO/Events/run_03_decayed_1/tag_1_pythia8_events.hepmc" 
+ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/WZ_LO/Events/run_16_decayed_1/tag_1_pythia8_events.hepmc" 
 ofile_name = "WZ_MG5_LO_CMTS09_mu10.root"
 # ofile_name = "Test.root"
 # Setting up Path
@@ -55,6 +85,17 @@ W_id = 24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
 jet_array = np.array([-5,-3,-1])
+weight_name_list = ([
+    "MUF=0.5_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=1.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "Weight",
+    "MUF=1.0_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=2.0_PDF=10770_MERGING=0.000",
+])
 
 # Initialize Arrays
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:status/F'
@@ -70,6 +111,9 @@ Z_lplus_array = np.array([0]*11, dtype=np.float32)
 W_lepton_array = np.array([0]*11, dtype=np.float32)
 initial_conditions_array = np.array([0]*4, dtype=np.float32)
 pdfrwgt_array = np.array([0]*3, dtype=np.float32)
+nnpdf31_wgt_array = np.array([0]*num_NNPDF31LO_pdfsets, dtype=np.float32) 
+ct18lo_wgt_array = np.array([0]*num_CT18LO_pdfsets, dtype=np.float32) 
+msht20lo_wgt_array = np.array([0]*num_MSHT20LO_pdfsets, dtype=np.float32) 
 
 # Set up ROOT
 file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/madgraph/" + ofile_name,
@@ -80,6 +124,9 @@ tree.Branch(
     'InitialConditions', initial_conditions_array, initial_conditions_str
 )
 tree.Branch('pdfReweight', pdfrwgt_array, pdfrwgt_str)
+tree.Branch('NNPDF31LO_Members', nnpdf31_wgt_array, nnpdf31lo_bra_str)
+tree.Branch('CT18LO_Members', ct18lo_wgt_array, ct18lo_bra_str)
+tree.Branch('MSHT20LO_Members', msht20lo_wgt_array, msht20lo_bra_str)
 tree.Branch('Weights', wgt_array, wgt_str)
 tree.Branch('Z', Z_array, var_str)
 tree.Branch('W', W_array, var_str)
@@ -128,25 +175,31 @@ with pyhepmc.open(ifile_name) as f:
         id1 = parton1.pid
         x2 = parton2.momentum.p3mod() / 6500
         id2 = parton2.pid
-        nnpdf_reweight = pdfrwgt_NNPDF31.calculate_reweighting_factor(
-            x1, x2, id1, id2, sqrt_s=13e3
-        )
-        ct18lo_reweight = pdfrwgt_CT18LO.calculate_reweighting_factor(
-            x1, x2, id1, id2, sqrt_s=13e3
-        )
-        msht20lo_reweight = pdfrwgt_MSHT20LO.calculate_reweighting_factor(
-            x1, x2, id1, id2, sqrt_s=13e3
-        )
+        # Fill large PDF member arrays
+        for i in range(num_NNPDF31LO_pdfsets):
+            nnpdf31_wgt_array[i] = pdfrwgt_list_NNPDF31LO[i].calculate_reweighting_factor(
+                x1, x2, id1, id2, sqrt_s=13e3
+            )
+        for i in range(num_CT18LO_pdfsets):
+            ct18lo_wgt_array[i] = pdfrwgt_list_CT18LO[i].calculate_reweighting_factor(
+                x1, x2, id1, id2, sqrt_s=13e3
+            )
+        for i in range(num_MSHT20LO_pdfsets):
+            msht20lo_wgt_array[i] = pdfrwgt_list_MSHT20LO[i].calculate_reweighting_factor(
+                x1, x2, id1, id2, sqrt_s=13e3
+            )
 
         # Fill arrays
-        pdfrwgt_array[:] = (nnpdf_reweight, ct18lo_reweight, msht20lo_reweight)
+        pdfrwgt_array[:] = (
+            nnpdf31_wgt_array[0], ct18lo_wgt_array[0], msht20lo_wgt_array[0]
+        )
         initial_conditions_array[:] = (x1, id1, x2, id2)
         Z_array = fill_kinematic_array(Z, Z_array)
         W_array = fill_kinematic_array(W, W_array)
         Z_lminus_array = fill_kinematic_array(Z_lminus, Z_lminus_array)
         Z_lplus_array = fill_kinematic_array(Z_lplus, Z_lplus_array)
         W_lepton_array = fill_kinematic_array(W_lepton, W_lepton_array)
-        wgt_array[:] = event.weights[1:10]
+        wgt_array[:] = fill_scalewgt_array(event, weight_name_list)
         tree.Fill()
         i = i+1
 

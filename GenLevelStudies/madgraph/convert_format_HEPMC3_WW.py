@@ -10,6 +10,7 @@ import numpy as np
 # Personal Packages
 sys.path.append(".") # Not great form.
 import AnalysisTools as at
+import PDFReweighter
 
 def get_nonradiative_decay(particle):
     if (particle.children[0].pid == particle.pid):
@@ -25,9 +26,25 @@ def fill_kinematic_array(particle, array):
                 particle.status)
     return(array)
 
+# NNPDF31 Reweighter
+pdfrwgt_NNPDF31 = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="NNPDF31_lo_as_0118"
+)
+# CT18NLO Reweighter
+pdfrwgt_CT18LO = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="CT18LO"
+)
+# MSHT20LO Reweighter
+pdfrwgt_MSHT20LO = PDFReweighter.PDFReweighter(
+    pdf_set_from="CT09MCS",
+    pdf_set_to="MSHT20lo_as130"
+)
+
 # Files
-ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/WW_NLO_GaussStatement_1JetMatching/Events/run_01/events_PYTHIA8_0.hepmc" 
-ofile_name = "Test1.root"
+ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/tW_LO/Events/run_02_decayed_1/tag_1_pythia8_events.hepmc" 
+ofile_name = "tW_MG5_LO_CMTS09_mu10.root"
 # Setting up Path
 ww_path = at.find_WW_path()
 
@@ -39,6 +56,8 @@ neutrino_pid_array = np.array([12, 14])
 # Initialize Arrays
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:status/F'
 wgt_str = "AUX_MUR05_MUF05/F:AUX_MUR05_MUF10/F:AUX_MUR05_MUF20/F:AUX_MUR10_MUF05/F:AUX_MUR10_MUF10/F:AUX_MUR10_MUF20/F:AUX_MUR20_MUF05/F:AUX_MUR20_MUF10/F:AUX_MUR20_MUF20/F"
+initial_conditions_str = 'x1/F:id1/F:x2/F:id2/F'
+pdfrwgt_str = 'nnpdf31lo/F:ct18lo/F:msht20lo/F'
 evt_array = np.array([0], dtype=np.float32)
 wgt_array = np.array([0]*9, dtype=np.float32)
 target_particle_array = np.array([0]*11, dtype=np.float32)
@@ -47,6 +66,8 @@ target_neutrino_array = np.array([0]*11, dtype=np.float32)
 target_antiparticle_array = np.array([0]*11, dtype=np.float32)
 target_antilepton_array = np.array([0]*11, dtype=np.float32)
 target_antineutrino_array = np.array([0]*11, dtype=np.float32)
+initial_conditions_array = np.array([0]*4, dtype=np.float32)
+pdfrwgt_array = np.array([0]*3, dtype=np.float32)
 
 # Set up ROOT
 file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/madgraph/" + ofile_name,
@@ -54,6 +75,10 @@ file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/madgraph/" + ofile_name,
 tree = ROOT.TTree("Tree", "Tree")
 tree.Branch('Event', evt_array, 'Event/F')
 tree.Branch('Weights', wgt_array, wgt_str)
+tree.Branch(
+    'InitialConditions', initial_conditions_array, initial_conditions_str
+)
+tree.Branch('pdfReweight', pdfrwgt_array, pdfrwgt_str)
 tree.Branch('TargetParticle', target_particle_array, var_str)
 tree.Branch('TargetLepton', target_lepton_array, var_str)
 tree.Branch('TargetNeutrino', target_neutrino_array, var_str)
@@ -69,12 +94,15 @@ counter2 = 0
 with pyhepmc.open(ifile_name) as f:
     for event in f:
         evt_array[:] = i
-        # Find top and anti-top in event.particles
+        # Find relevant particles
+        initial_parton_list = []
         for particle in event.particles:
             if particle.pid==W_pid:
                 wminus = particle
             elif particle.pid==-1*W_pid:
                 wplus = particle
+            elif particle.status == 21:
+                initial_parton_list.append(particle)
         # Find top b-daughter and w-daughter
         if (len(wplus.children) == 0) or (len(wminus.children) == 0):
             continue
@@ -91,6 +119,29 @@ with pyhepmc.open(ifile_name) as f:
             elif daughter.pid in neutrino_pid_array:
                 neutrino_minus = daughter
 
+        # Get Initial Conditions Info
+        if len(initial_parton_list) != 2:
+            print("More than 2 initial partons")
+            print(initial_parton_list)
+        parton1 = initial_parton_list[0]
+        parton2 = initial_parton_list[1]
+        x1 = parton1.momentum.p3mod() / 6500
+        id1 = parton1.pid
+        x2 = parton2.momentum.p3mod() / 6500
+        id2 = parton2.pid
+        nnpdf_reweight = pdfrwgt_NNPDF31.calculate_reweighting_factor(
+            x1, x2, id1, id2, sqrt_s=13e3
+        )
+        ct18lo_reweight = pdfrwgt_CT18LO.calculate_reweighting_factor(
+            x1, x2, id1, id2, sqrt_s=13e3
+        )
+        msht20lo_reweight = pdfrwgt_MSHT20LO.calculate_reweighting_factor(
+            x1, x2, id1, id2, sqrt_s=13e3
+        )
+
+        # Fill arrays
+        pdfrwgt_array[:] = (nnpdf_reweight, ct18lo_reweight, msht20lo_reweight)
+        initial_conditions_array[:] = (x1, id1, x2, id2)
         target_particle_array = fill_kinematic_array(wplus, target_particle_array)
         target_lepton_array = fill_kinematic_array(lepton_minus, target_lepton_array)
         target_neutrino_array = fill_kinematic_array(neutrino_minus, target_neutrino_array)

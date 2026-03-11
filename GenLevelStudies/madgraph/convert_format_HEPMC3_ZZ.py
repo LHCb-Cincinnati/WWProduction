@@ -35,6 +35,13 @@ def fill_kinematic_array(particle, array):
                 particle.status)
     return(array)
 
+def fill_scalewgt_array(event, weight_name_list):
+    array = np.array([0]*len(weight_name_list), dtype=np.float32)
+    for index, weight_name in enumerate(weight_name_list):
+        weight_index = event.weight_names.index(weight_name)
+        array[index] = event.weights[weight_index] 
+    return(array)
+
 # NNPDF31 Reweighter
 pdfrwgt_NNPDF31 = PDFReweighter.PDFReweighter(
     pdf_set_from="CT09MCS",
@@ -52,8 +59,8 @@ pdfrwgt_MSHT20LO = PDFReweighter.PDFReweighter(
 )
 
 # Files
-ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/ZZ_LO/Events/run_02_decayed_1/tag_1_pythia8_events.hepmc" 
-ofile_name = "Test1.root"
+ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/ZZ_LO/Events/run_06_decayed_1/tag_1_pythia8_events.hepmc" 
+ofile_name = "ZZ_MG5_LO_CMTS09_mu10.root"
 # Setting up Path
 ww_path = at.find_WW_path()
 
@@ -62,6 +69,17 @@ Z_id = 23
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
 jet_array = np.array([-5,-3,-1])
+weight_name_list = ([
+    "MUF=0.5_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=1.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "Weight",
+    "MUF=1.0_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=2.0_PDF=10770_MERGING=0.000",
+])
 
 # Initialize Arrays
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:status/F'
@@ -157,7 +175,7 @@ with pyhepmc.open(ifile_name) as f:
         Z2_array = fill_kinematic_array(Z, Z2_array)
         Z2_lminus_array = fill_kinematic_array(Z2_lminus, Z2_lminus_array)
         Z2_lplus_array = fill_kinematic_array(Z2_lplus, Z2_lplus_array)
-        wgt_array[:] = event.weights[1:10]
+        wgt_array[:] = fill_scalewgt_array(event, weight_name_list)
         tree.Fill()
         i = i+1
 

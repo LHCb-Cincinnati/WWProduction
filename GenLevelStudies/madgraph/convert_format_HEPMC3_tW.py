@@ -18,21 +18,19 @@ def get_nonradiative_decay(particle):
     else:
         return(particle)
 
-def check_parents(particle, bad_pid):
-    if particle.parents:
-        if (abs(particle.parents[0].pid) == abs(bad_pid)):
-            return(False)
-        else:
-            return(check_parents(particle.parents[0], bad_pid))
-    else:
-        return(True)
-
 def fill_kinematic_array(particle, array):
     mom = particle.momentum
     array[:] = (mom.px, mom.py, mom.pz, mom.pt(), 
                 np.sqrt(mom.px *mom.px + mom.py * mom.py + mom.pz * mom.pz), 
                 mom.eta(), mom.e, mom.phi(), mom.m(), particle.pid, 
                 particle.status)
+    return(array)
+
+def fill_scalewgt_array(event, weight_name_list):
+    array = np.array([0]*len(weight_name_list), dtype=np.float32)
+    for index, weight_name in enumerate(weight_name_list):
+        weight_index = event.weight_names.index(weight_name)
+        array[index] = event.weights[weight_index] 
     return(array)
 
 # NNPDF31 Reweighter
@@ -52,17 +50,27 @@ pdfrwgt_MSHT20LO = PDFReweighter.PDFReweighter(
 )
 
 # Files
-ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/tW_LO/Events/run_01_decayed_1/tag_1_pythia8_events.hepmc" 
+ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/tW_LO/Events/run_05_decayed_1/tag_1_pythia8_events.hepmc" 
+# ofile_name = "tW_MG5_LO_CMTS09_mu10.root"
 ofile_name = "Test.root"
 # Setting up Path
 ww_path = at.find_WW_path()
 
 # Inputs
-antitop_pid = -6
-W_pid = 24
+W_pid = -24
 lepton_pid_array = np.array([11, 13])
 neutrino_pid_array = np.array([12, 14])
-jet_array = np.array([-5,-3,-1])
+weight_name_list = ([
+    "MUF=0.5_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=0.5_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=1.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "Weight",
+    "MUF=1.0_MUR=2.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=0.5_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=1.0_PDF=10770_MERGING=0.000",
+    "MUF=2.0_MUR=2.0_PDF=10770_MERGING=0.000",
+])
 
 # Initialize Arrays
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:status/F'
@@ -77,8 +85,6 @@ target_neutrino_array = np.array([0]*11, dtype=np.float32)
 target_antiparticle_array = np.array([0]*11, dtype=np.float32)
 target_antilepton_array = np.array([0]*11, dtype=np.float32)
 target_antineutrino_array = np.array([0]*11, dtype=np.float32)
-target_jet_array = np.array([0]*11, dtype=np.float32)
-target_antijet_array = np.array([0]*11, dtype=np.float32)
 initial_conditions_array = np.array([0]*4, dtype=np.float32)
 pdfrwgt_array = np.array([0]*3, dtype=np.float32)
 
@@ -87,19 +93,17 @@ file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/madgraph/" + ofile_name,
                         "RECREATE")
 tree = ROOT.TTree("Tree", "Tree")
 tree.Branch('Event', evt_array, 'Event/F')
+tree.Branch('Weights', wgt_array, wgt_str)
 tree.Branch(
     'InitialConditions', initial_conditions_array, initial_conditions_str
 )
 tree.Branch('pdfReweight', pdfrwgt_array, pdfrwgt_str)
-tree.Branch('Weights', wgt_array, wgt_str)
 tree.Branch('TargetParticle', target_particle_array, var_str)
 tree.Branch('TargetLepton', target_lepton_array, var_str)
 tree.Branch('TargetNeutrino', target_neutrino_array, var_str)
 tree.Branch('TargetAntiParticle', target_antiparticle_array, var_str)
 tree.Branch('TargetAntiLepton', target_antilepton_array, var_str)
 tree.Branch('TargetAntiNeutrino', target_antineutrino_array, var_str)
-tree.Branch('TargetJet', target_jet_array, var_str)
-tree.Branch('TargetAntiJet', target_antijet_array, var_str)
 
 # Variables
 i = 0
@@ -112,35 +116,26 @@ with pyhepmc.open(ifile_name) as f:
         # Find relevant particles
         initial_parton_list = []
         for particle in event.particles:
-            if particle.pid==abs(antitop_pid):
-                top = particle
-            elif ((particle.pid==abs(W_pid)) and (check_parents(particle, antitop_pid))):
-                W = particle
+            if particle.pid==W_pid:
+                wminus = particle
+            elif particle.pid==-1*W_pid:
+                wplus = particle
             elif particle.status == 21:
                 initial_parton_list.append(particle)
         # Find top b-daughter and w-daughter
-        for daughter in top.children:
-            if daughter.pid in -1*jet_array:
-                jet = daughter
-            else:
-                w_top = daughter
-        W = get_nonradiative_decay(W)
-        w_top = get_nonradiative_decay(w_top)
-        if W.pid == 24:
-            wplus = W
-            wminus = w_top 
-        else:
-            wplus = w_top
-            wminus = W
-        for daughter in wplus.children:
-            if daughter.pid in -1*lepton_pid_array:
-                lepton_plus = daughter
-            elif daughter.pid in neutrino_pid_array:
-                neutrino_plus = daughter
+        if (len(wplus.children) == 0) or (len(wminus.children) == 0):
+            continue
+        wplus = get_nonradiative_decay(wplus)
+        wminus = get_nonradiative_decay(wminus)
         for daughter in wminus.children:
             if daughter.pid in lepton_pid_array:
-                lepton_minus = daughter
+                lepton_plus = daughter
             elif daughter.pid in -1*neutrino_pid_array:
+                neutrino_plus = daughter
+        for daughter in wplus.children:
+            if daughter.pid in -1*lepton_pid_array:
+                lepton_minus = daughter
+            elif daughter.pid in neutrino_pid_array:
                 neutrino_minus = daughter
 
         # Get Initial Conditions Info
@@ -172,9 +167,7 @@ with pyhepmc.open(ifile_name) as f:
         target_antiparticle_array = fill_kinematic_array(wminus, target_antiparticle_array)
         target_antilepton_array = fill_kinematic_array(lepton_plus, target_antilepton_array)
         target_antineutrino_array = fill_kinematic_array(neutrino_plus, target_antineutrino_array)
-        target_jet_array = fill_kinematic_array(jet, target_jet_array)
-        target_antijet_array = fill_kinematic_array(antijet, target_antijet_array)
-        wgt_array[:] = event.weights[1:10]
+        wgt_array[:] = fill_scalewgt_array(event, weight_name_list)
         tree.Fill()
         i = i+1
 
