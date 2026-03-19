@@ -75,7 +75,7 @@ num_ct18nlo_members = 59
 num_msht20nlo_members = 65
 
 # Binning Scheme
-bins_list = list(np.linspace(0, 100, 4)) + [150, 200, 2000] 
+bins_list = [0] + list(np.linspace(33, 100, 8)) + [200, 2000] 
 
 # Define histograms
 dilepton_id_mass_rghbin_hist = bh.Histogram(bh.axis.Regular(26, 20, 306), storage=bh.storage.Weight())
@@ -89,8 +89,14 @@ dilepton_id_mass_pdfreweight_profilehist = bh.Histogram(
 weight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo"]
 weighthist_dict = {}
 for weight_name in weight_name_list:
-    weighthist_dict[weight_name] = bh.Histogram(
+    weighthist_dict[weight_name + "__kfactor__bin"] = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
+    weighthist_dict[weight_name + "__rgh__bin"] = bh.Histogram(
+        bh.axis.Regular(26, 20, 306), storage=bh.storage.Weight()
+    )
+    weighthist_dict[weight_name + "__fine__bin"] = bh.Histogram(
+        bh.axis.Regular(50, 20, 306), storage=bh.storage.Weight()
     )
 nnpdf31lo_hist_dict = {}
 for i in range(num_nnpdf31lo_members):
@@ -193,13 +199,13 @@ for tree in tree_iterator:
     )
     high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
     low_pT_lepton_mask = ((lminus_vec.pt / GeV >5) & (lplus_vec.pt / GeV >5))
-    tautau_invmass_cut = (ditau_vec.m  / GeV < 500)
+    tautau_invmass_cut = (ditau_vec.m  / GeV > 500)
     lepton_mask = (
-        # both_lepton_tight_acc_mask
-        high_pT_lepton_mask
+        both_lepton_tight_acc_mask
+        & high_pT_lepton_mask
         & mue_decay_mask
         & deltar_mask
-        # & tautau_invmass_cut
+        & tautau_invmass_cut
     )
 
     # Apply Masks
@@ -216,7 +222,15 @@ for tree in tree_iterator:
         dilepton_vec.m / GeV, weight=scale_factor, sample=dilepton_vec.m / GeV
     )
     for weight_name in tree["pdfReweight"].fields:
-        weighthist_dict[weight_name].fill(
+        weighthist_dict[weight_name + "__kfactor__bin"].fill(
+            dilepton_vec.m / GeV, 
+            weight=tree["pdfReweight"][weight_name][lepton_mask]*scale_factor
+        )
+        weighthist_dict[weight_name + "__rgh__bin"].fill(
+            dilepton_vec.m / GeV, 
+            weight=tree["pdfReweight"][weight_name][lepton_mask]*scale_factor
+        )
+        weighthist_dict[weight_name + "__fine__bin"].fill(
             dilepton_vec.m / GeV, 
             weight=tree["pdfReweight"][weight_name][lepton_mask]*scale_factor
         )
@@ -250,11 +264,45 @@ for tree in tree_iterator:
     if args.debug:
         break
 
+# Mean PDF histogram calculations for rough and fine binned histogram
+weighthist_pdf_dict = at.calc_pdf_mean(weighthist_dict, "__rgh__bin")
+weighthist_pdf_dict = at.calc_pdf_mean(weighthist_dict, "__fine__bin")
+# Special treatment for k-factor binning histogram w/ pdf uncertainties
+# Create mean NLO PDF histogram from individual families
+nnpdf31nlo_view = weighthist_dict["nnpdf31nlo__kfactor__bin"].view()
+ct18nlo_view = weighthist_dict["ct18nlo__kfactor__bin"].view()
+msht20nlo_view = weighthist_dict["msht20nlo__kfactor__bin"].view()
+nlo_mean_hist = weighthist_dict["nnpdf31nlo__kfactor__bin"].copy()
+nlo_mean_view = nlo_mean_hist.view()
+
+# Per-bin mean of the three NLO histograms
+values_stack = np.stack(
+    [
+        nnpdf31nlo_view.value,
+        ct18nlo_view.value,
+        msht20nlo_view.value,
+    ],
+    axis=0,
+)
+mean_values = np.mean(values_stack, axis=0)
+nlo_mean_view.value = mean_values
+sq_diff = (values_stack - mean_values) ** 2
+rms_squared = np.mean(sq_diff, axis=0)
+nlo_mean_view.variance = rms_squared
+weighthist_dict["nlo_mean__kfactor__bin"] = nlo_mean_hist
+# Create RMS NLO PDF histogram
+nlo_rmslow_hist = weighthist_dict["nlo_mean__kfactor__bin"].copy()
+nlo_rmslow_hist.view().value = nlo_rmslow_hist.view().value - nlo_rmslow_hist.view().variance
+nlo_rmshigh_hist = weighthist_dict["nlo_mean__kfactor__bin"].copy()
+nlo_rmshigh_hist.view().value = nlo_rmshigh_hist.view().value + nlo_rmshigh_hist.view().variance
+
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
 print(f"Weighted Events: {unweighted_event_counter * scale_factor}")
 for weight_name in weight_name_list:
-    print(f"{weight_name}: {weighthist_dict[weight_name].view().value.sum() / dilepton_id_mass_pdfreweight_hist.view().value.sum() * unweighted_event_counter * scale_factor}")
+    print(f"{weight_name}: {weighthist_dict[weight_name + '__kfactor__bin'].view().value.sum() / dilepton_id_mass_pdfreweight_hist.view().value.sum() * unweighted_event_counter * scale_factor}")
+print(f"Mean PDF: {weighthist_dict['nlo_mean__kfactor__bin'].view().value.sum() / dilepton_id_mass_pdfreweight_hist.view().value.sum() * unweighted_event_counter * scale_factor}")
+
 
 if args.debug:
     exit()
@@ -263,25 +311,43 @@ if args.debug:
 folder_path = at.create_folder_path(ofile_name, args.testing)
 os.chdir(folder_path)
 # Plot
-at.create_stair(dilepton_id_mass_rghbin_hist, "DiLepton Mass Linear Rough Binning",
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_rghbin_hist, "DiLepton Mass Log Rough Binning", yscale='log',
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_finebin_hist, "DiLepton Mass Linear Fine Binning",
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_finebin_hist, "DiLepton Mass Log Fine Binning", yscale='log',
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_pdfreweight_hist, "DiLepton Mass Linear K-Factor Binning",
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_pdfreweight_hist, "DiLepton Mass Log K-Factor Binning", yscale='log',
-                luminosity=luminosity)
-at.create_stair(dilepton_id_mass_pdfreweight_profilehist, "DiLepton Mass Linear K-Factor Binning Profile Hist",
-                luminosity=luminosity)
+at.create_stair(
+    weighthist_dict["nlo_mean__rgh__bin"], 
+    "DiLepton Mass Linear Rough Binning",
+    luminosity=luminosity
+)
+at.create_stair(
+    weighthist_dict["nlo_mean__rgh__bin"], 
+    "DiLepton Mass Log Rough Binning",
+    yscale="log",
+    luminosity=luminosity
+)
+at.create_stair(
+    weighthist_dict["nlo_mean__fine__bin"], 
+    "DiLepton Mass Linear Fine Binning",
+    luminosity=luminosity
+)
+at.create_stair(
+    weighthist_dict["nlo_mean__fine__bin"], 
+    "DiLepton Mass Log Fine Binning",
+    yscale="log",
+    luminosity=luminosity
+)
+at.create_stair(
+    weighthist_dict["nlo_mean__kfactor__bin"], 
+    "DiLepton Mass Linear K-Factor Binning",
+    luminosity=luminosity
+)
+at.create_stair(
+    weighthist_dict["nlo_mean__kfactor__bin"], 
+    "DiLepton Mass Log K-Factor Binning",
+    yscale="log",
+    luminosity=luminosity
+)
 
-# Special pdf plots
 for weight_name in tree["pdfReweight"].fields:
     at.create_stacked_stair(
-        [weighthist_dict[weight_name], dilepton_id_mass_pdfreweight_hist],
+        [weighthist_dict[weight_name + "__kfactor__bin"], dilepton_id_mass_pdfreweight_hist],
         f"DiLeptonMasspdfReweightBinning_{weight_name}",
         [weight_name, "CM09MTS"]
     )
@@ -312,22 +378,49 @@ plot_pdf_rms(
 # Many Family PDF Plots
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
-# axs.stairs(
-#     dilepton_id_mass_pdfreweight_hist.view().value, 
-#     edges=dilepton_id_mass_pdfreweight_hist.axes[0].edges,
-#     label="CT09MCS"
-# )
-for weight_name in tree["pdfReweight"].fields:
-    if "nlo" in weight_name:
-        axs.stairs(
-            weighthist_dict[weight_name].view().value, 
-            edges=weighthist_dict[weight_name].axes[0].edges,
-            label=weight_name.upper()
-        )
+# Plot NNPDF31NLO
+axs.stairs(
+    weighthist_dict["nnpdf31nlo__kfactor__bin"].view().value, 
+    edges=weighthist_dict["nnpdf31nlo__kfactor__bin"].axes[0].edges,
+    label="NNPDF31NLO",
+    color="green"
+)
+# Plot CT18NLO
+axs.stairs(
+    weighthist_dict["ct18nlo__kfactor__bin"].view().value, 
+    edges=weighthist_dict["ct18nlo__kfactor__bin"].axes[0].edges,
+    label="CT18NLO",
+    color="blue"
+)
+# Plot MSHT20NLO
+axs.stairs(
+    weighthist_dict["msht20nlo__kfactor__bin"].view().value, 
+    edges=weighthist_dict["msht20nlo__kfactor__bin"].axes[0].edges,
+    label="MSHT20NLO",
+    color="red"
+)
+# Plot NLO Mean
+axs.stairs(
+    weighthist_dict["nlo_mean__kfactor__bin"].view().value, 
+    edges=weighthist_dict["nlo_mean__kfactor__bin"].axes[0].edges,
+    color="black"
+)
+
+axs.bar(
+    x=weighthist_dict["nlo_mean__kfactor__bin"].axes[0].centers, 
+    height= 2*np.sqrt(weighthist_dict["nlo_mean__kfactor__bin"].view().variance), 
+    bottom=weighthist_dict["nlo_mean__kfactor__bin"].view().value - np.sqrt(weighthist_dict["nlo_mean__kfactor__bin"].view().variance), 
+    width=weighthist_dict["nlo_mean__kfactor__bin"].axes[0].widths, 
+    linewidth=0, 
+    color="black", 
+    alpha=0.25, 
+    zorder=-1, 
+    label="Mean w/ RMS Envelope"
+)
 axs.set_xlim((0, 300))
 axs.set_title("PDF Variations")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
-axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}}$")
+axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
@@ -338,17 +431,44 @@ plt.close()
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
-    # root_file["DileptonKFactorFine"] = dilepton_id_mass_pdfreweight_hist
-    root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
-
+    root_file["DileptonKFactorFine"] = weighthist_dict["nlo_mean__kfactor__bin"]
+    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
 # Save histograms
-os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 pickle_dict = {
-    "DiLeptonMassRough": [dilepton_id_mass_rghbin_hist],
-    "DileptonMassFine": [dilepton_id_mass_finebin_hist],
-    "DileptonKFactorFine": [dilepton_id_mass_pdfreweight_hist],
+    "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
+    "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
+    "DileptonKFactorFine": [weighthist_dict["nlo_mean__kfactor__bin"]],
     # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
-    "DileptonKFactorProfile": [dilepton_id_mass_pdfreweight_profilehist],
 }
 with open(ofile_name + ".pkl", "wb") as f:
+    pickle.dump(pickle_dict, f)
+
+# Lower RMS Envelope Files
+lower_rms_ofile_name = "DFDY_MG5_NLO_rwgt_mu10_LowerRMSMeanPDF_HighMass"
+with uproot.recreate(lower_rms_ofile_name + ".root") as root_file:
+    root_file["DileptonKFactorFine"] = nlo_rmslow_hist
+    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
+# Save histograms
+pickle_dict = {
+    "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
+    "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
+    "DileptonKFactorFine": [nlo_rmslow_hist],
+    # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
+}
+with open(lower_rms_ofile_name + ".pkl", "wb") as f:
+    pickle.dump(pickle_dict, f)
+
+# Upper RMS Envelope Files
+upper_rms_ofile_name = "DFDY_MG5_NLO_rwgt_mu10_UpperRMSMeanPDF_HighMass"
+with uproot.recreate(upper_rms_ofile_name + ".root") as root_file:
+    root_file["DileptonKFactorFine"] = nlo_rmshigh_hist
+    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
+# Save histograms
+pickle_dict = {
+    "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
+    "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
+    "DileptonKFactorFine": [nlo_rmshigh_hist],
+    # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
+}
+with open(upper_rms_ofile_name + ".pkl", "wb") as f:
     pickle.dump(pickle_dict, f)
