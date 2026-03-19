@@ -105,7 +105,7 @@ for hist_tag in data_list[0].keys():
         )
         for index in range(len(div_hist.axes[0].edges) - 1):
             root_hist.SetBinContent(index + 1, div_hist.view().value[index])
-            root_hist.SetBinError(index + 1, div_hist.view().variance[index])
+            root_hist.SetBinError(index + 1, np.sqrt(div_hist.view().variance[index]))
         logging.debug(f"Finished Drawing {hist_tag}")
         root_hist.Write()
         pickle_dict["DiLeptonMass"] = [div_hist]

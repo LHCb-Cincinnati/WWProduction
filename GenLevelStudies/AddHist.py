@@ -85,23 +85,23 @@ for hist_tag in data_list[0].keys():
     if len(add_hist.axes) == 1:
         at.create_stair(
             add_hist,
-            hist_title,
+            hist_tag,
         )
         at.create_stair(
             add_hist,
-            hist_title + " Log",
+            hist_tag + " Log",
             yscale="log"
         )
         # Create ROOT hist
         root_hist = ROOT.TH1F(
-            "rwgt_hist",
-            "rwgt_hist",
+            f"rwgt_hist_{hist_tag}",
+            f"rwgt_hist_{hist_tag}",
             len(add_hist.axes[0].edges) - 1,
             add_hist.axes[0].edges
         )
         for index in range(len(add_hist.axes[0].edges) - 1):
             root_hist.SetBinContent(index + 1, add_hist.view().value[index])
-            root_hist.SetBinError(index + 1, add_hist.view().variance[index])
+            root_hist.SetBinError(index + 1, np.sqrt(add_hist.view().variance[index]))
         root_hist.Write()
     else:
         fig, axs = plt.subplots()
