@@ -399,7 +399,7 @@ def multiply_bh_histograms(num_hist, denom_hist):
             continue
         div_value = num_value * denom_value
         div_var = (
-            (num_value * denom_value)
+            np.abs(num_value * denom_value)
             * np.sqrt(
                 (np.sqrt(num_var) / num_value)**2
                 + (np.sqrt(denom_var) / denom_value)**2
@@ -450,13 +450,13 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
             )
         else:
             div_var = np.square(
-                (num_value / denom_value)
+                np.abs(num_value / denom_value)
                 * np.sqrt(
                     (np.sqrt(num_var) / num_value)**2
                     + (np.sqrt(denom_var) / denom_value)**2
                 )
             )
-            div_var = num_var / denom_value
+            # div_var = num_var / denom_value
         index_list = get_index(index, original_shape)
         div_hist[index_list] = [div_value, div_var]
     div_hist.view().reshape(original_shape)
@@ -506,22 +506,46 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
     return(div_hist)
 
 def calc_pdf_rms(hist_dict):
-    num_bins = hist_dict["PDFMember0Weight"].shape[0]
-    upper_rms_hist = hist_dict["PDFMember0Weight"].copy()
-    lower_rms_hist = hist_dict["PDFMember0Weight"].copy()
-    rms_diff_list = [0] * num_bins
-    num_members = len(hist_dict.keys())
+    rms_arr = np.shape(
+        hist_dict["PDFMember0Weight"].view().variance
+    )
+    num_members = len(hist_dict.keys()) - 1
     for key in hist_dict:
-        for bin_index in range(num_bins):
-            rms_diff_list[bin_index] += hist_dict[key][bin_index].value**2
-    for bin_index in range(num_bins):
-        rms_diff_list[bin_index] = np.abs(
-            np.sqrt(rms_diff_list[bin_index]/num_members)
-        )
-        hist_dict["PDFMember0Weight"][bin_index] = [
-            hist_dict["PDFMember0Weight"][bin_index].value,
-            rms_diff_list[bin_index]
-        ]
+        rms_arr += (
+            hist_dict["PDFMember0Weight"].view().value
+            - hist_dict[key].view().value
+        )**2
+    rms_arr = np.abs(
+        np.sqrt(rms_arr/num_members)
+    )
+    hist_dict["PDFMember0Weight"].view().variance = rms_arr 
+    return(hist_dict)
+
+def calc_pdf_mean(hist_dict, suffix):
+    # Create mean NLO PDF histogram from individual families
+    nnpdf31nlo_view = hist_dict["nnpdf31nlo" + suffix].view()
+    ct18nlo_view = hist_dict["ct18nlo" + suffix].view()
+    msht20nlo_view = hist_dict["msht20nlo" + suffix].view()
+    nlo_mean_hist = hist_dict["nnpdf31nlo" + suffix].copy()
+    nlo_mean_view = nlo_mean_hist.view()
+
+    # Per-bin mean of the three NLO histograms
+    values_stack = np.stack(
+        [
+            nnpdf31nlo_view.value,
+            ct18nlo_view.value,
+            msht20nlo_view.value,
+        ],
+        axis=0,
+    )
+    mean_values = np.mean(values_stack, axis=0)
+    nlo_mean_view.value = mean_values
+    nlo_mean_view.variance = (
+        nnpdf31nlo_view.variance
+        + ct18nlo_view.variance
+        + msht20nlo_view.variance
+    ) / 9.0
+    hist_dict["nlo_mean" + suffix] = nlo_mean_hist
     return(hist_dict)
 
 def fill_array(array, event, index):
