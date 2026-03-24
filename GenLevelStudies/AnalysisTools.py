@@ -367,15 +367,19 @@ def get_index(flattened_index, size_tuple):
     index_list[-1] = int(flattened_index % size_tuple[-1])
     return(tuple(index_list))
 
-def multiply_bh_histograms(num_hist, denom_hist):
+def multiply_bh_histograms(num_hist, denom_hist, error_type="uncorrelated"):
     """ Multiplies two bh histograms.
 
     Multiplies two bh histograms, assuming the same binning scheme, binwise.
-    Independent errors are used.
+    Error propogation can be specified through the error_type parameter.
 
     Args:
         num_hist (bh.histogram): Numerator histogram.
         denom_hist (bh.histogram): Denominator histogram.
+        error_type (str): The type of error propogation to be used.  The 
+            current options are: uncorrelated and pass-through.
+            Pass-through refers to dividing the existing variance by the 
+            denominator histogram value.
 
     Returns:
         div_hist (bh.histogram): num_hist * denom_hist
@@ -398,18 +402,23 @@ def multiply_bh_histograms(num_hist, denom_hist):
             div_hist[index_list] = [0, 0]
             continue
         div_value = num_value * denom_value
-        div_var = (
-            np.abs(num_value * denom_value)
-            * np.sqrt(
-                (np.sqrt(num_var) / num_value)**2
-                + (np.sqrt(denom_var) / denom_value)**2
+        if error_type == "uncorrelated":
+            div_var = np.square(
+                np.abs(num_value * denom_value)
+                * np.sqrt(
+                    (np.sqrt(num_var) / num_value)**2
+                    + (np.sqrt(denom_var) / denom_value)**2
+                )
             )
-        )
+        elif error_type == "pass_through"
+            div_var = num_var / denom_value
+        else:
+            raise RuntimeError(f"Error type not found: {error_type}")
         div_hist[index_list] = [div_value, div_var]
     # div_hist.view().reshape(original_shape)
     return(div_hist)
 
-def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
+def divide_bh_histograms(num_hist, denom_hist, error_type="uncorrelated"):
     """ Divides two bh histograms with binomial errors.
 
     Divides two bh histograms, assuming the same binning scheme, binwise.
@@ -418,7 +427,10 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
     Args:
         num_hist (bh.histogram): Numerator histogram.
         denom_hist (bh.histogram): Denominator histogram.
-        binomial_errors (bool): Whether to use binomial errors.
+        error_type (str): The type of error propogation to be used.  The 
+            current options are: uncorrelated, binomial, and pass-through.
+            Pass-through refers to dividing the existing variance by the 
+            denominator histogram value.
     
     Returns:
         div_hist (bh.histogram): num_hist / denom_hist
@@ -440,7 +452,7 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
             warnings.warn(f"Denominator value of zero in hist: {denom_hist}")
         div_value = num_value / denom_value
         # print(div_val_array[index])
-        if binomial_error:
+        if error_type == "binomial":
             div_var = np.square(
                 (1/denom_value)
                 * np.sqrt(
@@ -448,7 +460,7 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
                     * (1- (num_value / denom_value))
                 )
             )
-        else:
+        elif error_type == "uncorrelated":
             div_var = np.square(
                 np.abs(num_value / denom_value)
                 * np.sqrt(
@@ -456,7 +468,10 @@ def divide_bh_histograms(num_hist, denom_hist, binomial_error=False):
                     + (np.sqrt(denom_var) / denom_value)**2
                 )
             )
-            # div_var = num_var / denom_value
+        elif error_type == "pass_through"
+            div_var = num_var / denom_value
+        else:
+            raise RuntimeError(f"Error type not found: {error_type}")
         index_list = get_index(index, original_shape)
         div_hist[index_list] = [div_value, div_var]
     div_hist.view().reshape(original_shape)
