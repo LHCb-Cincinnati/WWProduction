@@ -75,7 +75,7 @@ num_ct18nlo_members = 59
 num_msht20nlo_members = 65
 
 # Binning Scheme
-bins_list = [0] + list(np.linspace(33, 100, 8)) + [200, 2000] 
+bins_list = [0] + list(np.linspace(33, 100, 8)) + [300, 2000] 
 
 # Define histograms
 dilepton_id_mass_rghbin_hist = bh.Histogram(bh.axis.Regular(26, 20, 306), storage=bh.storage.Weight())
@@ -288,7 +288,7 @@ mean_values = np.mean(values_stack, axis=0)
 nlo_mean_view.value = mean_values
 sq_diff = (values_stack - mean_values) ** 2
 rms_squared = np.mean(sq_diff, axis=0)
-nlo_mean_view.variance = rms_squared
+nlo_mean_view.variance = np.sqrt(rms_squared)
 weighthist_dict["nlo_mean__kfactor__bin"] = nlo_mean_hist
 # Create RMS NLO PDF histogram
 nlo_rmslow_hist = weighthist_dict["nlo_mean__kfactor__bin"].copy()
@@ -431,44 +431,25 @@ plt.close()
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine"] = weighthist_dict["nlo_mean__kfactor__bin"]
-    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
+    root_file["DileptonKFactorFine_Central"] = weighthist_dict["nlo_mean__kfactor__bin"]
+    root_file["DileptonKFactorFine_LowerRMS"] = nlo_rmslow_hist
+    root_file["DileptonKFactorFine_UpperRMS"] = nlo_rmshigh_hist
+    root_file["DileptonKFactorFine_NNPDF31NLO"] = nnpdf31nlo_hist_dict["PDFMember0Weight"]
+    root_file["DileptonKFactorFine_MSHT20NLO"] = msht20nlo_hist_dict["PDFMember0Weight"]
+    root_file["DileptonKFactorFine_CT18NLO"] = ct18nlo_hist_dict["PDFMember0Weight"]
 # Save histograms
 pickle_dict = {
     "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
     "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
-    "DileptonKFactorFine": [weighthist_dict["nlo_mean__kfactor__bin"]],
-    # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
+    "DileptonKFactorFine_Central": [weighthist_dict["nlo_mean__kfactor__bin"]],
+    "DileptonKFactorFine_LowerRMS": [nlo_rmslow_hist],
+    "DileptonKFactorFine_UpperRMS": [nlo_rmshigh_hist],
+    "DileptonKFactorFine_NNPDF31NLO": [nnpdf31nlo_hist_dict["PDFMember0Weight"]],
+    "DileptonKFactorFine_MSHT20NLO": [msht20nlo_hist_dict["PDFMember0Weight"]],
+    "DileptonKFactorFine_CT18NLO": [ct18nlo_hist_dict["PDFMember0Weight"]],
+    "DileptonKFactorProfile": [dilepton_id_mass_pdfreweight_profilehist],
 }
 with open(ofile_name + ".pkl", "wb") as f:
     pickle.dump(pickle_dict, f)
 
-# Lower RMS Envelope Files
-lower_rms_ofile_name = "DFDY_MG5_NLO_rwgt_mu10_LowerRMSMeanPDF_HighMass"
-with uproot.recreate(lower_rms_ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine"] = nlo_rmslow_hist
-    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
-# Save histograms
-pickle_dict = {
-    "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
-    "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
-    "DileptonKFactorFine": [nlo_rmslow_hist],
-    # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
-}
-with open(lower_rms_ofile_name + ".pkl", "wb") as f:
-    pickle.dump(pickle_dict, f)
 
-# Upper RMS Envelope Files
-upper_rms_ofile_name = "DFDY_MG5_NLO_rwgt_mu10_UpperRMSMeanPDF_HighMass"
-with uproot.recreate(upper_rms_ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine"] = nlo_rmshigh_hist
-    # root_file["DileptonKFactorFine"] = msht20nlo_hist_dict["PDFMember0Weight"]
-# Save histograms
-pickle_dict = {
-    "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
-    "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
-    "DileptonKFactorFine": [nlo_rmshigh_hist],
-    # "DileptonKFactorFine": [msht20nlo_hist_dict["PDFMember0Weight"]],
-}
-with open(upper_rms_ofile_name + ".pkl", "wb") as f:
-    pickle.dump(pickle_dict, f)
