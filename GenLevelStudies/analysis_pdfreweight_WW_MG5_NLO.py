@@ -207,6 +207,10 @@ for tree in tree_iterator:
     if args.debug:
         break
 
+# RMS calculation for individual pdf families
+nnpdf31nlo_hist_dict = at.calc_pdf_rms(nnpdf31nlo_hist_dict)
+msht20nlo_hist_dict = at.calc_pdf_rms(msht20nlo_hist_dict)
+ct18nlo_hist_dict = at.calc_pdf_rms(ct18nlo_hist_dict)
 # Create mean NLO PDF histogram from individual families
 nnpdf31nlo_view = weighthist_dict["nnpdf31nlo"].view()
 ct18nlo_view = weighthist_dict["ct18nlo"].view()
@@ -348,6 +352,189 @@ hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
 fig.savefig('DiLeptonMassPDFVariations.png')
+plt.close()
+# NNPDF31NLO RMS Plots
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    weighthist_dict["nlo_mean"].view().value, 
+    edges=weighthist_dict["nlo_mean"].axes[0].edges,
+    label="Mean Central Value",
+    color="black",
+    zorder=3
+)
+axs.bar(
+    x=weighthist_dict["nlo_mean"].axes[0].centers, 
+    height= 2*weighthist_dict["nlo_mean"].view().variance, 
+    bottom=weighthist_dict["nlo_mean"].view().value - weighthist_dict["nlo_mean"].view().variance, 
+    width=weighthist_dict["nlo_mean"].axes[0].widths, 
+    linewidth=0, 
+    color="black", 
+    alpha=0.25, 
+    label="Mean RMS Envelope",
+    zorder=2
+)
+axs.stairs(
+    nnpdf31nlo_hist_dict["PDFMember0Weight"].view().value, 
+    edges=nnpdf31nlo_hist_dict["PDFMember0Weight"].axes[0].edges,
+    label="NNPDF31NLO",
+    color="green"
+)
+axs.bar(
+    x=nnpdf31nlo_hist_dict["PDFMember0Weight"].axes[0].centers, 
+    height= 2*nnpdf31nlo_hist_dict["PDFMember0Weight"].view().variance, 
+    bottom=(
+        nnpdf31nlo_hist_dict["PDFMember0Weight"].view().value 
+        - nnpdf31nlo_hist_dict["PDFMember0Weight"].view().variance
+    ), 
+    width=nnpdf31nlo_hist_dict["PDFMember0Weight"].axes[0].widths, 
+    linewidth=0, 
+    color="green", 
+    alpha=0.25, 
+    label="NNPDF31NLO RMS Envelope"
+)
+axs.stairs(
+    weighthist_dict["msht20nlo"].view().value, 
+    edges=weighthist_dict["msht20nlo"].axes[0].edges,
+    label="MSHT20LO",
+    color="red"
+)
+axs.stairs(
+    weighthist_dict["ct18nlo"].view().value, 
+    edges=weighthist_dict["ct18nlo"].axes[0].edges,
+    label="CT18LO",
+    color="blue"
+)
+axs.set_xlim((0, 300))
+axs.set_title("PDF Variations")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Slightly fancy to remove whitespace
+fig.savefig('DiLeptonMassPDFVariations_NNPDF31NLO.png')
+plt.close()
+# CT18NLO RMS Plots
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    weighthist_dict["nlo_mean"].view().value, 
+    edges=weighthist_dict["nlo_mean"].axes[0].edges,
+    label="Mean Central Value",
+    color="black",
+    zorder=3
+)
+axs.bar(
+    x=weighthist_dict["nlo_mean"].axes[0].centers, 
+    height= 2*weighthist_dict["nlo_mean"].view().variance, 
+    bottom=weighthist_dict["nlo_mean"].view().value - weighthist_dict["nlo_mean"].view().variance, 
+    width=weighthist_dict["nlo_mean"].axes[0].widths, 
+    linewidth=0, 
+    color="black", 
+    alpha=0.25, 
+    label="Mean RMS Envelope",
+    zorder=2
+)
+axs.stairs(
+    nnpdf31nlo_hist_dict["PDFMember0Weight"].view().value, 
+    edges=nnpdf31nlo_hist_dict["PDFMember0Weight"].axes[0].edges,
+    label="NNPDF31NLO",
+    color="green"
+)
+axs.bar(
+    x=ct18nlo_hist_dict["PDFMember0Weight"].axes[0].centers, 
+    height= 2*ct18nlo_hist_dict["PDFMember0Weight"].view().variance, 
+    bottom=(
+        ct18nlo_hist_dict["PDFMember0Weight"].view().value 
+        - ct18nlo_hist_dict["PDFMember0Weight"].view().variance
+    ), 
+    width=ct18nlo_hist_dict["PDFMember0Weight"].axes[0].widths, 
+    linewidth=0, 
+    color="blue", 
+    alpha=0.25, 
+    label="CT18NLO RMS Envelope"
+)
+axs.stairs(
+    weighthist_dict["msht20nlo"].view().value, 
+    edges=weighthist_dict["msht20nlo"].axes[0].edges,
+    label="MSHT20LO",
+    color="red"
+)
+axs.stairs(
+    weighthist_dict["ct18nlo"].view().value, 
+    edges=weighthist_dict["ct18nlo"].axes[0].edges,
+    label="CT18LO",
+    color="blue"
+)
+axs.set_xlim((0, 300))
+axs.set_title("PDF Variations")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Slightly fancy to remove whitespace
+fig.savefig('DiLeptonMassPDFVariations_CT18NLO.png')
+plt.close()
+# MSHT20NLO RMS Plots
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    weighthist_dict["nlo_mean"].view().value, 
+    edges=weighthist_dict["nlo_mean"].axes[0].edges,
+    label="Mean Central Value",
+    color="black",
+    zorder=3
+)
+axs.bar(
+    x=weighthist_dict["nlo_mean"].axes[0].centers, 
+    height= 2*weighthist_dict["nlo_mean"].view().variance, 
+    bottom=weighthist_dict["nlo_mean"].view().value - weighthist_dict["nlo_mean"].view().variance, 
+    width=weighthist_dict["nlo_mean"].axes[0].widths, 
+    linewidth=0, 
+    color="black", 
+    alpha=0.25, 
+    label="Mean RMS Envelope",
+    zorder=2
+)
+axs.stairs(
+    msht20nlo_hist_dict["PDFMember0Weight"].view().value, 
+    edges=nnpdf31nlo_hist_dict["PDFMember0Weight"].axes[0].edges,
+    label="NNPDF31NLO",
+    color="green"
+)
+axs.bar(
+    x=msht20nlo_hist_dict["PDFMember0Weight"].axes[0].centers, 
+    height= 2*msht20nlo_hist_dict["PDFMember0Weight"].view().variance, 
+    bottom=(
+        msht20nlo_hist_dict["PDFMember0Weight"].view().value 
+        - msht20nlo_hist_dict["PDFMember0Weight"].view().variance
+    ), 
+    width=msht20nlo_hist_dict["PDFMember0Weight"].axes[0].widths, 
+    linewidth=0, 
+    color="red", 
+    alpha=0.25, 
+    label="MSHT20NLo RMS Envelope"
+)
+axs.stairs(
+    weighthist_dict["msht20nlo"].view().value, 
+    edges=weighthist_dict["msht20nlo"].axes[0].edges,
+    label="MSHT20LO",
+    color="red"
+)
+axs.stairs(
+    weighthist_dict["ct18nlo"].view().value, 
+    edges=weighthist_dict["ct18nlo"].axes[0].edges,
+    label="CT18LO",
+    color="blue"
+)
+axs.set_xlim((0, 300))
+axs.set_title("PDF Variations")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Slightly fancy to remove whitespace
+fig.savefig('DiLeptonMassPDFVariations_MSHT20NLO.png')
 plt.close()
 
 
