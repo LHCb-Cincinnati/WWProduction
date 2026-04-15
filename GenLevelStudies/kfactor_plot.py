@@ -34,73 +34,6 @@ from iminuit.cost import LeastSquares
 import AnalysisTools as at
 
 # Functions
-def hist_to_function(hist):
-    """
-    Convert a 1D boost_histogram.Histogram into a callable function
-    that returns the histogram value at a given x.
-    """
-    # Extract bin edges and histogram values
-    edges = hist.axes[0].edges
-    values = hist.view()
-
-    # Handle potential shape mismatches (e.g. flow bins)
-    if len(values) != len(edges) - 1:
-        # Attempt to trim or pad appropriately
-        values = values[:len(edges) - 1]
-
-    def hist_func(x):
-        """
-        Given an x-value (or array), return the corresponding histogram value.
-        Values outside the histogram range return 0.
-        """
-        x = np.atleast_1d(x)
-        # np.digitize returns the index of the bin (1-based)
-        idx = np.digitize(x, edges) - 1
-        # Clamp indices to valid bins
-        valid = (idx >= 0) & (idx < len(values))
-        result = np.zeros_like(x, dtype=float)
-        result[valid] = values[idx[valid]].value
-        # Return scalar if input was scalar
-        return result[0] if np.isscalar(x) else result
-
-    return hist_func
-def histogram_points(hist):
-    """
-    Given a 1D boost-histogram histogram, return two arrays:
-      x_vals: sorted array of bin edges and centers
-      y_vals: histogram values at those x positions
-
-    The bin value is duplicated at both edges and the center
-    of its bin to allow for plotting or interpolation.
-    """
-    edges = hist.axes[0].edges
-    centers = hist.axes[0].centers
-    values = hist.view()
-
-    # Build combined arrays for plotting or analysis
-    x_vals = []
-    y_vals = []
-
-    for i in range(len(values)):
-        # For each bin, record left edge, center, and right edge
-        center = centers[i]
-        right = edges[i + 1]
-        val = values[i].value
-        if i == 0:
-            left = edges[i]
-            x_vals.extend([left, center, right])
-            y_vals.extend([val, val, val])
-        else:
-            x_vals.extend([center, right])
-            y_vals.extend([val, val])
-
-    # Convert to numpy arrays and sort by x for convenience
-    x_vals = np.array(x_vals)
-    y_vals = np.array(y_vals)
-    order = np.argsort(x_vals)
-
-    return x_vals[order], y_vals[order]
-
 # Flat function
 def flat(x, a):
     return(0*x + a)
@@ -113,19 +46,6 @@ def linear(x, a, b):
 def exp_decay(x, a, b, c):
     return(a*np.exp(c*x) + b)
 
-# Start Logger
-logging.basicConfig(
-    filename='StackedHist.log',
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p'
-)
-plt.set_loglevel (level = 'warning')
-# get the the logger with the name 'PIL'
-pil_logger = logging.getLogger('PIL')  
-# override the logger logging level to INFO
-pil_logger.setLevel(logging.INFO)
-
 # Parse inputs
 parser = at.Parser(sys.argv[1:])
 args = parser.args
@@ -136,7 +56,6 @@ ofile_name = args.output
 logging.info(f"Arguments: {args}")
 
 # Define Variables
-data_list = [0] * len(file_list)
 
 # Retrieve Histos
 # Here data are the histograms and index is the index of the file in the
@@ -144,28 +63,27 @@ data_list = [0] * len(file_list)
 # data_list[1] = dictionary first file's histograms
 # The dictionary looks like
 # dict[Histogram Tag] = Histogram
-for index, file in enumerate(file_list):
-    with open(file, 'rb') as f:
-        data = pickle.load(f)
-        logging.debug(f"Keys taken from {index} file: {data.keys()}")
-        data_list[index] = data
+with open(file_list[0], 'rb') as f:
+    data = pickle.load(f)
 
 # Grab Histograms from File.
-kfactor_hist_list = [file["DiLeptonMass"][0] for file in data_list]
-profile_hist = data_list[1]["DiLeptonMassProfile"][0]
+central_hist = data["DileptonKFactorFine_mu10"][0]
+lower_hist = data["DileptonKFactorFine_lowerenv"][0]
+upper_hist = data["DileptonKFactorFine_upperenv"][0]
+profile_hist = data["DiLeptonMassProfile"][0]
 
 # Fit K-Factor
 fit_func = exp_decay
 # Central Value Fit
 least_squares = LeastSquares(
     profile_hist.view().value, 
-    kfactor_hist_list[1].view().value, 
-    np.sqrt(kfactor_hist_list[1].view().variance), 
+    central_hist.view().value, 
+    np.sqrt(central_hist.view().variance), 
     fit_func
 )
 # m = Minuit(least_squares, a = 1)  # Starting values for DFDY flat fit.
 m = Minuit(least_squares, a = 0.5, b = 0.88, c = -0.02)  # Starting values for ttbar exponential fit.
-m.limits = [(0, 20), (0.75, 1), (None, None)] # Bounds for ttbar exponential fit.
+m.limits = [(0, 20), (0.6, 0.9), (None, None)] # Bounds for ttbar exponential fit.
 m.migrad()  # finds minimum of least_squares function
 m.hesse()  # accurately computes uncertainties
 print("Central Value Fit Info:")
@@ -176,13 +94,15 @@ for p, v, e in zip(m.parameters, m.values, m.errors):
 # Lower Envelope Fit
 lowerenv_least_squares = LeastSquares(
     profile_hist.view().value, 
-    kfactor_hist_list[0].view().value, 
-    np.sqrt(kfactor_hist_list[0].view().variance), 
+    lower_hist.view().value, 
+    np.sqrt(lower_hist.view().variance), 
     fit_func
 )
 # lowerenv_m = Minuit(lowerenv_least_squares, a = 0.8)  # Starting values for DFDY flat fit.
 lowerenv_m = Minuit(lowerenv_least_squares, a = 0.5, b = 0.75, c = -0.1)  # Starting values for ttbar exponential fit.
-lowerenv_m.limits = [(0.1, 5), (0.6, 0.8), (-0.2, 0)] # Bounds for ttbar exponential fit.
+lowerenv_m.limits = [(0.1, 5), (0.5, 0.8), (-0.2, 0)] # Bounds for ttbar exponential fit.
+# lowerenv_m = Minuit(least_squares, a = 0.5, b = 0.88, c = -0.02)  # Starting values for ttbar exponential fit.
+# lowerenv_m.limits = [(0, 20), (0.6, 1), (None, None)] # Bounds for ttbar exponential fit.
 lowerenv_m.migrad()  # finds minimum of least_squares function
 lowerenv_m.hesse()  # accurately computes uncertainties
 print("Lower Envelope Fit Info:")
@@ -193,13 +113,15 @@ for p, v, e in zip(lowerenv_m.parameters, lowerenv_m.values, lowerenv_m.errors):
 # Upper Envelope Fit
 upperenv_least_squares = LeastSquares(
     profile_hist.view().value, 
-    kfactor_hist_list[2].view().value, 
-    np.sqrt(kfactor_hist_list[2].view().variance), 
+    upper_hist.view().value, 
+    np.sqrt(upper_hist.view().variance), 
     fit_func
 )
 # upperenv_m = Minuit(upperenv_least_squares, a = 1.5)  # Starting values for DFDY flat fit.
 upperenv_m = Minuit(upperenv_least_squares, a = 0.8, b = 1.0, c = -0.01)  # Starting values for ttbar exponential fit.
 upperenv_m.limits = [(0.6, 2), (0.9, 1.1), (None, None)] # Bounds for ttbar exponential fit.
+# upperenv_m = Minuit(least_squares, a = 0.5, b = 0.88, c = -0.02)  # Starting values for ttbar exponential fit.
+# upperenv_m.limits = [(0, 20), (0.8, 1), (None, None)] # Bounds for ttbar exponential fit.
 upperenv_m.migrad()  # finds minimum of least_squares function
 upperenv_m.hesse()  # accurately computes uncertainties
 print("Upper Envelope Fit Info:")
@@ -213,22 +135,17 @@ os.chdir(folder_path)
 # K-Factor with scale variations
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
-lower_func = hist_to_function(kfactor_hist_list[0])
-upper_func = hist_to_function(kfactor_hist_list[2])
-x_sparse = np.linspace(kfactor_hist_list[0].axes[0].edges[0], kfactor_hist_list[0].axes[0].edges[-1], 300)
-x_fine = np.linspace(kfactor_hist_list[0].axes[0].edges[0], kfactor_hist_list[0].axes[0].edges[-1], 200)
-lower_spl = make_interp_spline(x_sparse[:-1], lower_func(x_sparse)[:-1], k=3) 
-lower_env = lower_spl(x_fine)    
-upper_spl = make_interp_spline(x_sparse[:-1], upper_func(x_sparse)[:-1], k=3) 
-upper_env = upper_spl(x_fine)    
-axs.stairs(kfactor_hist_list[1].view().value, edges=kfactor_hist_list[1].axes[0].edges,
-            color="black")
+x_fine = np.linspace(central_hist.axes[0].edges[0], central_hist.axes[0].edges[-1], 300)
+axs.stairs(
+    central_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="black"
+)
 axs.errorbar(
-    profile_hist.view().value,
-    kfactor_hist_list[1].view().value,
+    profile_hist.view().value, central_hist.view().value,
     ecolor = "black",
     linestyle = "",
-    yerr = np.sqrt(kfactor_hist_list[1].view().variance),
+    yerr = np.sqrt(central_hist.view().variance),
     label="Statistical Error"
 )
 axs.plot(
@@ -244,22 +161,22 @@ axs.fill_between(
 )
 # axs.errorbar(
 #     profile_hist.view().value,
-#     kfactor_hist_list[0].view().value,
+#     lower_hist.view().value,
 #     ecolor = "blue",
 #     linestyle = "",
-#     yerr = np.sqrt(kfactor_hist_list[0].view().variance),
+#     yerr = np.sqrt(lower_hist.view().variance),
 #     label="Lower Envelope Statistical Error"
 # )
 # axs.errorbar(
 #     profile_hist.view().value,
-#     kfactor_hist_list[2].view().value,
+#     upper_hist.view().value,
 #     ecolor = "red",
 #     linestyle = "",
-#     yerr = np.sqrt(kfactor_hist_list[2].view().variance),
+#     yerr = np.sqrt(upper_hist.view().variance),
 #     label="Upper Envelope Statistical Error"
 # )
 # Setting axes and legend
-ymax = max([max(hist.view().value) for hist in kfactor_hist_list])
+ymax = max(upper_hist.view().value)
 axs.set_ylim((0, 1.15*ymax))
 axs.set_xlim((0, 300))
 axs.set_title("")
@@ -287,20 +204,20 @@ plt.close()
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
 axs.bar(
-    kfactor_hist_list[1].axes[0].centers,
-    kfactor_hist_list[1].view().value,
-    width = kfactor_hist_list[1].axes[0].widths,
+    central_hist.axes[0].centers,
+    central_hist.view().value,
+    width = central_hist.axes[0].widths,
     # yerr = np.sqrt(kfactor_hist_list[1].view().variance),
     fill = False,
     label = "Reweight Factor"
     )
 axs.errorbar(
     profile_hist.view().value,
-    kfactor_hist_list[1].view().value,
+    central_hist.view().value,
     ecolor = "black",
     linestyle = "",
     # width = kfactor_hist_list[1].axes[0].widths,
-    yerr = np.sqrt(kfactor_hist_list[1].view().variance),
+    yerr = np.sqrt(central_hist.view().variance),
     label="Statistical Error"
 )
 # axs.plot(
@@ -309,8 +226,8 @@ axs.errorbar(
 #     label = "Fit"
 # )
 ymax = np.max(
-    kfactor_hist_list[1].view().value 
-    + np.sqrt(kfactor_hist_list[1].view().variance)
+    central_hist.view().value 
+    + np.sqrt(central_hist.view().variance)
 )
 axs.set_ylim((0, 1.15*ymax))
 axs.set_xlim((0, 300))
@@ -331,16 +248,46 @@ with uproot.recreate(ofile_name + ".root") as root_file:
     param_bins = array.array(
         'd', [float(x) for x in np.arange(-0.5, n_params, 1)]
     )
-    param_hist = ROOT.TH2D(
-        "K-Factor Parameterization Hist",
-        "K-Factor Parameterization Hist",
+    # Central Parameter Hist
+    central_param_hist = ROOT.TH2D(
+        "Central K-Factor Parameterization Hist",
+        "Central K-Factor Parameterization Hist",
         1,
         array.array('d', [0,1]),
         n_params,
         param_bins
     )
     for index in range(n_params):
-        bin_index = param_hist.GetBin(1, index + 1)
-        param_hist.SetBinContent(bin_index, upperenv_m.values[index])
-        param_hist.SetBinError(bin_index, upperenv_m.errors[index])
-    root_file["rwgt_hist"] = param_hist
+        bin_index = central_param_hist.GetBin(1, index + 1)
+        central_param_hist.SetBinContent(bin_index, m.values[index])
+        central_param_hist.SetBinError(bin_index, m.errors[index])
+    root_file["central_rwgt_hist"] = central_param_hist
+    # Lower Parameter Hist
+    lower_param_hist = ROOT.TH2D(
+        "Lower K-Factor Parameterization Hist",
+        "Lower K-Factor Parameterization Hist",
+        1,
+        array.array('d', [0,1]),
+        n_params,
+        param_bins
+    )
+    for index in range(n_params):
+        bin_index = lower_param_hist.GetBin(1, index + 1)
+        lower_param_hist.SetBinContent(bin_index, lowerenv_m.values[index])
+        lower_param_hist.SetBinError(bin_index, lowerenv_m.errors[index])
+    root_file["lower_rwgt_hist"] = lower_param_hist
+    # Upper Parameter Hist
+    upper_param_hist = ROOT.TH2D(
+        "Upper K-Factor Parameterization Hist",
+        "Upper K-Factor Parameterization Hist",
+        1,
+        array.array('d', [0,1]),
+        n_params,
+        param_bins
+    )
+    for index in range(n_params):
+        bin_index = upper_param_hist.GetBin(1, index + 1)
+        upper_param_hist.SetBinContent(bin_index, upperenv_m.values[index])
+        upper_param_hist.SetBinError(bin_index, upperenv_m.errors[index])
+    root_file["upper_rwgt_hist"] = upper_param_hist
+

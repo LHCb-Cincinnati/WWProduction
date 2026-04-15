@@ -39,7 +39,7 @@ weights_bool = True
 unweighted_event_counter = 0
 
 # Binning Scheme
-bins_list = [0] + list(np.linspace(33, 100, 8)) + [200, 2000] 
+bins_list = [0] + list(np.linspace(33, 100, 8)) + [300, 2000] 
 
 # Define histograms
 dilepton_id_mass_rghbin_hist = bh.Histogram(bh.axis.Regular(26, 20, 306), storage=bh.storage.Weight())
@@ -390,67 +390,50 @@ plt.close()
 if weights_bool:
 # Mu=1.0 Histogram
     with uproot.recreate(ofile_name + ".root") as root_file:
-        root_file["DileptonKFactorFine"] = weighthist_pdf_dict["nlo_mean__kfactor__bin"]
-        # root_file["DileptonKFactorFine"] = upper_env_hist
+        root_file["DileptonKFactorFine_mu10"] = weighthist_pdf_dict["nlo_mean__kfactor__bin"]
+        root_file["DileptonKFactorFine_upperenv"] = upper_env_hist
+        root_file["DileptonKFactorFine_lowerenv"] = lower_env_hist
         root_file["EtaEtaYield"] = eta_hist
 
     os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
     pickle_dict = {
         "DiLeptonMassRough": [weighthist_pdf_dict["nlo_mean__rgh__bin"]],
         "DileptonMassFine": [weighthist_pdf_dict["nlo_mean__fine__bin"]],
-        "DileptonKFactorFine": [weighthist_pdf_dict["nlo_mean__kfactor__bin"]],
-        # "DileptonKFactorFine": [upper_env_hist],
+        "DileptonKFactorFine_mu10": [weighthist_pdf_dict["nlo_mean__kfactor__bin"]],
+        "DileptonKFactorFine_upperenv": [upper_env_hist],
+        "DileptonKFactorFine_lowerenv": [lower_env_hist],
         "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
         "EtaEtaYield": [eta_hist]
     }
     with open(ofile_name + ".pkl", "wb") as f:
         pickle.dump(pickle_dict, f)
-# Upper Envelope Histogram
-    upper_env_ofile_name = "DFDY_MG5_NLO_rwgt_upperenv_CentralMeanPDF_LowMass"
-    pickle_dict = {
-        "DiLeptonMassRough": [weighthist_pdf_dict["nlo_mean__rgh__bin"]],
-        "DileptonMassFine": [weighthist_pdf_dict["nlo_mean__fine__bin"]],
-        "DileptonKFactorFine": [upper_env_hist],
-        # "DileptonKFactorFine": [upper_env_hist],
-        "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
-        "EtaEtaYield": [eta_hist]
-    }
-    with open(upper_env_ofile_name + ".pkl", "wb") as f:
-        pickle.dump(pickle_dict, f)
-    with uproot.recreate(upper_env_ofile_name + ".root") as root_file:
-        root_file["DileptonKFactorFine"] = upper_env_hist
-        # root_file["DileptonKFactorFine"] = upper_env_hist
-        root_file["EtaEtaYield"] = eta_hist
 
-# Lower Envelope Histogram
-    lower_env_ofile_name = "DFDY_MG5_NLO_rwgt_lowerenv_CentralMeanPDF_LowMass"
-    pickle_dict = {
-        "DiLeptonMassRough": [weighthist_pdf_dict["nlo_mean__rgh__bin"]],
-        "DileptonMassFine": [weighthist_pdf_dict["nlo_mean__fine__bin"]],
-        "DileptonKFactorFine": [lower_env_hist],
-        # "DileptonKFactorFine": [upper_env_hist],
-        "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
-        "EtaEtaYield": [eta_hist]
-    }
-    with open(lower_env_ofile_name + ".pkl", "wb") as f:
-        pickle.dump(pickle_dict, f)
-    with uproot.recreate(lower_env_ofile_name + ".root") as root_file:
-        root_file["DileptonKFactorFine"] = lower_env_hist
-        # root_file["DileptonKFactorFine"] = upper_env_hist
-        root_file["EtaEtaYield"] = eta_hist
 # Mu=1.0 Histogram
 else:
     with uproot.recreate(ofile_name + ".root") as root_file:
-        root_file["DileptonKFactorFine"] = dilepton_id_mass_kfactorbin_hist
-        # root_file["DileptonKFactorFine"] = upper_env_hist
+        root_file["DileptonKFactorFine_mu10"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_upperenv"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_lowerenv"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_NNPDF31NLO"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MSHT20NLO"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_CT18NLO"] = dilepton_id_mass_kfactorbin_hist
         root_file["EtaEtaYield"] = eta_hist
-
     os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
     pickle_dict = {
-        "DiLeptonMassRough": [dilepton_id_mass_rghbin_hist],
-        "DileptonMassFine": [dilepton_id_mass_finebin_hist],
-        "DileptonKFactorFine": [dilepton_id_mass_kfactorbin_hist],
-        # "DileptonKFactorFine": [upper_env_hist],
+        "DiLeptonMassRough": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonMassFine": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_mu10": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_upperenv": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_lowerenv": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_NNPDF31NLO": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MSHT20NLO": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_CT18NLO": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
         "EtaEtaYield": [eta_hist]
     }
