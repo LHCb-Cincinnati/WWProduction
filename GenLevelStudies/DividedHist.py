@@ -83,7 +83,7 @@ for hist_tag in data_list[0].keys():
     if "Profile" in hist_tag:
         pickle_dict["DiLeptonMassProfile"] = [hist_draw_list[1]]
         continue
-    div_hist = at.divide_bh_histograms(hist_draw_list[0], hist_draw_list[1], binomial_error=False)        
+    div_hist = at.divide_bh_histograms(hist_draw_list[0], hist_draw_list[1])        
     # Draw the histogram.  Only the first histograms corresponding to the
     # number of labels given are drawn.
     if len(div_hist.axes) == 1:
@@ -98,8 +98,8 @@ for hist_tag in data_list[0].keys():
         )
         # Create ROOT hist
         root_hist = ROOT.TH1F(
-            "rwgt_hist",
-            "rwgt_hist",
+            hist_tag,
+            hist_tag,
             len(div_hist.axes[0].edges) - 1,
             div_hist.axes[0].edges
         )
@@ -108,7 +108,7 @@ for hist_tag in data_list[0].keys():
             root_hist.SetBinError(index + 1, np.sqrt(div_hist.view().variance[index]))
         logging.debug(f"Finished Drawing {hist_tag}")
         root_hist.Write()
-        pickle_dict["DiLeptonMass"] = [div_hist]
+        pickle_dict[hist_tag] = [div_hist]
         
     else:
         fig, axs = plt.subplots()
