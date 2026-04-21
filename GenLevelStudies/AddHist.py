@@ -79,7 +79,18 @@ for hist_tag in data_list[0].keys():
         # logging.debug(f"Added {file[hist_tag]} to hist_draw_list")
     add_hist = hist_draw_list[0]        
     for hist in hist_draw_list[1:]:
-        add_hist = add_hist + hist
+        if "profile" in hist_tag.lower():
+            add_hist = add_hist + hist
+        else:
+            # add_hist = add_hist + hist
+            add_hist.view().value = (
+                add_hist.view().value 
+                + hist.view().value
+            )
+            add_hist.view().variance = (
+                add_hist.view().variance 
+                + hist.view().variance
+            )
     # Draw the histogram.  Only the first histograms corresponding to the
     # number of labels given are drawn.
     if len(add_hist.axes) == 1:
