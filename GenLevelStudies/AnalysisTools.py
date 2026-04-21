@@ -410,7 +410,7 @@ def multiply_bh_histograms(num_hist, denom_hist, error_type="uncorrelated"):
                     + (np.sqrt(denom_var) / denom_value)**2
                 )
             )
-        elif error_type == "pass_through"
+        elif error_type == "pass_through":
             div_var = num_var / denom_value
         else:
             raise RuntimeError(f"Error type not found: {error_type}")
@@ -468,7 +468,7 @@ def divide_bh_histograms(num_hist, denom_hist, error_type="uncorrelated"):
                     + (np.sqrt(denom_var) / denom_value)**2
                 )
             )
-        elif error_type == "pass_through"
+        elif error_type == "pass_through":
             div_var = num_var / denom_value
         else:
             raise RuntimeError(f"Error type not found: {error_type}")
@@ -562,6 +562,32 @@ def calc_pdf_mean(hist_dict, suffix):
     ) / 9.0
     hist_dict["nlo_mean" + suffix] = nlo_mean_hist
     return(hist_dict)
+
+def calc_rms_ratio_hists(hist):
+    central_hist = divide_bh_histograms(
+        hist, hist, error_type="pass_through"
+    )
+    lowerRMS_hist = hist.copy()
+    lowerRMS_hist.view().value = np.maximum(
+        lowerRMS_hist.view().value
+        - lowerRMS_hist.view().variance
+    , 0)
+    lowerRMS_hist = divide_bh_histograms(
+        lowerRMS_hist, 
+        hist, 
+        error_type="pass_through"
+    )
+    upperRMS_hist = hist.copy()
+    upperRMS_hist.view().value = (
+        upperRMS_hist.view().value
+        + hist.view().variance
+    )
+    upperRMS_hist = divide_bh_histograms(
+        upperRMS_hist, 
+        hist, 
+        error_type="pass_through"
+    )
+    return(lowerRMS_hist, central_hist, upperRMS_hist)
 
 def fill_array(array, event, index):
     ''' Fills a numpy array with particle information from a pythia event.
