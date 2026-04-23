@@ -163,49 +163,21 @@ for tree in tree_iterator:
     trailing_lepton_vec = ak.where((lplus_vec.pt<lminus_vec.pt), lplus_vec, lminus_vec)
 
     # Masks
-    one_lepton_gauss_mask = ((lminus_vec.eta>1.596) & (lminus_vec.pt / GeV >15)
-                             | (lplus_vec.eta>1.596) & (lplus_vec.pt / GeV >15))
-    both_lepton_loose_acc_mask = ((lminus_vec.eta>2)
-                                    & (lminus_vec.eta<5)
-                                    & (lplus_vec.eta>2)
-                                    & (lplus_vec.eta<5)) 
     both_lepton_tight_acc_mask = (
         (lminus_vec.eta>2.2)
         & (lminus_vec.eta<4.4)
         & (lplus_vec.eta>2.2)
         & (lplus_vec.eta<4.4)
     ) 
-    gauss_both_lepton_tight_acc_mask = (
-        (lminus_vec[one_lepton_gauss_mask].eta>2.2)
-        & (lminus_vec[one_lepton_gauss_mask].eta<4.4)
-        & (lplus_vec[one_lepton_gauss_mask].eta>2.2)
-        & (lplus_vec[one_lepton_gauss_mask].eta<4.4)
-    ) 
     mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                         | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
-    gauss_mue_decay_mask = (((lminus_vec[one_lepton_gauss_mask].pid==13) & (lplus_vec[one_lepton_gauss_mask].pid==-11))
-                        | ((lminus_vec[one_lepton_gauss_mask].pid==11) & (lplus_vec[one_lepton_gauss_mask].pid==-13)))
-    one_lepton_loose_acc_mask = ((lminus_vec.eta>1.596) | (lplus_vec.eta>1.596))
-    one_lepton_tight_acc_mask = ((lminus_vec.eta>2) | (lplus_vec.eta>2))
-    invariant_mass_mask = (dilepton_vec.m / GeV >100)
     deltar_mask = (np.abs(lminus_vec.deltaR(lplus_vec)) > 0.1)
-    gauss_deltar_mask = (np.abs(lminus_vec[one_lepton_gauss_mask].deltaR(lplus_vec[one_lepton_gauss_mask])) > 0.1)
-    gauss_high_pT_lepton_mask = ((lminus_vec[one_lepton_gauss_mask].pt / GeV >20) & (lplus_vec[one_lepton_gauss_mask].pt / GeV >20))
-    gauss_total_cuts = (
-        # gauss_high_pT_lepton_mask
-        gauss_both_lepton_tight_acc_mask
-        & gauss_mue_decay_mask
-        & gauss_deltar_mask
-    )
-    high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
-    low_pT_lepton_mask = ((lminus_vec.pt / GeV >5) & (lplus_vec.pt / GeV >5))
-    tautau_invmass_cut = (ditau_vec.m  / GeV < 500)
+    high_pT_lepton_mask = ((electron_vec.pt / GeV > 30) & (muon_vec.pt / GeV > 25))
     lepton_mask = (
         both_lepton_tight_acc_mask
         & high_pT_lepton_mask
         & mue_decay_mask
         & deltar_mask
-        # & tautau_invmass_cut
     )
 
     # Apply Masks
@@ -296,11 +268,32 @@ sq_diff = (values_stack - mean_values) ** 2
 rms_squared = np.mean(sq_diff, axis=0)
 nlo_mean_view.variance = np.sqrt(rms_squared)
 weighthist_dict["nlo_mean__kfactor__bin"] = nlo_mean_hist
-# Create RMS NLO PDF histogram
+# Create Mean RMS NLO PDF histogram
 nlo_rmslow_hist = weighthist_dict["nlo_mean__kfactor__bin"].copy()
 nlo_rmslow_hist.view().value = nlo_rmslow_hist.view().value - nlo_rmslow_hist.view().variance
 nlo_rmshigh_hist = weighthist_dict["nlo_mean__kfactor__bin"].copy()
 nlo_rmshigh_hist.view().value = nlo_rmshigh_hist.view().value + nlo_rmshigh_hist.view().variance
+# Create NNPDF31NLO RMS NLO PDF histogram
+nnpdf31nlo_rmslow_hist = nnpdf31nlo_hist_dict["PDFMember0Weight"].copy()
+nnpdf31nlo_rmslow_hist.view().value = nnpdf31nlo_rmslow_hist.view().value - nnpdf31nlo_rmslow_hist.view().variance
+nnpdf31nlo_rmslow_hist.view().variance = weighthist_dict["nnpdf31nlo__kfactor__bin"].view().variance
+nnpdf31nlo_rmshigh_hist = nnpdf31nlo_hist_dict["PDFMember0Weight"].copy()
+nnpdf31nlo_rmshigh_hist.view().value = nnpdf31nlo_rmshigh_hist.view().value + nnpdf31nlo_rmshigh_hist.view().variance
+nnpdf31nlo_rmshigh_hist.view().variance = weighthist_dict["nnpdf31nlo__kfactor__bin"].view().variance
+# Create MSHT20NLO RMS NLO PDF histogram
+msht20nlo_rmslow_hist = msht20nlo_hist_dict["PDFMember0Weight"].copy()
+msht20nlo_rmslow_hist.view().value = msht20nlo_rmslow_hist.view().value - msht20nlo_rmslow_hist.view().variance
+msht20nlo_rmslow_hist.view().variance = weighthist_dict["msht20nlo__kfactor__bin"].view().variance
+msht20nlo_rmshigh_hist = msht20nlo_hist_dict["PDFMember0Weight"].copy()
+msht20nlo_rmshigh_hist.view().value = msht20nlo_rmshigh_hist.view().value + msht20nlo_rmshigh_hist.view().variance
+msht20nlo_rmshigh_hist.view().variance = weighthist_dict["msht20nlo__kfactor__bin"].view().variance
+# Create MSHT20NLO RMS NLO PDF histogram
+ct18nlo_rmslow_hist = ct18nlo_hist_dict["PDFMember0Weight"].copy()
+ct18nlo_rmslow_hist.view().value = ct18nlo_rmslow_hist.view().value - ct18nlo_rmslow_hist.view().variance
+ct18nlo_rmslow_hist.view().variance = weighthist_dict["ct18nlo__kfactor__bin"].view().variance
+ct18nlo_rmshigh_hist = ct18nlo_hist_dict["PDFMember0Weight"].copy()
+ct18nlo_rmshigh_hist.view().value = ct18nlo_rmshigh_hist.view().value + ct18nlo_rmshigh_hist.view().variance
+ct18nlo_rmshigh_hist.view().variance = weighthist_dict["ct18nlo__kfactor__bin"].view().variance
 
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
@@ -437,22 +430,34 @@ plt.close()
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine_Central"] = weighthist_dict["nlo_mean__kfactor__bin"]
-    root_file["DileptonKFactorFine_LowerRMS"] = nlo_rmslow_hist
-    root_file["DileptonKFactorFine_UpperRMS"] = nlo_rmshigh_hist
-    root_file["DileptonKFactorFine_NNPDF31NLO"] = nnpdf31nlo_hist_dict["PDFMember0Weight"]
-    root_file["DileptonKFactorFine_MSHT20NLO"] = msht20nlo_hist_dict["PDFMember0Weight"]
-    root_file["DileptonKFactorFine_CT18NLO"] = ct18nlo_hist_dict["PDFMember0Weight"]
+    root_file["DileptonKFactorFine_MeanPDF_Central"] = weighthist_dict["nlo_mean__kfactor__bin"]
+    root_file["DileptonKFactorFine_MeanPDF_LowerRMS"] = nlo_rmslow_hist
+    root_file["DileptonKFactorFine_MeanPDF_UpperRMS"] = nlo_rmshigh_hist
+    root_file["DileptonKFactorFine_NNPDF31NLO_Central"] = weighthist_dict["nnpdf31nlo__kfactor__bin"]
+    root_file["DileptonKFactorFine_NNPDF31NLO_LowerRMS"] = nnpdf31nlo_rmslow_hist
+    root_file["DileptonKFactorFine_NNPDF31NLO_UpperRMS"] = nnpdf31nlo_rmshigh_hist
+    root_file["DileptonKFactorFine_MSHT20NLO_Central"] = weighthist_dict["msht20nlo__kfactor__bin"]
+    root_file["DileptonKFactorFine_MSHT20NLO_LowerRMS"] = msht20nlo_rmslow_hist
+    root_file["DileptonKFactorFine_MSHT20NLO_UpperRMS"] = msht20nlo_rmshigh_hist
+    root_file["DileptonKFactorFine_CT18NLO_Central"] = weighthist_dict["ct18nlo__kfactor__bin"]
+    root_file["DileptonKFactorFine_CT18NLO_LowerRMS"] = ct18nlo_rmslow_hist
+    root_file["DileptonKFactorFine_CT18NLO_UpperRMS"] = ct18nlo_rmshigh_hist
 # Save histograms
 pickle_dict = {
     "DiLeptonMassRough": [weighthist_dict["nlo_mean__rgh__bin"]],
     "DileptonMassFine": [weighthist_dict["nlo_mean__fine__bin"]],
-    "DileptonKFactorFine_Central": [weighthist_dict["nlo_mean__kfactor__bin"]],
-    "DileptonKFactorFine_LowerRMS": [nlo_rmslow_hist],
-    "DileptonKFactorFine_UpperRMS": [nlo_rmshigh_hist],
-    "DileptonKFactorFine_NNPDF31NLO": [nnpdf31nlo_hist_dict["PDFMember0Weight"]],
-    "DileptonKFactorFine_MSHT20NLO": [msht20nlo_hist_dict["PDFMember0Weight"]],
-    "DileptonKFactorFine_CT18NLO": [ct18nlo_hist_dict["PDFMember0Weight"]],
+    "DileptonKFactorFine_MeanPDF_Central": [weighthist_dict["nlo_mean__kfactor__bin"]],
+    "DileptonKFactorFine_MeanPDF_LowerRMS": [nlo_rmslow_hist],
+    "DileptonKFactorFine_MeanPDF_UpperRMS": [nlo_rmshigh_hist],
+    "DileptonKFactorFine_NNPDF31NLO_Central": [weighthist_dict["nnpdf31nlo__kfactor__bin"]],
+    "DileptonKFactorFine_NNPDF31NLO_LowerRMS": [nnpdf31nlo_rmslow_hist],
+    "DileptonKFactorFine_NNPDF31NLO_UpperRMS": [nnpdf31nlo_rmshigh_hist],
+    "DileptonKFactorFine_MSHT20NLO_Central": [weighthist_dict["msht20nlo__kfactor__bin"]],
+    "DileptonKFactorFine_MSHT20NLO_LowerRMS": [msht20nlo_rmslow_hist],
+    "DileptonKFactorFine_MSHT20NLO_UpperRMS": [msht20nlo_rmshigh_hist],
+    "DileptonKFactorFine_CT18NLO_Central": [weighthist_dict["ct18nlo__kfactor__bin"]],
+    "DileptonKFactorFine_CT18NLO_LowerRMS": [ct18nlo_rmslow_hist],
+    "DileptonKFactorFine_CT18NLO_UpperRMS": [ct18nlo_rmshigh_hist],
     "DileptonKFactorProfile": [dilepton_id_mass_pdfreweight_profilehist],
 }
 with open(ofile_name + ".pkl", "wb") as f:

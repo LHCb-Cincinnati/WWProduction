@@ -66,7 +66,7 @@ else:
 # Variables
 invmass_cut = 0
 unweighted_event_counter = 0
-weights_bool = False
+weights_bool = True
 
 # Binning Scheme
 bins_list = list(np.linspace(0, 100, 4)) + [150, 200, 2000]
@@ -155,11 +155,12 @@ for tree in tree_iterator:
     mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                         | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
     deltar_mask = (np.abs(lminus_vec.deltaR(lplus_vec)) > 0.1)
-    high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
+    high_pT_lepton_mask = ((electron_vec.pt / GeV > 30) & (muon_vec.pt / GeV > 25))
+    # high_pT_lepton_mask = ((lminus_vec.pt / GeV > 20) & (lplus_vec.pt / GeV > 20))
     lepton_mask = (
         both_lepton_tight_acc_mask
-        & high_pT_lepton_mask
         & mue_decay_mask
+        & high_pT_lepton_mask
         & deltar_mask
     )
 
@@ -423,12 +424,18 @@ else:
         root_file["DileptonKFactorFine_mu10"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_upperenv"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_lowerenv"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_Central"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_NNPDF31NLO"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_MSHT20NLO"] = dilepton_id_mass_kfactorbin_hist
-        root_file["DileptonKFactorFine_CT18NLO"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MeanPDF_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MeanPDF_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MeanPDF_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_NNPDF31NLO_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_NNPDF31NLO_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_NNPDF31NLO_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MSHT20NLO_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MSHT20NLO_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_MSHT20NLO_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_CT18NLO_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_CT18NLO_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_CT18NLO_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
         root_file["EtaEtaYield"] = eta_hist
 
 # Save histograms
@@ -438,12 +445,18 @@ else:
         "DileptonKFactorFine_mu10": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_upperenv": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_lowerenv": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_Central": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_NNPDF31NLO": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_MSHT20NLO": [dilepton_id_mass_kfactorbin_hist],
-        "DileptonKFactorFine_CT18NLO": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MeanPDF_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MeanPDF_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MeanPDF_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_NNPDF31NLO_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_NNPDF31NLO_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_NNPDF31NLO_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MSHT20NLO_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MSHT20NLO_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_MSHT20NLO_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_CT18NLO_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_CT18NLO_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_CT18NLO_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
         "EtaEtaYield": [eta_hist]
     }
