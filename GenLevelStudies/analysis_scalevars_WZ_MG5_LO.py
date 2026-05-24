@@ -12,6 +12,10 @@ import awkward as ak
 import uproot
 import vector
 from hepunits.units import MeV, GeV
+import iminuit
+from iminuit import minimize  # has same interface as scipy.optimize.minimize
+from iminuit import Minuit, describe
+from iminuit.cost import LeastSquares
 # Personal Packages 
 import AnalysisTools as at
 
@@ -23,6 +27,10 @@ file_name_list =  [file.name for file in args.input_files]
 cross_section = args.cross_section
 ofile_name = args.output
 luminosity = args.luminosity # Luminosity in fb^-1
+
+# Flat function
+def flat(x, a):
+    return(0*x + a)
 
 # Get Tree
 with uproot.open(file_name_list[0]) as f:
@@ -100,6 +108,8 @@ lmwl_mue_decay_mask = (
     (abs(lminus_vec.pid)!=abs(thirdl_vec.pid))
     & (lminus_vec.pid*thirdl_vec.pid < 0)
 )
+lmwl_electron_vec = ak.where((abs(lminus_vec.pid)==11), lminus_vec, thirdl_vec)
+lmwl_muon_vec = ak.where((abs(lminus_vec.pid)==13), lminus_vec, thirdl_vec)
 lmwl_tight_acc_mask = (
     (lminus_vec.eta>2.2)
     & (lminus_vec.eta<4.4)
@@ -107,8 +117,8 @@ lmwl_tight_acc_mask = (
     & (thirdl_vec.eta<4.4)
 )
 lmwl_high_pT_mask = (
-    (lminus_vec.pt>20)
-    & (thirdl_vec.pt>20)
+    (lmwl_electron_vec.pt>30)
+    & (lmwl_muon_vec.pt>25)
 )
 lmwl_masks = (
     lmwl_mue_decay_mask
@@ -120,6 +130,8 @@ lpwl_mue_decay_mask = (
     (abs(lplus_vec.pid)!=abs(thirdl_vec.pid))
     & (lplus_vec.pid*thirdl_vec.pid < 0)
 )
+lpwl_electron_vec = ak.where((abs(lplus_vec.pid)==11), lplus_vec, thirdl_vec)
+lpwl_muon_vec = ak.where((abs(lplus_vec.pid)==13), lplus_vec, thirdl_vec)
 lpwl_tight_acc_mask = (
     (lplus_vec.eta>2.2)
     & (lplus_vec.eta<4.4)
@@ -127,8 +139,8 @@ lpwl_tight_acc_mask = (
     & (thirdl_vec.eta<4.4)
 )
 lpwl_high_pT_mask = (
-    (lplus_vec.pt>20)
-    & (thirdl_vec.pt>20)
+    (lpwl_electron_vec.pt>30)
+    & (lpwl_muon_vec.pt>25)
 )
 lpwl_masks = (
     lpwl_mue_decay_mask
@@ -198,6 +210,37 @@ if weights_bool:
 #     lower_env_hist = at.multiply_bh_histograms(lower_env_hist, dilepton_id_mass_kfactorbin_hist)
 #     upper_env_hist = at.multiply_bh_histograms(upper_env_hist, dilepton_id_mass_kfactorbin_hist)
 
+# Fit Scale Variations
+fit_func = flat
+# Lower Envelope Fit
+lowerenv_least_squares = LeastSquares(
+    dilepton_id_mass_kfactorbin_profilehist.view().value, 
+    lower_env_hist.view().value, 
+    np.sqrt(lower_env_hist.view().variance), 
+    fit_func
+)
+lowerenv_m = Minuit(lowerenv_least_squares, a=0.85)  
+lowerenv_m.migrad()  # finds minimum of least_squares function
+lowerenv_m.hesse()  # accurately computes uncertainties
+print("Lower Envelope Fit Info:")
+print(f"chi^2/n_dof = {lowerenv_m.fval:.1f} / {lowerenv_m.ndof:.0f} = {lowerenv_m.fmin.reduced_chi2:.1f}")
+for p, v, e in zip(lowerenv_m.parameters, lowerenv_m.values, lowerenv_m.errors):
+    print(f"{p} = {v:.3f} +- {e:.3f}")
+# Upper Envelope Fit
+upperenv_least_squares = LeastSquares(
+    dilepton_id_mass_kfactorbin_profilehist.view().value, 
+    upper_env_hist.view().value, 
+    np.sqrt(upper_env_hist.view().variance), 
+    fit_func
+)
+upperenv_m = Minuit(upperenv_least_squares, a=1.15)  
+upperenv_m.migrad()  # finds minimum of least_squares function
+upperenv_m.hesse()  # accurately computes uncertainties
+print("upper Envelope Fit Info:")
+print(f"chi^2/n_dof = {upperenv_m.fval:.1f} / {upperenv_m.ndof:.0f} = {upperenv_m.fmin.reduced_chi2:.1f}")
+for p, v, e in zip(upperenv_m.parameters, upperenv_m.values, upperenv_m.errors):
+    print(f"{p} = {v:.3f} +- {e:.3f}")
+
 if args.debug:
     pdb.set_trace()
     exit()
@@ -224,48 +267,61 @@ at.create_stair(dilepton_id_mass_kfactorbin_profilehist, "DiLepton Mass Linear K
 # Envelope Calculation
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
-axs.bar(
-    central_hist.axes[0].centers,
-    central_hist.view().value,
-    width = central_hist.axes[0].widths,
-    fill = False,
-    label = "Central Value"
-)
-axs.bar(
-    lower_env_hist.axes[0].centers,
-    lower_env_hist.view().value,
-    width = lower_env_hist.axes[0].widths,
-    fill = False,
-)
-axs.errorbar(
-    lower_env_hist.axes[0].centers,
-    lower_env_hist.view().value,
-    ecolor = "black",
-    linestyle = "",
-    yerr = np.sqrt(lower_env_hist.view().variance),
-    label="Lower Envelope"
-)
+plt.axhline(y=1, color='black', linestyle='-', label="Central Value")
 axs.bar(
     upper_env_hist.axes[0].centers,
-    upper_env_hist.view().value,
+    height=(upper_env_hist.view().value - lower_env_hist.view().value), 
+    bottom=lower_env_hist.view().value, 
     width = upper_env_hist.axes[0].widths,
-    fill = False,
-    label = "Upper Env"
+    linewidth=0, 
+    color="grey", 
+    alpha=0.25, 
+    # zorder=-1, 
+    label="Scale Variation Envelope"
 )
-axs.errorbar(
-    upper_env_hist.axes[0].centers,
-    upper_env_hist.view().value,
-    ecolor = "black",
-    linestyle = "",
-    yerr = np.sqrt(upper_env_hist.view().variance),
-    label="Upper Envelope"
-)
-axs.set_xlim((0, 200))
+# axs.bar(
+#     central_hist.axes[0].centers,
+#     central_hist.view().value,
+#     width = central_hist.axes[0].widths,
+#     fill = False,
+#     label = "Central Value"
+# )
+# axs.bar(
+#     lower_env_hist.axes[0].centers,
+#     lower_env_hist.view().value,
+#     width = lower_env_hist.axes[0].widths,
+#     fill = False,
+# )
+# axs.errorbar(
+#     lower_env_hist.axes[0].centers,
+#     lower_env_hist.view().value,
+#     ecolor = "black",
+#     linestyle = "",
+#     yerr = np.sqrt(lower_env_hist.view().variance),
+#     label="Lower Envelope"
+# )
+# axs.bar(
+#     upper_env_hist.axes[0].centers,
+#     upper_env_hist.view().value,
+#     width = upper_env_hist.axes[0].widths,
+#     fill = False,
+#     label = "Upper Env"
+# )
+# axs.errorbar(
+#     upper_env_hist.axes[0].centers,
+#     upper_env_hist.view().value,
+#     ecolor = "black",
+#     linestyle = "",
+#     yerr = np.sqrt(upper_env_hist.view().variance),
+#     label="Upper Envelope"
+# )
+axs.set_xlim((0, 300))
+axs.set_ylim((0.8, 1.2))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("Scale Variation Ratio Compared to Nominal")
-# hist_handles, hist_labels = axs.get_legend_handles_labels()
-# axs.legend(hist_handles, hist_labels)
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
 fig.savefig('DiLeptonMassScaleVariations.png')
 plt.close()

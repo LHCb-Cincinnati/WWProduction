@@ -144,10 +144,18 @@ os.chdir(folder_path)
 # K-Factor with scale variations
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)
+central_heavyside_hist
+axs.step(
+    central_heavyside_hist.axes[0].edges,
+    np.append(central_heavyside_hist.view().value, central_heavyside_hist.view().value[-1]),
+    where="post",
+    label="Central Value Fit",
+    color="black"
+)
 axs.stairs(
     central_hist.view().value, 
     edges=central_hist.axes[0].edges,
-    label="Central Value",
+#     label="Central Value",
     color="black"
 )
 axs.errorbar(
@@ -188,7 +196,7 @@ axs.set_ylim((0, 1.15*ymax))
 axs.set_xlim((0, 400))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
-axs.set_ylabel("Reweight Factor (NLO/LO)")
+axs.set_ylabel("K-Factor")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace

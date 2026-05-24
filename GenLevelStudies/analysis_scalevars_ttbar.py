@@ -66,7 +66,7 @@ else:
 # Variables
 invmass_cut = 0
 unweighted_event_counter = 0
-weights_bool = True
+weights_bool = False
 
 # Binning Scheme
 bins_list = list(np.linspace(0, 100, 4)) + [150, 200, 2000]
