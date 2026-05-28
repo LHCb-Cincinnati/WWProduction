@@ -203,6 +203,82 @@ axs.legend(hist_handles, hist_labels)
 fig.savefig('KFactorwScaleVariations.png')
 plt.close()
 
+# K-Factor with scale variations and scale histograms
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+central_heavyside_hist
+axs.step(
+    central_heavyside_hist.axes[0].edges,
+    np.append(central_heavyside_hist.view().value, central_heavyside_hist.view().value[-1]),
+    where="post",
+    label="Central Value Fit",
+    color="black"
+)
+axs.stairs(
+    central_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+#     label="Central Value",
+    color="black"
+)
+axs.errorbar(
+   profile_hist.view().value,
+   central_hist.view().value,
+   ecolor = "black",
+   linestyle = "",
+   yerr = np.sqrt(central_hist.view().variance),
+   label="Statistical Error"
+)
+axs.bar(
+    x=central_hist.axes[0].centers, 
+    height=2*(upper_heavyside_hist.view().value - lower_heavyside_hist.view().value), 
+    bottom=lower_heavyside_hist.view().value, 
+    width=central_hist.axes[0].widths, 
+    # align='edge', 
+    linewidth=0, 
+    color="blue", 
+    alpha=0.25, 
+    # zorder=-1, 
+    label="Scale Envelope"
+)
+axs.stairs(
+    lowerenv_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+    label="Scale Histogram",
+)
+axs.stairs(
+    upperenv_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+    label="Scale Histogram",
+)
+# axs.stairs(
+#     lowerenv_hist.view().value, 
+#     edges=lowerenv_hist.axes[0].edges,
+#     color="blue",
+#     label="Lower Envelope"
+# )
+# axs.stairs(
+#     upperenv_hist.view().value, 
+#     edges=upperenv_hist.axes[0].edges,
+#     color="red",
+#     label="Upper Envelope"
+# )
+# # Setting axes and legend
+ymax = max(upperenv_hist.view().value)
+axs.set_ylim((0, 1.15*ymax))
+axs.set_xlim((0, 400))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("K-Factor")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Slightly fancy to remove whitespace
+fig.savefig('KFactorwScaleVariationswHistograms.png')
+plt.close()
+
 # Plot reweight histogram with errors
 fig, axs = plt.subplots()
 plt.subplots_adjust(top=0.85)

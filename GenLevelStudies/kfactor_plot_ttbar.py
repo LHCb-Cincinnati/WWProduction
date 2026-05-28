@@ -168,6 +168,19 @@ axs[0][0].fill_between(
     fit_func(x_fine, *upperenv_m.values), 
     color='blue', alpha=0.3, label='Scale Envelope'
 )
+axs[0][0].stairs(
+    upper_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+    label="Scale Histogram"
+)
+axs[0][0].stairs(
+    lower_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+)
 # axs[0][0].errorbar(
 #     profile_hist.view().value,
 #     lower_hist.view().value,
@@ -227,6 +240,111 @@ axs[0][0].legend(hist_handles, hist_labels)
 # )
 # Slightly fancy to remove whitespace
 fig.savefig('KFactorwScaleVariations.png')
+plt.close()
+
+# K-Factor with scale variations and scale histograms
+fig, axs = plt.subplots(
+    2, 1, sharex=True,
+    height_ratios=[4, 1],
+    squeeze=False
+)
+plt.subplots_adjust(top=0.85)
+x_fine = np.linspace(central_hist.axes[0].edges[0], central_hist.axes[0].edges[-1], 300)
+axs[0][0].stairs(
+    central_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="black"
+)
+axs[0][0].errorbar(
+    profile_hist.view().value, central_hist.view().value,
+    ecolor = "black",
+    linestyle = "",
+    yerr = np.sqrt(central_hist.view().variance),
+    label="Statistical Error"
+)
+axs[0][0].plot(
+    x_fine, 
+    fit_func(x_fine, *m.values),
+    color="black", label="Central Value Fit"
+)
+axs[0][0].fill_between(
+    x_fine, 
+    fit_func(x_fine, *lowerenv_m.values), 
+    fit_func(x_fine, *upperenv_m.values), 
+    color='blue', alpha=0.3, label='Scale Envelope'
+)
+axs[0][0].stairs(
+    upper_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+    label="Scale Histogram"
+)
+axs[0][0].stairs(
+    lower_hist.view().value, 
+    edges=central_hist.axes[0].edges,
+    color="blue",
+    linestyle=':',
+)
+# axs[0][0].errorbar(
+#     profile_hist.view().value,
+#     lower_hist.view().value,
+#     ecolor = "blue",
+#     linestyle = "",
+#     yerr = np.sqrt(lower_hist.view().variance),
+#     label="Lower Envelope Statistical Error"
+# )
+# axs[0][0].errorbar(
+#     profile_hist.view().value,
+#     upper_hist.view().value,
+#     ecolor = "red",
+#     linestyle = "",
+#     yerr = np.sqrt(upper_hist.view().variance),
+#     label="Upper Envelope Statistical Error"
+# )
+# Ratio Plot
+axs[1][0].stairs(
+    central_ratio_hist.view().value, 
+    edges=central_ratio_hist.axes[0].edges,
+    color="black",
+    zorder=3
+)
+axs[1][0].bar(
+    x=central_ratio_hist.axes[0].centers, 
+    height=(upperenv_ratio_hist.view().value - lowerenv_ratio_hist.view().value), 
+    bottom=lowerenv_ratio_hist.view().value, 
+    width=central_ratio_hist.axes[0].widths, 
+    linewidth=0, 
+    color="blue", 
+    alpha=0.25, 
+#     label="CT18NLO Envelope"
+)
+
+# Setting axes and legend
+ymax = max(upper_hist.view().value)
+axs[0][0].set_ylim((0, 1.15*ymax))
+axs[0][0].set_xlim((0, 300))
+axs[1][0].set_ylim((0.8, 1.2))
+axs[0][0].set_title("")
+axs[1][0].set_xlabel("$M_{e \\mu} (GeV)$")
+axs[0][0].set_ylabel("K-Factor")
+axs[1][0].set_ylabel("$\\frac{\\sigma (K)}{(K)}$")
+hist_handles, hist_labels = axs[0][0].get_legend_handles_labels()
+axs[0][0].legend(hist_handles, hist_labels)
+# Setting fit box above legend
+# bbox = axs.legend().get_window_extent().transformed(axs.transAxes.inverted())
+# text_x = bbox.x0 + 0.1
+# text_y = bbox.y1 + 0.05  # small offset below the legend
+# axs.text(
+#     text_x, text_y,
+#     f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {m.fval:.1f} / {m.ndof:.0f} = {m.fmin.reduced_chi2:.1f}",
+#     transform=axs.transAxes,
+#     fontsize=axs.legend().get_texts()[0].get_fontsize(),
+#     verticalalignment='top',
+#     # bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='black')
+# )
+# Slightly fancy to remove whitespace
+fig.savefig('KFactorwScaleVariationsAndHistograms.png')
 plt.close()
 
 # Plot reweight histogram with errors
