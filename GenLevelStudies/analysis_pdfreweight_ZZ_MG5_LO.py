@@ -192,6 +192,15 @@ for member_name in tree["MSHT20LO_Members"].fields:
         weight=tree["MSHT20LO_Members"][member_name][Z1lmZ2lp_masks]*scale_factor
     )
 
+# Store statistical variances before rewriting
+variance_stack = np.stack(
+    [
+        weighthist_dict["nnpdf31lo"].view().variance,
+        weighthist_dict["ct18lo"].view().variance,
+        weighthist_dict["msht20lo"].view().variance,
+    ],
+    axis=0,
+)
 # RMS calculation for individual pdf families
 nnpdf31lo_hist_dict = at.calc_pdf_rms(nnpdf31lo_hist_dict)
 msht20lo_hist_dict = at.calc_pdf_rms(msht20lo_hist_dict)
@@ -246,10 +255,12 @@ msht20lo_rmslow_hist.view().value[-2] = 0.0
 msht20lo_rmslow_hist.view().value[-1] = 0.0
 
 # Reweight Histograms
+# Reweight Histograms
+lo_mean_hist_wstaterrs = weighthist_dict["lo_mean"].copy()
+lo_mean_hist_wstaterrs.view().variance = np.sum(variance_stack) / 9
 pdf_rwgt_hist_central = at.divide_bh_histograms(
-    weighthist_dict["lo_mean"], 
-    dilepton_id_mass_pdfreweight_hist, 
-    error_type="pass_through"
+    lo_mean_hist_wstaterrs, 
+    dilepton_id_mass_pdfreweight_hist
 )
 pdf_rwgt_hist_lowerRMS = weighthist_dict["lo_mean"].copy()
 pdf_rwgt_hist_lowerRMS.view().value = (
