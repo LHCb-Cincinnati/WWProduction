@@ -524,6 +524,53 @@ def divide_bh_histograms(num_hist, denom_hist, error_type="uncorrelated"):
     #     div_hist[ihist_bin] = [bin_value, bin_error]
     return(div_hist)
 
+def calc_pdf_mc_envelope(
+    hist_dict,
+    central_key="PDFMember0Weight",
+    lower_replica=16,
+    upper_replica=84,
+):
+    """Build a PDF Monte Carlo replica envelope in each histogram bin.
+
+    Replicas are sorted from lowest to highest in each bin.  The lower and
+    upper histograms use the one-indexed replica ranks requested by the
+    PDF4LHC prescription, so lower_replica=16 and upper_replica=84 correspond
+    to the 16th and 84th ordered replicas.
+    """
+
+    if central_key in hist_dict and len(hist_dict) - 1 >= upper_replica:
+        central_hist = hist_dict[central_key].copy()
+        replica_keys = [key for key in hist_dict if key != central_key]
+    else:
+        first_key = next(iter(hist_dict))
+        central_hist = hist_dict[first_key].copy()
+        replica_keys = list(hist_dict.keys())
+
+    if len(replica_keys) < upper_replica:
+        raise RuntimeError(
+            f"Need at least {upper_replica} PDF replicas, found "
+            f"{len(replica_keys)}."
+        )
+
+    replica_values = np.stack(
+        [hist_dict[key].view().value for key in replica_keys],
+        axis=0,
+    )
+
+    lower_hist = central_hist.copy()
+    upper_hist = central_hist.copy()
+    lower_values = lower_hist.view().value
+    upper_values = upper_hist.view().value
+
+    for bin_index in np.ndindex(replica_values.shape[1:]):
+        ordered_bin_values = np.sort(replica_values[(slice(None),) + bin_index])
+        lower_values[bin_index] = ordered_bin_values[lower_replica - 1]
+        upper_values[bin_index] = ordered_bin_values[upper_replica - 1]
+
+    lower_hist.view().variance = central_hist.view().variance
+    upper_hist.view().variance = central_hist.view().variance
+    return(central_hist, lower_hist, upper_hist)
+
 def calc_pdf_rms(hist_dict):
     rms_arr = np.shape(
         hist_dict["PDFMember0Weight"].view().variance
