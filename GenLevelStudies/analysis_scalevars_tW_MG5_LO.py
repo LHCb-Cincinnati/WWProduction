@@ -264,10 +264,10 @@ axs.bar(
     label="Scale Variation Envelope"
 )
 axs.set_xlim((0, 300))
-axs.set_ylim((0, 1.5))
+axs.set_ylim((0.6, 1.4))
 axs.set_title("")
-axs.set_xlabel("$M_{e \\mu} (GeV)$")
-axs.set_ylabel("Scale Variation Ratio Compared to Nominal")
+axs.set_xlabel("$M_{e \\mu} (GeV)$", fontsize=30)
+axs.set_ylabel("Scale Variation Ratio Compared to Nominal", fontsize=30)
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
