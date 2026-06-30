@@ -207,16 +207,25 @@ for tree in tree_iterator:
     if args.debug:
         break
 
+# Store statistical variances before rewriting
+variance_stack = np.stack(
+    [
+        weighthist_dict["nnpdf31lo"].view(flow=True).variance,
+        weighthist_dict["ct18lo"].view(flow=True).variance,
+        weighthist_dict["msht20lo"].view(flow=True).variance,
+    ],
+    axis=0,
+)
 # RMS calculation for individual pdf families
 nnpdf31nlo_hist_dict = at.calc_pdf_rms(nnpdf31nlo_hist_dict)
 msht20nlo_hist_dict = at.calc_pdf_rms(msht20nlo_hist_dict)
 ct18nlo_hist_dict = at.calc_pdf_rms(ct18nlo_hist_dict)
 # Create mean NLO PDF histogram from individual families
-nnpdf31nlo_view = weighthist_dict["nnpdf31nlo"].view()
-ct18nlo_view = weighthist_dict["ct18nlo"].view()
-msht20nlo_view = weighthist_dict["msht20nlo"].view()
+nnpdf31nlo_view = weighthist_dict["nnpdf31nlo"].view(flow=True)
+ct18nlo_view = weighthist_dict["ct18nlo"].view(flow=True)
+msht20nlo_view = weighthist_dict["msht20nlo"].view(flow=True)
 nlo_mean_hist = weighthist_dict["nnpdf31nlo"].copy()
-nlo_mean_view = nlo_mean_hist.view()
+nlo_mean_view = nlo_mean_hist.view(flow=True)
 
 # Per-bin mean of the three NLO histograms
 values_stack = np.stack(
@@ -233,44 +242,45 @@ nlo_mean_view.variance = np.sqrt(np.mean(np.abs(values_stack-mean_values)**2, ax
 weighthist_dict["nlo_mean"] = nlo_mean_hist
 # Create RMS NLO PDF histogram
 nlo_rmslow_hist = weighthist_dict["nlo_mean"].copy()
-nlo_rmslow_hist.view().value = nlo_rmslow_hist.view().value - nlo_rmslow_hist.view().variance
+nlo_rmslow_hist.view(flow=True).value = nlo_rmslow_hist.view(flow=True).value - nlo_rmslow_hist.view(flow=True).variance
 nlo_rmshigh_hist = weighthist_dict["nlo_mean"].copy()
-nlo_rmshigh_hist.view().value = nlo_rmshigh_hist.view().value + nlo_rmshigh_hist.view().variance
+nlo_rmshigh_hist.view(flow=True).value = nlo_rmshigh_hist.view(flow=True).value + nlo_rmshigh_hist.view(flow=True).variance
 # Create NNPDF31LO RMS NLO PDF histogram
 nnpdf31nlo_rmslow_hist = nnpdf31nlo_hist_dict["PDFMember0Weight"].copy()
-nnpdf31nlo_rmslow_hist.view().value = nnpdf31nlo_rmslow_hist.view().value - nnpdf31nlo_rmslow_hist.view().variance
-nnpdf31nlo_rmslow_hist.view().variance = weighthist_dict["nnpdf31nlo"].view().variance
+nnpdf31nlo_rmslow_hist.view(flow=True).value = nnpdf31nlo_rmslow_hist.view(flow=True).value - nnpdf31nlo_rmslow_hist.view(flow=True).variance
+nnpdf31nlo_rmslow_hist.view(flow=True).variance = weighthist_dict["nnpdf31nlo"].view(flow=True).variance
 nnpdf31nlo_rmshigh_hist = nnpdf31nlo_hist_dict["PDFMember0Weight"].copy()
-nnpdf31nlo_rmshigh_hist.view().value = nnpdf31nlo_rmshigh_hist.view().value + nnpdf31nlo_rmshigh_hist.view().variance
-nnpdf31nlo_rmshigh_hist.view().variance = weighthist_dict["nnpdf31nlo"].view().variance
-nnpdf31nlo_rmslow_hist.view().value[-1] = 0.0
+nnpdf31nlo_rmshigh_hist.view(flow=True).value = nnpdf31nlo_rmshigh_hist.view(flow=True).value + nnpdf31nlo_rmshigh_hist.view(flow=True).variance
+nnpdf31nlo_rmshigh_hist.view(flow=True).variance = weighthist_dict["nnpdf31nlo"].view(flow=True).variance
+nnpdf31nlo_rmslow_hist.view(flow=True).value[-1] = 0.0
 # Create MSHT20LO RMS NLO PDF histogram
 msht20nlo_rmslow_hist = msht20nlo_hist_dict["PDFMember0Weight"].copy()
-msht20nlo_rmslow_hist.view().value = msht20nlo_rmslow_hist.view().value - msht20nlo_rmslow_hist.view().variance
-msht20nlo_rmslow_hist.view().variance = weighthist_dict["msht20nlo"].view().variance
+msht20nlo_rmslow_hist.view(flow=True).value = msht20nlo_rmslow_hist.view(flow=True).value - msht20nlo_rmslow_hist.view(flow=True).variance
+msht20nlo_rmslow_hist.view(flow=True).variance = weighthist_dict["msht20nlo"].view(flow=True).variance
 msht20nlo_rmshigh_hist = msht20nlo_hist_dict["PDFMember0Weight"].copy()
-msht20nlo_rmshigh_hist.view().value = msht20nlo_rmshigh_hist.view().value + msht20nlo_rmshigh_hist.view().variance
-msht20nlo_rmshigh_hist.view().variance = weighthist_dict["msht20nlo"].view().variance
-msht20nlo_rmslow_hist.view().value[-1] = 0.0
+msht20nlo_rmshigh_hist.view(flow=True).value = msht20nlo_rmshigh_hist.view(flow=True).value + msht20nlo_rmshigh_hist.view(flow=True).variance
+msht20nlo_rmshigh_hist.view(flow=True).variance = weighthist_dict["msht20nlo"].view(flow=True).variance
+msht20nlo_rmslow_hist.view(flow=True).value[-1] = 0.0
 # Create MSHT20LO RMS NLO PDF histogram
 ct18nlo_rmslow_hist = ct18nlo_hist_dict["PDFMember0Weight"].copy()
-ct18nlo_rmslow_hist.view().value = ct18nlo_rmslow_hist.view().value - ct18nlo_rmslow_hist.view().variance
-ct18nlo_rmslow_hist.view().variance = weighthist_dict["ct18nlo"].view().variance
+ct18nlo_rmslow_hist.view(flow=True).value = ct18nlo_rmslow_hist.view(flow=True).value - ct18nlo_rmslow_hist.view(flow=True).variance
+ct18nlo_rmslow_hist.view(flow=True).variance = weighthist_dict["ct18nlo"].view(flow=True).variance
 ct18nlo_rmshigh_hist = ct18nlo_hist_dict["PDFMember0Weight"].copy()
-ct18nlo_rmshigh_hist.view().value = ct18nlo_rmshigh_hist.view().value + ct18nlo_rmshigh_hist.view().variance
-ct18nlo_rmshigh_hist.view().variance = weighthist_dict["ct18nlo"].view().variance
-ct18nlo_rmslow_hist.view().value[-1] = 0.0
+ct18nlo_rmshigh_hist.view(flow=True).value = ct18nlo_rmshigh_hist.view(flow=True).value + ct18nlo_rmshigh_hist.view(flow=True).variance
+ct18nlo_rmshigh_hist.view(flow=True).variance = weighthist_dict["ct18nlo"].view(flow=True).variance
+ct18nlo_rmslow_hist.view(flow=True).value[-1] = 0.0
 
 # Reweight Histograms
+nlo_mean_hist_wstaterrs = weighthist_dict["nlo_mean"].copy()
+nlo_mean_hist_wstaterrs.view(flow=True).variance = np.sum(variance_stack) / 9
 pdf_rwgt_hist_central = at.divide_bh_histograms(
-    weighthist_dict["nlo_mean"], 
-    dilepton_id_mass_pdfreweight_hist, 
-    error_type="pass_through"
+    nlo_mean_hist_wstaterrs, 
+    dilepton_id_mass_pdfreweight_hist
 )
 pdf_rwgt_hist_lowerRMS = weighthist_dict["nlo_mean"].copy()
-pdf_rwgt_hist_lowerRMS.view().value = (
-    pdf_rwgt_hist_lowerRMS.view().value
-    - pdf_rwgt_hist_lowerRMS.view().variance
+pdf_rwgt_hist_lowerRMS.view(flow=True).value = (
+    pdf_rwgt_hist_lowerRMS.view(flow=True).value
+    - pdf_rwgt_hist_lowerRMS.view(flow=True).variance
 )
 pdf_rwgt_hist_lowerRMS = at.divide_bh_histograms(
     pdf_rwgt_hist_lowerRMS, 
@@ -278,9 +288,9 @@ pdf_rwgt_hist_lowerRMS = at.divide_bh_histograms(
     error_type="pass_through"
 )
 pdf_rwgt_hist_upperRMS = weighthist_dict["nlo_mean"].copy()
-pdf_rwgt_hist_upperRMS.view().value = (
-    pdf_rwgt_hist_upperRMS.view().value
-    + pdf_rwgt_hist_upperRMS.view().variance
+pdf_rwgt_hist_upperRMS.view(flow=True).value = (
+    pdf_rwgt_hist_upperRMS.view(flow=True).value
+    + pdf_rwgt_hist_upperRMS.view(flow=True).variance
 )
 pdf_rwgt_hist_upperRMS = at.divide_bh_histograms(
     pdf_rwgt_hist_upperRMS, 
@@ -290,17 +300,17 @@ pdf_rwgt_hist_upperRMS = at.divide_bh_histograms(
 
 # Divide Hists
 pdfrwgt_hist = at.divide_bh_histograms(weighthist_dict["nlo_mean"], dilepton_id_mass_pdfreweight_hist)
-pdfrwgt_hist.view().variance = (
-    weighthist_dict["nlo_mean"].view().variance 
-    / dilepton_id_mass_pdfreweight_hist.view().value
+pdfrwgt_hist.view(flow=True).variance = (
+    weighthist_dict["nlo_mean"].view(flow=True).variance 
+    / dilepton_id_mass_pdfreweight_hist.view(flow=True).value
 )
 
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
 print(f"Weighted Events: {unweighted_event_counter * scale_factor}")
 for weight_name in weight_name_list:
-    print(f"{weight_name}: {weighthist_dict[weight_name].view().value.sum() / dilepton_id_mass_pdfreweight_hist.view().value.sum() * unweighted_event_counter * scale_factor}")
-print(f"Mean PDF: {weighthist_dict['nlo_mean'].view().value.sum() / dilepton_id_mass_pdfreweight_hist.view().value.sum() * unweighted_event_counter * scale_factor}")
+    print(f"{weight_name}: {weighthist_dict[weight_name].view(flow=True).value.sum() / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
+print(f"Mean PDF: {weighthist_dict['nlo_mean'].view(flow=True).value.sum() / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
 
 if args.debug:
     pass
@@ -382,7 +392,7 @@ axs.stairs(
     zorder=3
 )
 axs.errorbar(
-    pdf_rwgt_hist_central.axes[0].centers,
+    dilepton_id_mass_pdfreweight_profilehist.view().value,
     pdf_rwgt_hist_central.view().value,
     ecolor = "black",
     linestyle = "",
