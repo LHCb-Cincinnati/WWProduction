@@ -72,10 +72,23 @@ for i in range(num_MSHT20LO_pdfsets):
     msht20lo_bra_str += f"PDFMember{i}Weight/F:"
 msht20lo_bra_str = msht20lo_bra_str[:-1]
 
+# PDF4LHC21 Reweighter
+num_PDF4LHC21_pdfsets = 101
+pdfrwgt_list_PDF4LHC21 = [0] * num_PDF4LHC21_pdfsets
+PDF4LHC21_bra_str = ""
+for i in range(num_PDF4LHC21_pdfsets):
+    pdfrwgt_list_PDF4LHC21[i] = PDFReweighter.PDFReweighter(
+        pdf_set_from="CT09MCS",
+        pdf_set_to="PDF4LHC21_mc",
+        pdf_set_to_num = i
+    )
+    PDF4LHC21_bra_str += f"PDFMember{i}Weight/F:"
+PDF4LHC21_bra_str = PDF4LHC21_bra_str[:-1]
+
 # Files
 ifile_name = "/data/home/ganowak/MG5_aMC_v2_9_25/tW_LO/Events/run_05_decayed_1/tag_1_pythia8_events.hepmc" 
-# ofile_name = "tW_MG5_LO_CMTS09_mu10.root"
-ofile_name = "Test.root"
+ofile_name = "tW_MG5_LO_CMTS09_mu10.root"
+# ofile_name = "Test.root"
 # Setting up Path
 ww_path = at.find_WW_path()
 
@@ -99,7 +112,7 @@ weight_name_list = ([
 var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:status/F'
 wgt_str = "AUX_MUR05_MUF05/F:AUX_MUR05_MUF10/F:AUX_MUR05_MUF20/F:AUX_MUR10_MUF05/F:AUX_MUR10_MUF10/F:AUX_MUR10_MUF20/F:AUX_MUR20_MUF05/F:AUX_MUR20_MUF10/F:AUX_MUR20_MUF20/F"
 initial_conditions_str = 'x1/F:id1/F:x2/F:id2/F'
-pdfrwgt_str = 'nnpdf31lo/F:ct18lo/F:msht20lo/F'
+pdfrwgt_str = 'nnpdf31lo/F:ct18lo/F:msht20lo/F:pdf4lhc21/F'
 evt_array = np.array([0], dtype=np.float32)
 wgt_array = np.array([0]*9, dtype=np.float32)
 target_particle_array = np.array([0]*11, dtype=np.float32)
@@ -109,10 +122,11 @@ target_antiparticle_array = np.array([0]*11, dtype=np.float32)
 target_antilepton_array = np.array([0]*11, dtype=np.float32)
 target_antineutrino_array = np.array([0]*11, dtype=np.float32)
 initial_conditions_array = np.array([0]*4, dtype=np.float32)
-pdfrwgt_array = np.array([0]*3, dtype=np.float32)
+pdfrwgt_array = np.array([0]*4, dtype=np.float32)
 nnpdf31_wgt_array = np.array([0]*num_NNPDF31LO_pdfsets, dtype=np.float32) 
 ct18lo_wgt_array = np.array([0]*num_CT18LO_pdfsets, dtype=np.float32) 
 msht20lo_wgt_array = np.array([0]*num_MSHT20LO_pdfsets, dtype=np.float32) 
+PDF4LHC21_wgt_array = np.array([0]*num_PDF4LHC21_pdfsets, dtype=np.float32) 
 
 # Set up ROOT
 file = ROOT.TFile.Open(ww_path + "/GenLevelStudies/madgraph/" + ofile_name,
@@ -127,6 +141,7 @@ tree.Branch('pdfReweight', pdfrwgt_array, pdfrwgt_str)
 tree.Branch('NNPDF31LO_Members', nnpdf31_wgt_array, nnpdf31lo_bra_str)
 tree.Branch('CT18LO_Members', ct18lo_wgt_array, ct18lo_bra_str)
 tree.Branch('MSHT20LO_Members', msht20lo_wgt_array, msht20lo_bra_str)
+tree.Branch('PDF4LHC21_Members', PDF4LHC21_wgt_array, PDF4LHC21_bra_str)
 tree.Branch('TargetParticle', target_particle_array, var_str)
 tree.Branch('TargetLepton', target_lepton_array, var_str)
 tree.Branch('TargetNeutrino', target_neutrino_array, var_str)
@@ -190,10 +205,14 @@ with pyhepmc.open(ifile_name) as f:
             msht20lo_wgt_array[i] = pdfrwgt_list_MSHT20LO[i].calculate_reweighting_factor(
                 x1, x2, id1, id2, sqrt_s=13e3
             )
+        for i in range(num_PDF4LHC21_pdfsets):
+            PDF4LHC21_wgt_array[i] = pdfrwgt_list_PDF4LHC21[i].calculate_reweighting_factor(
+                x1, x2, id1, id2, sqrt_s=13e3
+            )
 
         # Fill arrays
         pdfrwgt_array[:] = (
-            nnpdf31_wgt_array[0], ct18lo_wgt_array[0], msht20lo_wgt_array[0]
+            nnpdf31_wgt_array[0], ct18lo_wgt_array[0], msht20lo_wgt_array[0], PDF4LHC21_wgt_array[0]
         )
         initial_conditions_array[:] = (x1, id1, x2, id2)
         target_particle_array = fill_kinematic_array(wplus, target_particle_array)
