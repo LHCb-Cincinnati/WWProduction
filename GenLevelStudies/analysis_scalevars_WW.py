@@ -119,7 +119,7 @@ for tree in tree_iterator:
     mue_decay_mask = (((lminus_vec.pid==13) & (lplus_vec.pid==-11))
                         | ((lminus_vec.pid==11) & (lplus_vec.pid==-13)))
     deltar_mask = (np.abs(lminus_vec.deltaR(lplus_vec)) > 0.1)
-    high_pT_lepton_mask = ((lminus_vec.pt / GeV >20) & (lplus_vec.pt / GeV >20))
+    high_pT_lepton_mask = ((electron_vec.pt / GeV >30) & (muon_vec.pt / GeV >25))
     lepton_mask = (
         both_lepton_tight_acc_mask
         & high_pT_lepton_mask
@@ -174,11 +174,11 @@ for index in range(len(dilepton_id_mass_kfactorbin_hist.view().value)):
     upper_env_hist.view()[index] = [max_val, max_var]
 
 # Create mean NLO PDF histogram from individual families
-nnpdf31nlo_view = pdfweighthist_dict["nnpdf31nlo"].view()
-ct18nlo_view = pdfweighthist_dict["ct18nlo"].view()
-msht20nlo_view = pdfweighthist_dict["msht20nlo"].view()
+nnpdf31nlo_view = pdfweighthist_dict["nnpdf31nlo"].view(flow=True)
+ct18nlo_view = pdfweighthist_dict["ct18nlo"].view(flow=True)
+msht20nlo_view = pdfweighthist_dict["msht20nlo"].view(flow=True)
 nlo_mean_hist = pdfweighthist_dict["nnpdf31nlo"].copy()
-nlo_mean_view = nlo_mean_hist.view()
+nlo_mean_view = nlo_mean_hist.view(flow=True)
 
 # Per-bin mean of the three NLO histograms
 values_stack = np.stack(
@@ -197,14 +197,14 @@ nlo_mean_view.variance = (
     + msht20nlo_view.variance
 ) / 9.0
 pdfweighthist_dict["nlo_mean"] = nlo_mean_hist
-pdf_scale_factor = sum(pdfweighthist_dict['nlo_mean'].view().value) / sum(dilepton_id_mass_kfactorbin_hist.view().value) 
+pdf_scale_factor = sum(pdfweighthist_dict['nlo_mean'].view(flow=True).value) / sum(dilepton_id_mass_kfactorbin_hist.view(flow=True).value) 
 
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
 print(f"Weighted Events: {unweighted_event_counter * scale_factor}")
 print(f"PDF-Scaled Weighted Events: {unweighted_event_counter * scale_factor * pdf_scale_factor}")
-print(f"Lower Bound: {sum(lower_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * unweighted_event_counter * scale_factor * pdf_scale_factor}")
-print(f"Upper Bound: {sum(upper_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * unweighted_event_counter * scale_factor * pdf_scale_factor}")
+print(f"Lower Bound: {sum(lower_env_hist.view(flow=True).value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view(flow=True).value) * unweighted_event_counter * scale_factor * pdf_scale_factor}")
+print(f"Upper Bound: {sum(upper_env_hist.view(flow=True).value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view(flow=True).value) * unweighted_event_counter * scale_factor * pdf_scale_factor}")
 
 # Divide Hists
 lower_env_hist = at.divide_bh_histograms(lower_env_hist, weighthist_dict["AUX_MUR10_MUF10"])
