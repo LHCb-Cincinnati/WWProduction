@@ -79,7 +79,7 @@ for weight_name in weight_name_list:
     weighthist_dict[weight_name] = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
     )
-pdfweight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo"]
+pdfweight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo", "pdf4lhc21"]
 pdfweighthist_dict = {}
 for weight_name in pdfweight_name_list:
     pdfweighthist_dict[weight_name] = bh.Histogram(
@@ -197,7 +197,7 @@ nlo_mean_view.variance = (
     + msht20nlo_view.variance
 ) / 9.0
 pdfweighthist_dict["nlo_mean"] = nlo_mean_hist
-pdf_scale_factor = sum(pdfweighthist_dict['nlo_mean'].view(flow=True).value) / sum(dilepton_id_mass_kfactorbin_hist.view(flow=True).value) 
+pdf_scale_factor = sum(pdfweighthist_dict['pdf4lhc21'].view(flow=True).value) / sum(dilepton_id_mass_kfactorbin_hist.view(flow=True).value) 
 
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
@@ -212,9 +212,9 @@ upper_env_hist = at.divide_bh_histograms(upper_env_hist, weighthist_dict["AUX_MU
 central_hist = at.divide_bh_histograms(weighthist_dict["AUX_MUR10_MUF10"], weighthist_dict["AUX_MUR10_MUF10"])
 
 # Multiply Hists
-lower_env_hist = at.multiply_bh_histograms(lower_env_hist, pdfweighthist_dict["nlo_mean"])
-upper_env_hist = at.multiply_bh_histograms(upper_env_hist, pdfweighthist_dict["nlo_mean"])
-central_hist = pdfweighthist_dict["nlo_mean"]
+lower_env_hist = at.multiply_bh_histograms(lower_env_hist, pdfweighthist_dict["pdf4lhc21"])
+upper_env_hist = at.multiply_bh_histograms(upper_env_hist, pdfweighthist_dict["pdf4lhc21"])
+central_hist = pdfweighthist_dict["pdf4lhc21"]
 
 if args.debug:
     pass
@@ -303,7 +303,7 @@ plt.close()
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine"] = pdfweighthist_dict["nlo_mean"]
+    root_file["DileptonKFactorFine"] = pdfweighthist_dict["pdf4lhc21"]
     # root_file["DileptonKFactorFine"] = upper_env_hist
     root_file["EtaEtaYield"] = eta_hist
 
@@ -312,7 +312,7 @@ os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 pickle_dict = {
     "DiLeptonMassRough": [dilepton_id_mass_rghbin_hist],
     "DileptonMassFine": [dilepton_id_mass_finebin_hist],
-    "DileptonKFactorFine": [pdfweighthist_dict["nlo_mean"]],
+    "DileptonKFactorFine": [pdfweighthist_dict["pdf4lhc21"]],
     # "DileptonKFactorFine": [upper_env_hist],
     "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
     "EtaEtaYield": [eta_hist]

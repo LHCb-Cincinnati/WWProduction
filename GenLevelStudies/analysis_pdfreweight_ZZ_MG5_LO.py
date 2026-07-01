@@ -66,6 +66,11 @@ for member_name in tree["MSHT20LO_Members"].fields:
     msht20lo_hist_dict[member_name] = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
     )
+pdf4lhc_hist_dict = {}
+for member_name in tree["PDF4LHC21_Members"].fields:
+    pdf4lhc_hist_dict[member_name] = bh.Histogram(
+        bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
 
 # Create Vectors
 Z1_lminus_vec = vector.zip({
@@ -191,6 +196,15 @@ for member_name in tree["MSHT20LO_Members"].fields:
         z2lpz1lm_dilepton_vec.m, 
         weight=tree["MSHT20LO_Members"][member_name][Z1lmZ2lp_masks]*scale_factor
     )
+for member_name in tree["PDF4LHC21_Members"].fields:
+    pdf4lhc_hist_dict[member_name].fill(
+        z2lmz1lp_dilepton_vec.m, 
+        weight=tree["PDF4LHC21_Members"][member_name][Z2lmZ1lp_masks]*scale_factor
+    )
+    pdf4lhc_hist_dict[member_name].fill(
+        z2lpz1lm_dilepton_vec.m, 
+        weight=tree["PDF4LHC21_Members"][member_name][Z1lmZ2lp_masks]*scale_factor
+    )
 
 # Store statistical variances before rewriting
 variance_stack = np.stack(
@@ -253,6 +267,9 @@ msht20lo_rmslow_hist.view().value[0] = 0.0
 msht20lo_rmslow_hist.view().value[1] = 0.0
 msht20lo_rmslow_hist.view().value[-2] = 0.0
 msht20lo_rmslow_hist.view().value[-1] = 0.0
+pdf4lhc_central_hist, pdf4lhc_lowerenv_hist, pdf4lhc_upperenv_hist = at.calc_pdf_mc_envelope(
+    pdf4lhc_hist_dict
+)
 
 # Reweight Histograms
 # Reweight Histograms
@@ -281,6 +298,10 @@ pdf_rwgt_hist_upperRMS = at.divide_bh_histograms(
     pdf_rwgt_hist_upperRMS, 
     dilepton_id_mass_pdfreweight_hist, 
     error_type="pass_through"
+)
+pdf4lhc_rwgt_hist_central = at.divide_bh_histograms(
+    pdf4lhc_central_hist,
+    dilepton_id_mass_pdfreweight_hist
 )
 
 # Print Statements:
@@ -376,6 +397,31 @@ axs.set_ylabel("PDF Reweight Factor")
 # axs.legend(hist_handles, hist_labels, loc="lower center")
 # Slightly fancy to remove whitespace
 fig.savefig('DiLeptonMassPDFVariations_Reweight.png')
+plt.close()
+# PDF4LHC Reweight Plot
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    pdf4lhc_rwgt_hist_central.view().value,
+    edges=pdf4lhc_rwgt_hist_central.axes[0].edges,
+    color="black",
+    zorder=3
+)
+axs.errorbar(
+    pdf4lhc_rwgt_hist_central.axes[0].centers,
+    pdf4lhc_rwgt_hist_central.view().value,
+    ecolor="black",
+    linestyle="",
+    yerr=np.sqrt(pdf4lhc_rwgt_hist_central.view().variance),
+    label="Statistical Uncertainty"
+)
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("PDF4LHC Reweight Factor")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+fig.savefig('PDF4LHCReweightHistogram.png')
 plt.close()
 # Mean PDF Ratio Plot
 fig, axs = plt.subplots()
@@ -475,6 +521,9 @@ plt.subplots_adjust(top=0.85)
 msht20lo_lowerratio_hist, msht20lo_centralratio_hist, msht20lo_upperratio_hist = at.calc_rms_ratio_hists(
     weighthist_dict["msht20lo"], msht20lo_rmslow_hist, msht20lo_rmshigh_hist
 ) 
+pdf4lhc_lowerratio_hist, pdf4lhc_centralratio_hist, pdf4lhc_upperratio_hist = at.calc_rms_ratio_hists(
+    pdf4lhc_central_hist, pdf4lhc_lowerenv_hist, pdf4lhc_upperenv_hist
+)
 plt.axhline(y=1, color='black', linestyle='-', label="Central Value")
 axs.bar(
     x=msht20lo_centralratio_hist.axes[0].centers, 
@@ -526,6 +575,29 @@ hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
 fig.savefig('DiLeptonMassPDFVariations_Ratio_MSHT20LO.png')
+plt.close()
+# PDF4LHC Ratio Plot
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+plt.axhline(y=1, color='black', linestyle='-', label="Central Value")
+axs.bar(
+    x=pdf4lhc_centralratio_hist.axes[0].centers,
+    height=(pdf4lhc_upperratio_hist.view().value - pdf4lhc_lowerratio_hist.view().value),
+    bottom=pdf4lhc_lowerratio_hist.view().value,
+    width=pdf4lhc_centralratio_hist.axes[0].widths,
+    linewidth=0,
+    color="purple",
+    alpha=0.25,
+    label="PDF4LHC 68% CL Envelope"
+)
+axs.set_ylim((0, 12.0))
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("PDF Deviation to the Nominal")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+fig.savefig('DiLeptonMassPDFVariations_Ratio_PDF4LHC.png')
 plt.close()
 # NNPDF31LO RMS Plots
 fig, axs = plt.subplots()
@@ -583,6 +655,12 @@ axs.stairs(
     edges=weighthist_dict["ct18lo"].axes[0].edges,
     label="CT18LO",
     color="blue"
+)
+axs.stairs(
+    pdf4lhc_central_hist.view().value,
+    edges=pdf4lhc_central_hist.axes[0].edges,
+    label="PDF4LHC21",
+    color="purple"
 )
 axs.set_xlim((0, 300))
 axs.set_ylim((0, 1.3))
@@ -651,6 +729,12 @@ axs.stairs(
     label="CT18LO",
     color="blue"
 )
+axs.stairs(
+    pdf4lhc_central_hist.view().value,
+    edges=pdf4lhc_central_hist.axes[0].edges,
+    label="PDF4LHC21",
+    color="purple"
+)
 axs.set_xlim((0, 300))
 axs.set_ylim((0, 1.3))
 axs.set_title("")
@@ -688,6 +772,12 @@ axs.stairs(
     color="green"
 )
 axs.stairs(
+    pdf4lhc_central_hist.view().value,
+    edges=pdf4lhc_central_hist.axes[0].edges,
+    label="PDF4LHC21",
+    color="purple"
+)
+axs.stairs(
     weighthist_dict["lo_mean"].view().value, 
     edges=weighthist_dict["lo_mean"].axes[0].edges,
     label="Mean Central Value",
@@ -713,6 +803,76 @@ axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
 fig.savefig('DiLeptonMassPDFVariations_MeanPDF.png')
 plt.close()
+# PDF4LHC Replica Variation Plot
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    dilepton_id_mass_pdfreweight_hist.view().value,
+    edges=dilepton_id_mass_pdfreweight_hist.axes[0].edges,
+    label="CT09MCS",
+    color="grey"
+)
+axs.stairs(
+    weighthist_dict["nnpdf31lo"].view().value,
+    edges=weighthist_dict["nnpdf31lo"].axes[0].edges,
+    label="NNPDF31LO",
+    color="green"
+)
+axs.stairs(
+    weighthist_dict["ct18lo"].view().value,
+    edges=weighthist_dict["ct18lo"].axes[0].edges,
+    label="CT18LO",
+    color="blue"
+)
+axs.stairs(
+    weighthist_dict["msht20lo"].view().value,
+    edges=weighthist_dict["msht20lo"].axes[0].edges,
+    label="MSHT20LO",
+    color="red"
+)
+axs.stairs(
+    weighthist_dict["lo_mean"].view().value,
+    edges=weighthist_dict["lo_mean"].axes[0].edges,
+    label="Mean Central Value",
+    color="black"
+)
+axs.bar(
+    x=weighthist_dict["lo_mean"].axes[0].centers,
+    height= 2*weighthist_dict["lo_mean"].view().variance,
+    bottom=weighthist_dict["lo_mean"].view().value - weighthist_dict["lo_mean"].view().variance,
+    width=weighthist_dict["lo_mean"].axes[0].widths,
+    linewidth=0,
+    color="black",
+    alpha=0.25,
+    label="Mean RMS Envelope"
+)
+axs.stairs(
+    pdf4lhc_central_hist.view().value,
+    edges=pdf4lhc_central_hist.axes[0].edges,
+    label="PDF4LHC21",
+    color="purple",
+    zorder=3
+)
+axs.bar(
+    x=pdf4lhc_central_hist.axes[0].centers,
+    height=(pdf4lhc_upperenv_hist.view().value - pdf4lhc_lowerenv_hist.view().value),
+    bottom=pdf4lhc_lowerenv_hist.view().value,
+    width=pdf4lhc_central_hist.axes[0].widths,
+    linewidth=0,
+    color="purple",
+    alpha=0.25,
+    label="PDF4LHC21 68% CL Envelope",
+    zorder=2
+)
+axs.set_xlim((0, 300))
+axs.set_ylim((0, 1.3))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+fig.savefig('DiLeptonMassPDFVariations_PDF4LHCReplicas.png')
+plt.close()
 
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
@@ -722,6 +882,7 @@ with uproot.recreate(ofile_name + ".root") as root_file:
     for weight_name in tree["pdfReweight"].fields:
         root_file[f"DiLeptonMass_{weight_name}"] = weighthist_dict[f"{weight_name}"]
     root_file["PDFReweight_Mean_Central"] = pdf_rwgt_hist_central
+    root_file["PDFReweight_PDF4LHC_Central"] = pdf4lhc_rwgt_hist_central
     root_file["PDFRatio_Mean_LowerRMS"] = meanpdflo_lowerratio_hist
     root_file["PDFRatio_Mean_UpperRMS"] = meanpdflo_upperratio_hist
     root_file["PDFRatio_MSHT20LO_Central"] = msht20lo_centralratio_hist
@@ -730,6 +891,12 @@ with uproot.recreate(ofile_name + ".root") as root_file:
     root_file["PDFRatio_NNPDF31LO_Central"] = nnpdf31lo_centralratio_hist
     root_file["PDFRatio_NNPDF31LO_LowerRMS"] = nnpdf31lo_lowerratio_hist
     root_file["PDFRatio_NNPDF31LO_UpperRMS"] = nnpdf31lo_upperratio_hist
+    root_file["DiLeptonMass_PDF4LHC_Central"] = pdf4lhc_central_hist
+    root_file["DiLeptonMass_PDF4LHC_LowerEnv"] = pdf4lhc_lowerenv_hist
+    root_file["DiLeptonMass_PDF4LHC_UpperEnv"] = pdf4lhc_upperenv_hist
+    root_file["PDFRatio_PDF4LHC_Central"] = pdf4lhc_centralratio_hist
+    root_file["PDFRatio_PDF4LHC_LowerEnv"] = pdf4lhc_lowerratio_hist
+    root_file["PDFRatio_PDF4LHC_UpperEnv"] = pdf4lhc_upperratio_hist
 
 # Save histograms
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
@@ -739,6 +906,7 @@ pickle_dict = {
     "DileptonpdfReweightFine": [dilepton_id_mass_pdfreweight_hist],
     "DiLeptonMass_LOMean": [weighthist_dict["lo_mean"]],
     "PDFReweight_Mean_Central": [pdf_rwgt_hist_central],
+    "PDFReweight_PDF4LHC_Central": [pdf4lhc_rwgt_hist_central],
     "PDFRatio_Mean_LowerRMS": [meanpdflo_lowerratio_hist],
     "PDFRatio_Mean_UpperRMS": [meanpdflo_upperratio_hist],
     "PDFRatio_MSHT20LO_Central": [msht20lo_centralratio_hist],
@@ -747,6 +915,12 @@ pickle_dict = {
     "PDFRatio_NNPDF31LO_Central": [nnpdf31lo_centralratio_hist],
     "PDFRatio_NNPDF31LO_LowerRMS": [nnpdf31lo_lowerratio_hist],
     "PDFRatio_NNPDF31LO_UpperRMS": [nnpdf31lo_upperratio_hist],
+    "DiLeptonMass_PDF4LHC_Central": [pdf4lhc_central_hist],
+    "DiLeptonMass_PDF4LHC_LowerEnv": [pdf4lhc_lowerenv_hist],
+    "DiLeptonMass_PDF4LHC_UpperEnv": [pdf4lhc_upperenv_hist],
+    "PDFRatio_PDF4LHC_Central": [pdf4lhc_centralratio_hist],
+    "PDFRatio_PDF4LHC_LowerEnv": [pdf4lhc_lowerratio_hist],
+    "PDFRatio_PDF4LHC_UpperEnv": [pdf4lhc_upperratio_hist],
     "DileptonpdfReweightProfile": [dilepton_id_mass_pdfreweight_profilehist],
 }
 # Store reweight histograms
@@ -755,4 +929,3 @@ pickle_dict = {
 
 with open(ofile_name + ".pkl", "wb") as f:
   pickle.dump(pickle_dict, f)
-

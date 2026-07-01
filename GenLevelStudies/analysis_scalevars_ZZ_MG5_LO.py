@@ -72,6 +72,12 @@ if weights_bool:
         weighthist_dict[weight_name] = bh.Histogram(
             bh.axis.Variable(bins_list), storage=bh.storage.Weight()
         )
+pdfweight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "pdf4lhc21"]
+pdfweighthist_dict = {}
+for weight_name in pdfweight_name_list:
+    pdfweighthist_dict[weight_name] = bh.Histogram(
+        bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
 
 # Create Vectors
 Z1_lminus_vec = vector.zip({
@@ -178,6 +184,15 @@ if weights_bool:
         weighthist_dict[weight_name].fill(
             z2lpz1lm_dilepton_vec.m, weight=tree["Weights"][weight_name][Z1lmZ2lp_masks]
         )
+for weight_name in tree["pdfReweight"].fields:
+    pdfweighthist_dict[weight_name].fill(
+        z2lmz1lp_dilepton_vec.m,
+        weight=tree["pdfReweight"][weight_name][Z2lmZ1lp_masks]*scale_factor
+    )
+    pdfweighthist_dict[weight_name].fill(
+        z2lpz1lm_dilepton_vec.m,
+        weight=tree["pdfReweight"][weight_name][Z1lmZ2lp_masks]*scale_factor
+    )
 
 # Weight Hists
 if weights_bool:
@@ -200,9 +215,14 @@ if weights_bool:
 # Print Statements:
 print(f"Unweighted Events: {sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks)}")
 print(f"Weighted Events: {sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor}")
+pdf_scale_factor = (
+    sum(pdfweighthist_dict["pdf4lhc21"].view().value)
+    / sum(dilepton_id_mass_kfactorbin_hist.view().value)
+)
+print(f"PDF-Scaled Weighted Events: {sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor * pdf_scale_factor}")
 if weights_bool:
-    print(f"Lower Bound: {sum(lower_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor}")
-    print(f"Upper Bound: {sum(upper_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor}")
+    print(f"Lower Bound: {sum(lower_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor * pdf_scale_factor}")
+    print(f"Upper Bound: {sum(upper_env_hist.view().value) / sum(weighthist_dict['AUX_MUR10_MUF10'].view().value) * sum(Z2lmZ1lp_masks | Z1lmZ2lp_masks) * scale_factor * pdf_scale_factor}")
 
 # Divide Hists
     lower_env_hist = at.divide_bh_histograms(lower_env_hist, weighthist_dict["AUX_MUR10_MUF10"])
@@ -332,7 +352,7 @@ plt.close()
 # Save Histos in ROOT
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
-    root_file["DileptonKFactorFine"] = dilepton_id_mass_kfactorbin_hist
+    root_file["DileptonKFactorFine"] = pdfweighthist_dict["pdf4lhc21"]
     # root_file["DileptonKFactorFine"] = upper_env_hist
 
 # Save histograms
@@ -340,7 +360,7 @@ os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 pickle_dict = {
     "DiLeptonMassRough": [dilepton_id_mass_rghbin_hist],
     "DileptonMassFine": [dilepton_id_mass_finebin_hist],
-    "DileptonKFactorFine": [dilepton_id_mass_kfactorbin_hist],
+    "DileptonKFactorFine": [pdfweighthist_dict["pdf4lhc21"]],
     # "DileptonKFactorFine": [upper_env_hist],
     "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
 }
