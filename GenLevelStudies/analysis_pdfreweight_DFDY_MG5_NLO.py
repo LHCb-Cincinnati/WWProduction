@@ -73,6 +73,7 @@ num_msht20lo_members = 61
 num_nnpdf31nlo_members = 101
 num_ct18nlo_members = 59
 num_msht20nlo_members = 65
+num_pdf4lhc21_members = 101
 
 # Binning Scheme
 bins_list = [0] + list(np.linspace(33, 100, 7)) + [300, 2000] 
@@ -86,7 +87,7 @@ dilepton_id_mass_pdfreweight_hist = bh.Histogram(
 dilepton_id_mass_pdfreweight_profilehist = bh.Histogram(
     bh.axis.Variable(bins_list), storage=bh.storage.WeightedMean()
 )
-weight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo"]
+weight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo", "pdf4lhc21"]
 weighthist_dict = {}
 for weight_name in weight_name_list:
     weighthist_dict[weight_name + "__kfactor__bin"] = bh.Histogram(
@@ -121,6 +122,11 @@ for i in range(num_ct18nlo_members):
 msht20nlo_hist_dict = {}
 for i in range(num_msht20nlo_members):
     msht20nlo_hist_dict[f"PDFMember{i}Weight"] = bh.Histogram(
+        bh.axis.Variable(bins_list), storage=bh.storage.Weight()
+    )
+pdf4lhc21_hist_dict = {}
+for i in range(num_pdf4lhc21_members):
+    pdf4lhc21_hist_dict[f"PDFMember{i}Weight"] = bh.Histogram(
         bh.axis.Variable(bins_list), storage=bh.storage.Weight()
     )
 
@@ -233,6 +239,11 @@ for tree in tree_iterator:
             dilepton_vec.m / GeV, 
             weight=tree["MSHT20NLO_Members"][member_name][lepton_mask]*scale_factor
         )
+    for member_name in tree["PDF4LHC21_Members"].fields:
+        pdf4lhc21_hist_dict[member_name].fill(
+            dilepton_vec.m / GeV, 
+            weight=tree["PDF4LHC21_Members"][member_name][lepton_mask]*scale_factor
+        )
 
     unweighted_event_counter += len(dilepton_vec)
     if args.debug:
@@ -290,6 +301,8 @@ ct18nlo_rmslow_hist.view().variance = weighthist_dict["ct18nlo__kfactor__bin"].v
 ct18nlo_rmshigh_hist = ct18nlo_hist_dict["PDFMember0Weight"].copy()
 ct18nlo_rmshigh_hist.view().value = ct18nlo_rmshigh_hist.view().value + ct18nlo_rmshigh_hist.view().variance
 ct18nlo_rmshigh_hist.view().variance = weighthist_dict["ct18nlo__kfactor__bin"].view().variance
+# Create PDF4LHC21 68% CL histograms
+pdf4lhc21_central_hist, pdf4lhc21_lowerenv_hist, pdf4lhc21_upperenv_hist = at.calc_pdf_mc_envelope(pdf4lhc21_hist_dict)
 
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
@@ -394,6 +407,13 @@ axs.stairs(
     label="MSHT20NLO",
     color="red"
 )
+# Plot PDF4LHC21
+axs.stairs(
+    weighthist_dict["pdf4lhc21__kfactor__bin"].view().value, 
+    edges=weighthist_dict["pdf4lhc21__kfactor__bin"].axes[0].edges,
+    label="PDF4LHC21",
+    color="purple"
+)
 # Plot NLO Mean
 axs.stairs(
     weighthist_dict["nlo_mean__kfactor__bin"].view().value, 
@@ -429,6 +449,9 @@ with uproot.recreate(ofile_name + ".root") as root_file:
     root_file["DileptonKFactorFine_MeanPDF_Central"] = weighthist_dict["nlo_mean__kfactor__bin"]
     root_file["DileptonKFactorFine_MeanPDF_LowerRMS"] = nlo_rmslow_hist
     root_file["DileptonKFactorFine_MeanPDF_UpperRMS"] = nlo_rmshigh_hist
+    root_file["DileptonKFactorFine_PDF4LHC21_Central"] = weighthist_dict["pdf4lhc21__kfactor__bin"]
+    root_file["DileptonKFactorFine_PDF4LHC21_LowerRMS"] = pdf4lhc21_lowerenv_hist
+    root_file["DileptonKFactorFine_PDF4LHC21_UpperRMS"] = pdf4lhc21_upperenv_hist
     root_file["DileptonKFactorFine_NNPDF31NLO_Central"] = weighthist_dict["nnpdf31nlo__kfactor__bin"]
     root_file["DileptonKFactorFine_NNPDF31NLO_LowerRMS"] = nnpdf31nlo_rmslow_hist
     root_file["DileptonKFactorFine_NNPDF31NLO_UpperRMS"] = nnpdf31nlo_rmshigh_hist
@@ -445,6 +468,9 @@ pickle_dict = {
     "DileptonKFactorFine_MeanPDF_Central": [weighthist_dict["nlo_mean__kfactor__bin"]],
     "DileptonKFactorFine_MeanPDF_LowerRMS": [nlo_rmslow_hist],
     "DileptonKFactorFine_MeanPDF_UpperRMS": [nlo_rmshigh_hist],
+    "DileptonKFactorFine_PDF4LHC21_Central": [weighthist_dict["pdf4lhc21__kfactor__bin"]],
+    "DileptonKFactorFine_PDF4LHC21_LowerRMS": [pdf4lhc21_lowerenv_hist],
+    "DileptonKFactorFine_PDF4LHC21_UpperRMS": [pdf4lhc21_upperenv_hist],
     "DileptonKFactorFine_NNPDF31NLO_Central": [weighthist_dict["nnpdf31nlo__kfactor__bin"]],
     "DileptonKFactorFine_NNPDF31NLO_LowerRMS": [nnpdf31nlo_rmslow_hist],
     "DileptonKFactorFine_NNPDF31NLO_UpperRMS": [nnpdf31nlo_rmshigh_hist],
@@ -458,5 +484,4 @@ pickle_dict = {
 }
 with open(ofile_name + ".pkl", "wb") as f:
     pickle.dump(pickle_dict, f)
-
 

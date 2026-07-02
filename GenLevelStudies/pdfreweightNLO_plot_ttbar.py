@@ -60,6 +60,9 @@ profile_hist = hist_dict["DiLeptonMassProfile"][0]
 meanpdf_lowerRMS_hist = hist_dict["DileptonKFactorFine_MeanPDF_LowerRMS"][0]
 meanpdf_central_hist = hist_dict["DileptonKFactorFine_MeanPDF_Central"][0]
 meanpdf_upperRMS_hist = hist_dict["DileptonKFactorFine_MeanPDF_UpperRMS"][0]
+pdf4lhc21_lowerRMS_hist = hist_dict["DileptonKFactorFine_PDF4LHC21_LowerRMS"][0]
+pdf4lhc21_central_hist = hist_dict["DileptonKFactorFine_PDF4LHC21_Central"][0]
+pdf4lhc21_upperRMS_hist = hist_dict["DileptonKFactorFine_PDF4LHC21_UpperRMS"][0]
 nnpdf31nlo_lowerRMS_hist = hist_dict["DileptonKFactorFine_NNPDF31NLO_LowerRMS"][0]
 nnpdf31nlo_central_hist = hist_dict["DileptonKFactorFine_NNPDF31NLO_Central"][0]
 nnpdf31nlo_upperRMS_hist = hist_dict["DileptonKFactorFine_NNPDF31NLO_UpperRMS"][0]
@@ -83,6 +86,9 @@ msht20nlo_lowerratio_hist, msht20nlo_centralratio_hist, msht20nlo_upperratio_his
 )
 ct18nlo_lowerratio_hist, ct18nlo_centralratio_hist, ct18nlo_upperratio_hist = at.calc_rms_ratio_hists(
     ct18nlo_central_hist, ct18nlo_lowerRMS_hist, ct18nlo_upperRMS_hist
+) 
+pdf4lhc21_lowerratio_hist, pdf4lhc21_centralratio_hist, pdf4lhc21_upperratio_hist = at.calc_rms_ratio_hists(
+    pdf4lhc21_central_hist, pdf4lhc21_lowerRMS_hist, pdf4lhc21_upperRMS_hist
 ) 
 
 # Fit K-Factor
@@ -129,6 +135,12 @@ axs.stairs(
     edges=ct18nlo_central_hist.axes[0].edges,
     color="blue",
     label="CT18NLO"
+)
+axs.stairs(
+    pdf4lhc21_central_hist.view().value, 
+    edges=pdf4lhc21_central_hist.axes[0].edges,
+    color="purple",
+    label="PDF4LHC21"
 )
 # Setting axes and legend
 ymax = max(meanpdf_upperRMS_hist.view().value)
@@ -207,6 +219,12 @@ axs.stairs(
     color="blue",
     label="CT18NLO"
 )
+axs.stairs(
+    pdf4lhc21_central_hist.view().value, 
+    edges=pdf4lhc21_central_hist.axes[0].edges,
+    color="purple",
+    label="PDF4LHC21"
+)
 ymax = max(meanpdf_upperRMS_hist.view().value)
 axs.set_ylim((0, 1.5*ymax))
 axs.set_xlim((0, 300))
@@ -268,6 +286,12 @@ axs.stairs(
     edges=ct18nlo_central_hist.axes[0].edges,
     color="blue",
     label="CT18NLO"
+)
+axs.stairs(
+    pdf4lhc21_central_hist.view().value, 
+    edges=pdf4lhc21_central_hist.axes[0].edges,
+    color="purple",
+    label="PDF4LHC21"
 )
 ymax = max(meanpdf_upperRMS_hist.view().value)
 axs.set_ylim((0, 1.5*ymax))
@@ -331,6 +355,12 @@ axs.stairs(
     color="red",
     label="MSHT20NLO"
 )
+axs.stairs(
+    pdf4lhc21_central_hist.view().value, 
+    edges=pdf4lhc21_central_hist.axes[0].edges,
+    color="purple",
+    label="PDF4LHC21"
+)
 ymax = max(meanpdf_upperRMS_hist.view().value)
 axs.set_ylim((0, 1.5*ymax))
 axs.set_xlim((0, 300))
@@ -341,7 +371,74 @@ hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 fig.savefig('KFactorwPDFFamilies_CT18NLO.png')
 plt.close()
-
+# PDF4LHC21
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+axs.stairs(
+    meanpdf_central_hist.view().value, 
+    edges=meanpdf_central_hist.axes[0].edges,
+    color="black",
+    label="Mean PDF Central Value",
+    zorder=3
+)
+axs.bar(
+    x=meanpdf_central_hist.axes[0].centers, 
+    height=2*(meanpdf_upperRMS_hist.view().value - meanpdf_central_hist.view().value), 
+    bottom=meanpdf_lowerRMS_hist.view().value, 
+    width=meanpdf_central_hist.axes[0].widths, 
+    # align='edge', 
+    linewidth=0, 
+    color="grey", 
+    alpha=0.25, 
+    zorder=2, 
+    label="Mean PDF RMS Envelope"
+)
+axs.stairs(
+    ct18nlo_central_hist.view().value, 
+    edges=ct18nlo_central_hist.axes[0].edges,
+    color="blue",
+    label="CT18NLO"
+)
+axs.stairs(
+    nnpdf31nlo_central_hist.view().value, 
+    edges=nnpdf31nlo_central_hist.axes[0].edges,
+    color="green",
+    label="NNPDF31NLO"
+)
+axs.stairs(
+    msht20nlo_central_hist.view().value, 
+    edges=msht20nlo_central_hist.axes[0].edges,
+    color="red",
+    label="MSHT20NLO"
+)
+axs.stairs(
+    pdf4lhc21_central_hist.view().value, 
+    edges=pdf4lhc21_central_hist.axes[0].edges,
+    color="purple",
+    label="PDF4LHC21"
+)
+axs.bar(
+    x=pdf4lhc21_central_hist.axes[0].centers, 
+    height=(pdf4lhc21_upperRMS_hist.view().value - pdf4lhc21_lowerRMS_hist.view().value), 
+    bottom=pdf4lhc21_lowerRMS_hist.view().value, 
+    width=pdf4lhc21_central_hist.axes[0].widths, 
+    # align='edge', 
+    linewidth=0, 
+    color="purple", 
+    alpha=0.25, 
+    # zorder=-1, 
+    label="PDF4LHC21 68% CL Envelope"
+)
+ymax = max(meanpdf_upperRMS_hist.view().value)
+axs.set_ylim((0, 1.5*ymax))
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("K-Factor")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+fig.savefig('KFactorwPDFFamilies_PDF4LHC21.png')
+plt.close()
 # Plot reweight histogram with errors
 # Mean PDF
 fig, axs = plt.subplots()
@@ -644,6 +741,81 @@ axs.legend(hist_handles, hist_labels)
 fig.savefig('KFactorwPDFVariations_CT18NLO.png')
 plt.close()
 
+# PDF4LHC21 PDF
+fig, axs = plt.subplots()
+plt.subplots_adjust(top=0.85)
+plt.axhline(y=1, color='black', linestyle='-', label="Central Value")
+axs.bar(
+    x=pdf4lhc21_centralratio_hist.axes[0].centers, 
+    height=(pdf4lhc21_upperratio_hist.view().value - pdf4lhc21_lowerratio_hist.view().value), 
+    bottom=pdf4lhc21_lowerratio_hist.view().value, 
+    width=pdf4lhc21_centralratio_hist.axes[0].widths, 
+    linewidth=0, 
+    color="purple", 
+    alpha=0.25, 
+    label="68% CL"
+)
+# axs.errorbar(
+#     profile_hist.view().value,
+#     ct18nlo_centralratio_hist.view().value,
+#     ecolor = "black",
+#     linestyle = "",
+#     # yerr = (ct18nlo_upperratio_hist.view().value - ct18nlo_lowerratio_hist.view().value) / 2,
+#     label="RMS Deviation"
+# )
+# axs.scatter(
+#     profile_hist.view().value,
+#     ct18nlo_upperratio_hist.view().value,
+#     color = "blue",
+# #     label="Upper RMS"
+# )
+# axs.errorbar(
+#     profile_hist.view().value,
+#     ct18nlo_upperratio_hist.view().value,
+#     ecolor = "blue",
+#     linestyle = "",
+#     yerr = np.sqrt(ct18nlo_upperRMS_hist.view().variance),
+#     label="Upper RMS"
+# )
+# axs.scatter(
+#     profile_hist.view().value,
+#     ct18nlo_lowerratio_hist.view().value,
+#     color = "red",
+# #     label="Lower RMS"
+# )
+# axs.errorbar(
+#     profile_hist.view().value,
+#     ct18nlo_lowerratio_hist.view().value,
+#     ecolor = "red",
+#     linestyle = "",
+#     yerr = np.sqrt(ct18nlo_lowerRMS_hist.view().variance),
+#     label="Lower RMS"
+# )
+# Setting axes and legend
+# ymax = max(ct18nlo_upperRMS_hist.view().value)
+axs.set_ylim((0.5, 1.5))
+axs.set_xlim((0, 300))
+axs.set_title("")
+axs.set_xlabel("$M_{e \\mu} (GeV)$")
+axs.set_ylabel("$\\frac{\\sigma(K)}{K}$")
+hist_handles, hist_labels = axs.get_legend_handles_labels()
+axs.legend(hist_handles, hist_labels)
+# Setting fit box above legend
+# bbox = axs.legend().get_window_extent().transformed(axs.transAxes.inverted())
+# text_x = bbox.x0 + 0.1
+# text_y = bbox.y1 + 0.05  # small offset below the legend
+# axs.text(
+#     text_x, text_y,
+#     f"$\\chi^2$/$n_\\mathrm{{dof}}$ = {ct18nlo_minuit['Central'].fval:.1f} / {ct18nlo_minuit['Central'].ndof:.0f} = {ct18nlo_minuit['Central'].fmin.reduced_chi2:.1f}",
+#     transform=axs.transAxes,
+#     fontsize=axs.legend().get_texts()[0].get_fontsize(),
+#     verticalalignment='top',
+#     # bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='black')
+# )
+# Slightly fancy to remove whitespace
+fig.savefig('KFactorwPDFVariations_PDF4LHC21.png')
+plt.close()
+
 # Create ROOT histogram
 os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
 with uproot.recreate(ofile_name + ".root") as root_file:
@@ -653,6 +825,9 @@ with uproot.recreate(ofile_name + ".root") as root_file:
     root_file["KFactor_rwgt_NNPDF31NLO_Central"] = nnpdf31nlo_central_hist 
     root_file["KFactor_rwgt_MSHT20NLO_Central"] = msht20nlo_central_hist 
     root_file["KFactor_rwgt_CT18NLO_Central"] = ct18nlo_central_hist 
+    root_file["KFactor_rwgt_PDF4LHC21_Central"] = pdf4lhc21_central_hist 
+    root_file["PDFRatio_rwgt_PDF4LHC21_LowerRMS"] = pdf4lhc21_lowerratio_hist
+    root_file["PDFRatio_rwgt_PDF4LHC21_UpperRMS"] = pdf4lhc21_upperratio_hist
     root_file["PDFRatio_rwgt_NNPDF31NLO_LowerRMS"] = nnpdf31nlo_lowerratio_hist
     root_file["PDFRatio_rwgt_NNPDF31NLO_UpperRMS"] = nnpdf31nlo_upperratio_hist
     root_file["PDFRatio_rwgt_MSHT20NLO_LowerRMS"] = msht20nlo_lowerratio_hist
@@ -671,6 +846,9 @@ pickle_dict = {
     "KFactor_rwgt_NNPDF31NLO_Central": [nnpdf31nlo_central_hist],
     "KFactor_rwgt_MSHT20NLO_Central": [msht20nlo_central_hist],
     "KFactor_rwgt_CT18NLO_Central": [ct18nlo_central_hist],
+    "KFactor_rwgt_PDF4LHC21_Central": [pdf4lhc21_central_hist],
+    "PDFRatio_rwgt_PDF4LHC21_LowerRMS": [pdf4lhc21_lowerratio_hist],
+    "PDFRatio_rwgt_PDF4LHC21_UpperRMS": [pdf4lhc21_upperratio_hist],
     "PDFRatio_rwgt_NNPDF31NLO_LowerRMS": [nnpdf31nlo_lowerratio_hist],
     "PDFRatio_rwgt_NNPDF31NLO_UpperRMS": [nnpdf31nlo_upperratio_hist],
     "PDFRatio_rwgt_MSHT20NLO_LowerRMS": [msht20nlo_lowerratio_hist],

@@ -79,7 +79,7 @@ if weights_bool:
         weighthist_scale_dict[weight_name] = bh.Histogram(
             bh.axis.Variable(bins_list), storage=bh.storage.Weight()
         )
-    pdfweight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo"]
+    pdfweight_name_list = ["nnpdf31lo", "ct18lo", "msht20lo", "nnpdf31nlo", "ct18nlo", "msht20nlo", "pdf4lhc21"]
     weighthist_pdf_dict = {}
     for weight_name in pdfweight_name_list:
         weighthist_pdf_dict[weight_name + "__kfactor__bin"] = bh.Histogram(
@@ -212,7 +212,7 @@ if weights_bool:
     weighthist_pdf_dict = at.calc_pdf_mean(weighthist_pdf_dict, "__rgh__bin")
     weighthist_pdf_dict = at.calc_pdf_mean(weighthist_pdf_dict, "__fine__bin")
     pdf_scale_factor = (
-        sum(weighthist_pdf_dict['nlo_mean__kfactor__bin'].view().value) 
+        sum(weighthist_pdf_dict['pdf4lhc21__kfactor__bin'].view().value) 
         / sum(dilepton_id_mass_kfactorbin_hist.view().value) 
     )
 
@@ -231,9 +231,9 @@ if weights_bool:
     central_hist = at.divide_bh_histograms(weighthist_scale_dict["AUX_MUR10_MUF10"], weighthist_scale_dict["AUX_MUR10_MUF10"])
 
 # Multiply Hists
-    lower_env_hist = at.multiply_bh_histograms(weighthist_pdf_dict["nlo_mean__kfactor__bin"], lower_env_hist)
-    upper_env_hist = at.multiply_bh_histograms(upper_env_hist, weighthist_pdf_dict["nlo_mean__kfactor__bin"])
-    central_hist = weighthist_pdf_dict["nlo_mean__kfactor__bin"]
+    lower_env_hist = at.multiply_bh_histograms(weighthist_pdf_dict["pdf4lhc21__kfactor__bin"], lower_env_hist)
+    upper_env_hist = at.multiply_bh_histograms(upper_env_hist, weighthist_pdf_dict["pdf4lhc21__kfactor__bin"])
+    central_hist = weighthist_pdf_dict["pdf4lhc21__kfactor__bin"]
 
 if args.debug:
     exit()
@@ -244,34 +244,34 @@ os.chdir(folder_path)
 # Plot
 if weights_bool:
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__rgh__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__rgh__bin"], 
         "DiLepton Mass Linear Rough Binning",
         luminosity=luminosity
     )
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__rgh__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__rgh__bin"], 
         "DiLepton Mass Log Rough Binning",
         yscale="log",
         luminosity=luminosity
     )
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__fine__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__fine__bin"], 
         "DiLepton Mass Linear Fine Binning",
         luminosity=luminosity
     )
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__fine__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__fine__bin"], 
         "DiLepton Mass Log Fine Binning",
         yscale="log",
         luminosity=luminosity
     )
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__kfactor__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__kfactor__bin"], 
         "DiLepton Mass Linear K-Factor Binning",
         luminosity=luminosity
     )
     at.create_stair(
-        weighthist_pdf_dict["nlo_mean__kfactor__bin"], 
+        weighthist_pdf_dict["pdf4lhc21__kfactor__bin"], 
         "DiLepton Mass Log K-Factor Binning",
         yscale="log",
         luminosity=luminosity
@@ -389,16 +389,16 @@ plt.close()
 if weights_bool:
 # Mu=1.0 Histogram
     with uproot.recreate(ofile_name + ".root") as root_file:
-        root_file["DileptonKFactorFine_mu10"] = weighthist_pdf_dict["nlo_mean__kfactor__bin"]
+        root_file["DileptonKFactorFine_mu10"] = weighthist_pdf_dict["pdf4lhc21__kfactor__bin"]
         root_file["DileptonKFactorFine_upperenv"] = upper_env_hist
         root_file["DileptonKFactorFine_lowerenv"] = lower_env_hist
         root_file["EtaEtaYield"] = eta_hist
 
     os.chdir(at.find_WW_path() + "/GenLevelStudies/Histograms")
     pickle_dict = {
-        "DiLeptonMassRough": [weighthist_pdf_dict["nlo_mean__rgh__bin"]],
-        "DileptonMassFine": [weighthist_pdf_dict["nlo_mean__fine__bin"]],
-        "DileptonKFactorFine_mu10": [weighthist_pdf_dict["nlo_mean__kfactor__bin"]],
+        "DiLeptonMassRough": [weighthist_pdf_dict["pdf4lhc21__rgh__bin"]],
+        "DileptonMassFine": [weighthist_pdf_dict["pdf4lhc21__fine__bin"]],
+        "DileptonKFactorFine_mu10": [weighthist_pdf_dict["pdf4lhc21__kfactor__bin"]],
         "DileptonKFactorFine_upperenv": [upper_env_hist],
         "DileptonKFactorFine_lowerenv": [lower_env_hist],
         "DileptonKFactorProfile": [dilepton_id_mass_kfactorbin_profilehist],
@@ -416,6 +416,9 @@ else:
         root_file["DileptonKFactorFine_MeanPDF_Central"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_MeanPDF_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_MeanPDF_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_PDF4LHC21_Central"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_PDF4LHC21_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
+        root_file["DileptonKFactorFine_PDF4LHC21_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_NNPDF31NLO_Central"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_NNPDF31NLO_LowerRMS"] = dilepton_id_mass_kfactorbin_hist
         root_file["DileptonKFactorFine_NNPDF31NLO_UpperRMS"] = dilepton_id_mass_kfactorbin_hist
@@ -436,6 +439,9 @@ else:
         "DileptonKFactorFine_MeanPDF_Central": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_MeanPDF_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_MeanPDF_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_PDF4LHC21_Central": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_PDF4LHC21_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
+        "DileptonKFactorFine_PDF4LHC21_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_NNPDF31NLO_Central": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_NNPDF31NLO_UpperRMS": [dilepton_id_mass_kfactorbin_hist],
         "DileptonKFactorFine_NNPDF31NLO_LowerRMS": [dilepton_id_mass_kfactorbin_hist],
@@ -450,4 +456,3 @@ else:
     }
     with open(ofile_name + ".pkl", "wb") as f:
         pickle.dump(pickle_dict, f)
-
