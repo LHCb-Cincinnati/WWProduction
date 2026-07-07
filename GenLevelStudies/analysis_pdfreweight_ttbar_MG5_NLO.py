@@ -363,7 +363,7 @@ for weight_name in tree["pdfReweight"].fields:
     at.create_stacked_stair(
         [weighthist_dict[weight_name + "__kfactor__bin"], dilepton_id_mass_pdfreweight_hist],
         f"DiLeptonMasspdfReweightBinning_{weight_name}",
-        [weight_name, "CM09MTS"]
+        [weight_name, "CT09MCS"]
     )
 # NNPDF31LO RMS Plots
 plot_pdf_rms(

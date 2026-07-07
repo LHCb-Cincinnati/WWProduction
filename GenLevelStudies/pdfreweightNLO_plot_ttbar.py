@@ -144,7 +144,7 @@ axs.stairs(
 )
 # Setting axes and legend
 ymax = max(meanpdf_upperRMS_hist.view().value)
-axs.set_ylim((0, 1.5*ymax))
+axs.set_ylim((0, 3.0))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -226,7 +226,7 @@ axs.stairs(
     label="PDF4LHC21"
 )
 ymax = max(meanpdf_upperRMS_hist.view().value)
-axs.set_ylim((0, 1.5*ymax))
+axs.set_ylim((0, 3.0))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -294,7 +294,7 @@ axs.stairs(
     label="PDF4LHC21"
 )
 ymax = max(meanpdf_upperRMS_hist.view().value)
-axs.set_ylim((0, 1.5*ymax))
+axs.set_ylim((0, 3.0))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -362,7 +362,7 @@ axs.stairs(
     label="PDF4LHC21"
 )
 ymax = max(meanpdf_upperRMS_hist.view().value)
-axs.set_ylim((0, 1.5*ymax))
+axs.set_ylim((0, 3.0))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -430,7 +430,7 @@ axs.bar(
     label="PDF4LHC21 68% CL Envelope"
 )
 ymax = max(meanpdf_upperRMS_hist.view().value)
-axs.set_ylim((0, 1.5*ymax))
+axs.set_ylim((0, 3.0))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -567,7 +567,7 @@ axs.bar(
 # )
 # Setting axes and legend
 # ymax = max(nnpdf31nlo_upperRMS_hist.view().value)
-# axs.set_ylim((0, 1.5*ymax))
+# axs.set_ylim((0, 3.0))
 axs.set_ylim((0.5, 1.5))
 axs.set_xlim((0, 300))
 axs.set_title("")

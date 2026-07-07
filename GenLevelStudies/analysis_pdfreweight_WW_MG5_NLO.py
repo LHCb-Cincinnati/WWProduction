@@ -323,16 +323,28 @@ pdfrwgt_hist.view(flow=True).variance = (
     / dilepton_id_mass_pdfreweight_hist.view(flow=True).value
 )
 
+# Calc 68% CL Limits for PDF4LHC Weights
+pdf4lhc21_central_key = "PDFMember0Weight"
+pdf4lhc21_replica_keys = [key for key in pdf4lhc_hist_dict if key != pdf4lhc21_central_key]
+pdf4lhc21_replica_values = np.array(
+    [pdf4lhc_hist_dict[key].view(flow=True).value.sum() for key in pdf4lhc21_replica_keys]
+)
+pdf4lhc21_ordered_replica_values = np.sort(pdf4lhc21_replica_values)
+pdf4lhc21_lowercl_value = pdf4lhc21_ordered_replica_values[15]
+pdf4lhc21_uppercl_value = pdf4lhc21_ordered_replica_values[83]
+        
 # Print Statements:
 print(f"Unweighted Events: {unweighted_event_counter}")
 print(f"Weighted Events: {unweighted_event_counter * scale_factor}")
 for weight_name in weight_name_list:
     print(f"{weight_name}: {weighthist_dict[weight_name].view(flow=True).value.sum() / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
 print(f"Mean PDF: {weighthist_dict['nlo_mean'].view(flow=True).value.sum() / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
+print(f"PDF4LHC21 Lower CL Value: {pdf4lhc21_lowercl_value / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
+print(f"PDF4LHC21 Upper CL Value: {pdf4lhc21_uppercl_value / dilepton_id_mass_pdfreweight_hist.view(flow=True).value.sum() * unweighted_event_counter * scale_factor}")
 
 if args.debug:
     pass
-    # exit()
+    exit()
 
 # Save Figures
 folder_path = at.create_folder_path(ofile_name, args.testing)
@@ -500,7 +512,7 @@ axs.bar(
 #     color="black"
 # )
 axs.set_xlim((0, 300))
-# axs.set_ylim((0, 4.0))
+axs.set_ylim((0.7, 1.3))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("PDF Deviation to the Nominal")
@@ -545,7 +557,7 @@ axs.bar(
 #     label="Upper Envelope",
 #     color="black"
 # )
-# axs.set_ylim((0, 4.0))
+axs.set_ylim((0.7, 1.3))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -603,7 +615,7 @@ axs.bar(
 #     # zorder=-1, 
 #     label="NNPDF31NLO Envelope"
 # )
-# axs.set_ylim((0, 4.0))
+axs.set_ylim((0.7, 1.3))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -611,7 +623,7 @@ axs.set_ylabel("PDF Deviation to the Nominal")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
 # Slightly fancy to remove whitespace
-fig.savefig('DiLeptonMassPDFVariations_Ratio_ct18LO.png')
+fig.savefig('DiLeptonMassPDFVariations_Ratio_MSHT20NLO.png')
 plt.close()
 # CT18NLO Ratio Plot
 fig, axs = plt.subplots()
@@ -664,7 +676,7 @@ axs.bar(
 #     # zorder=-1, 
 #     label="NNPDF31NLO Envelope"
 # )
-# axs.set_ylim((0, 4.0))
+axs.set_ylim((0.7, 1.3))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -686,15 +698,16 @@ axs.bar(
     linewidth=0,
     color="purple",
     alpha=0.25,
-    label="PDF4LHC 68% CL Envelope"
+    label="PDF4LHC21 68% CL Envelope"
 )
+axs.set_ylim((0.7, 1.3))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("PDF Deviation to the Nominal")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
-fig.savefig('DiLeptonMassPDFVariations_Ratio_PDF4LHC.png')
+fig.savefig('DiLeptonMassPDFVariations_Ratio_PDF4LHC21.png')
 plt.close()
 # Many Family PDF Plots
 fig, axs = plt.subplots()
@@ -744,6 +757,7 @@ axs.bar(
     zorder=-1, 
     label="Mean w/ RMS Envelope"
 )
+axs.set_ylim( (0, 75))
 axs.set_xlim((0, 300))
 axs.set_title("PDF Variations")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -811,6 +825,7 @@ axs.stairs(
     label="PDF4LHC21",
     color="purple"
 )
+axs.set_ylim( (0, 75))
 axs.set_xlim((0, 300))
 axs.set_title("PDF Variations")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -878,6 +893,7 @@ axs.stairs(
     label="PDF4LHC21",
     color="purple"
 )
+axs.set_ylim( (0, 75))
 axs.set_xlim((0, 300))
 axs.set_title("PDF Variations")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -945,6 +961,7 @@ axs.stairs(
     label="PDF4LHC21",
     color="purple"
 )
+axs.set_ylim( (0, 75))
 axs.set_xlim((0, 300))
 axs.set_title("PDF Variations")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
@@ -1015,13 +1032,14 @@ axs.bar(
     label="PDF4LHC21 68% CL Envelope",
     zorder=2
 )
+axs.set_ylim( (0, 75))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
-fig.savefig('DiLeptonMassPDFVariations_PDF4LHCReplicas.png')
+fig.savefig('DiLeptonMassPDFVariations_PDF4LHC21.png')
 plt.close()
 
 

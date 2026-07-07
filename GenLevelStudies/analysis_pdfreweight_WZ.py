@@ -576,16 +576,16 @@ axs.bar(
     linewidth=0,
     color="purple",
     alpha=0.25,
-    label="PDF4LHC 68% CL Envelope"
+    label="PDF4LHC21 68% CL Envelope"
 )
-axs.set_ylim((0, 5.0))
+axs.set_ylim((0.8, 1.2))
 axs.set_xlim((0, 300))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("PDF Deviation to the Nominal")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
-fig.savefig('DiLeptonMassPDFVariations_Ratio_PDF4LHC.png')
+fig.savefig('DiLeptonMassPDFVariations_Ratio_PDF4LHC21.png')
 plt.close()
 # NNPDF31LO RMS Plots
 fig, axs = plt.subplots()
@@ -651,7 +651,7 @@ axs.stairs(
     color="purple"
 )
 axs.set_xlim((0, 300))
-axs.set_ylim((0, 3))
+axs.set_ylim((0, 4))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
@@ -724,7 +724,7 @@ axs.stairs(
     color="purple"
 )
 axs.set_xlim((0, 300))
-axs.set_ylim((0, 3))
+axs.set_ylim((0, 4))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
@@ -782,7 +782,7 @@ axs.bar(
     label="Mean RMS Envelope"
 )
 axs.set_xlim((0, 300))
-axs.set_ylim((0, 3))
+axs.set_ylim((0, 4))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
@@ -853,13 +853,13 @@ axs.bar(
     zorder=2
 )
 axs.set_xlim((0, 300))
-axs.set_ylim((0, 3))
+axs.set_ylim((0, 4))
 axs.set_title("")
 axs.set_xlabel("$M_{e \\mu} (GeV)$")
 axs.set_ylabel("$ \\frac{d \\sigma}{d M_{e \\mu}} \\left( \\frac{\\mathrm{fb}}{\\mathrm{GeV}} \\right)$")
 hist_handles, hist_labels = axs.get_legend_handles_labels()
 axs.legend(hist_handles, hist_labels)
-fig.savefig('DiLeptonMassPDFVariations_PDF4LHCReplicas.png')
+fig.savefig('DiLeptonMassPDFVariations_PDF4LHC21.png')
 plt.close()
 
 # Save Histos in ROOT
