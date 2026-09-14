@@ -4,6 +4,7 @@ import argparse
 import gzip
 import re
 import sys
+import pdb
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,10 @@ from pathlib import Path
 import numpy as np
 
 import ROOT
+
+# Personal Packages
+sys.path.append(".") # Not great form.
+import AnalysisTools as at
 
 DEFAULT_CMD = Path(__file__).with_name("MG5NLOShower.cmd")
 # ROOT = None
@@ -39,7 +44,7 @@ def parse_args(argv):
         description="Shower an MG5_aMC@NLO LHE file with Pythia8."
     )
     parser.add_argument("lhe_file", help="Input LHE or LHE.gz file.")
-    parser.add_argument("output_file", help="Output ROOT file.")
+    parser.add_argument("output_file", help="Output ROOT file.", default = "Test.root")
     parser.add_argument(
         "-c",
         "--command-file",
@@ -50,7 +55,7 @@ def parse_args(argv):
         "-n",
         "--number-events",
         type=int,
-        default=None,
+        default=-1,
         help="Override Main:numberOfEvents. Use a negative value to run to LHE EOF.",
     )
     return parser.parse_args(argv)
@@ -196,16 +201,28 @@ def configure_pythia(command_file, lhe_file, number_events):
 
     pythia = pythia8.Pythia()
     pythia.readFile(str(command_file))
+    # Uses the beam conditions defined by the lhe file
     pythia.readString(f"Beams:LHEF = {lhe_file}")
-    if number_events is not None:
+    # Enables the jet-matching userHook so that 
+    # the jet-matching veto is implemented
+    jetMatchingHook = pythia8.CombineMatchingInput()
+    jetMatchingHook.setHook(pythia)
+    if number_events > 0:
         pythia.readString(f"Main:numberOfEvents = {number_events}")
     return pythia
 
 
+def get_nonradiative_decay(event, particle):
+    ichild_list = particle.daughterList()
+    for ichild in ichild_list:
+        if event[ichild].id() == particle.id():
+            return(get_nonradiative_decay(event, event[ichild]))
+    return(particle)
+
 def main(argv=None):
     args = parse_args(sys.argv[1:] if argv is None else argv)
     lhe_file = Path(args.lhe_file).expanduser()
-    output_file = Path(args.output_file).expanduser()
+    output_file = Path("pythia/" + args.output_file + ".root").expanduser()
     command_file = Path(args.command_file).expanduser()
 
     if not lhe_file.exists():
@@ -227,11 +244,20 @@ def main(argv=None):
     root_file = ROOT.TFile.Open(str(output_file), "RECREATE")
     tree = ROOT.TTree("Tree", "Tree")
 
+    var_str = 'px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:charge/F:status/F'
+    born_lepton_array = np.array([0]*12, dtype=np.float32)
+    born_antilepton_array = np.array([0]*12, dtype=np.float32)
+    bare_lepton_array = np.array([0]*12, dtype=np.float32)
+    bare_antilepton_array = np.array([0]*12, dtype=np.float32)
     event_array = np.zeros(1, dtype=np.float32)
     nominal_weight_array = np.zeros(1, dtype=np.float32)
     pythia_weight_array = np.zeros(1, dtype=np.float32)
 
     tree.Branch("Event", event_array, "Event/F")
+    tree.Branch('BornLepton', born_lepton_array, var_str)
+    tree.Branch('BornAntiLepton', born_antilepton_array, var_str)
+    tree.Branch('BareLepton', bare_lepton_array, var_str)
+    tree.Branch('BareAntiLepton', bare_antilepton_array, var_str)
     tree.Branch("NominalWeight", nominal_weight_array, "NominalWeight/F")
     tree.Branch("PythiaWeight", pythia_weight_array, "PythiaWeight/F")
     for group in weight_groups:
@@ -257,9 +283,31 @@ def main(argv=None):
         info = pythia.infoPython()
         weight_values = list(info.weightValueVector())
 
+        final_hardscatter_part_list = (
+            [particle for particle in pythia.event if particle.statusAbs() == 23]
+        )
+        for particle in final_hardscatter_part_list:
+            if particle.id() in [11, 13]:
+                born_lminus = particle
+                bare_lminus = get_nonradiative_decay(pythia.event, particle)
+            elif particle.id() in [-11, -13]:
+                born_lplus = particle
+                bare_lplus = get_nonradiative_decay(pythia.event, particle)
         event_array[0] = i_event
         nominal_weight_array[0] = weight_values[0] if weight_values else info.weight()
         pythia_weight_array[0] = info.weightValueByIndex()
+        born_lepton_array = at.fill_array(
+            born_lepton_array, pythia.event, born_lminus.index()
+        )
+        born_antilepton_array = at.fill_array(
+            born_antilepton_array, pythia.event, born_lplus.index()
+        )
+        bare_lepton_array = at.fill_array(
+            bare_lepton_array, pythia.event, bare_lminus.index()
+        )
+        bare_antilepton_array = at.fill_array(
+            bare_antilepton_array, pythia.event, bare_lplus.index()
+        )
         fill_weight_arrays(weight_groups, weight_arrays, weight_values)
         fill_event_content(pythia, tree)
         tree.Fill()
@@ -267,7 +315,7 @@ def main(argv=None):
 
     write_weight_metadata(root_file, weight_groups)
     pythia.stat()
-    tree.Print()
+    # tree.Print()
     root_file.Write()
     root_file.Close()
 
