@@ -177,8 +177,8 @@ def find_WW_path():
     '''
 
     cwd_list = os.getcwd().split('/')
-    WW_index = cwd_list.index('WWProduction')
-    path = '/'.join(cwd_list[:WW_index+1])
+    WW_index = len(cwd_list) - tuple(reversed(cwd_list)).index("WWProduction")
+    path = '/'.join(cwd_list[:WW_index])
     return(path)
 
 def calculate_hist_stats(hist):
@@ -689,6 +689,76 @@ def fill_array_big(array, event, index):
                 particle.tProd())
     return(array)
 
+def is_final_particle(particle):
+    '''Checks if a pythia particle is final-state compatible.
+
+    Uses the Pythia isFinal() helper when available, and falls back to
+    positive status codes for older bindings or particle-like objects.
+    '''
+
+    if hasattr(particle, "isFinal"):
+        return(particle.isFinal())
+    return(particle.status() > 0)
+
+def final_same_pid_descendants(event, index, pid):
+    '''Finds final descendants with the same signed PID.
+
+    Args:
+    event (pythia.event): Pythia event log.
+    index (int): Starting particle index.
+    pid (int): Signed PDG ID required for descendants.
+
+    Returns:
+    list[int]: Final-state-compatible descendant indices with the same PID.
+    '''
+
+    candidates = []
+    for idaughter in event[index].daughterList():
+        daughter = event[idaughter]
+        if daughter.id() == pid and is_final_particle(daughter):
+            candidates.append(idaughter)
+        candidates.extend(final_same_pid_descendants(event, idaughter, pid))
+    return(candidates)
+
+def get_nonradiative_decay(event, particle_or_index):
+    '''Gets the final same-PID copy in a non-radiative decay chain.
+
+    Follows same signed-PDG-ID daughters through a Pythia event history. If the
+    direct same-PID chain ends before a final-state-compatible particle, the
+    remaining descendants are searched for one unambiguous final same-PID copy.
+
+    Args:
+    event (pythia.event): Pythia event log.
+    particle_or_index (pythia.particle or int): Particle or index to trace.
+
+    Returns:
+    int or None: Bare-particle index, or None if the history is ambiguous.
+    '''
+
+    if isinstance(particle_or_index, int):
+        index = particle_or_index
+    else:
+        index = particle_or_index.index()
+
+    particle = event[index]
+    same_pid_daughters = [
+        idaughter for idaughter in particle.daughterList()
+        if event[idaughter].id() == particle.id()
+    ]
+
+    if len(same_pid_daughters) == 1:
+        return(get_nonradiative_decay(event, same_pid_daughters[0]))
+    if len(same_pid_daughters) > 1:
+        return(None)
+    if is_final_particle(particle):
+        return(index)
+
+    final_candidates = final_same_pid_descendants(event, index, particle.id())
+    unique_candidates = sorted(set(final_candidates))
+    if len(unique_candidates) == 1:
+        return(unique_candidates[0])
+    return(None)
+
 def get_target_children(target_index, event, child_index_list=[]):
     ''' Gets index of non-radiative target children in a pythia event.
 
@@ -758,4 +828,3 @@ def check_radiative_decay(event, particle):
             if event[idaughter1 + index] == particle.id():
                 return(True)
         return(False)
-
