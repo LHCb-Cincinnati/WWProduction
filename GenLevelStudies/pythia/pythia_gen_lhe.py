@@ -252,8 +252,14 @@ def main(argv=None):
     event_array = np.zeros(1, dtype=np.float32)
     nominal_weight_array = np.zeros(1, dtype=np.float32)
     pythia_weight_array = np.zeros(1, dtype=np.float32)
+    initial_conditions_array = np.zeros(5, dtype=np.float32)
 
     tree.Branch("Event", event_array, "Event/F")
+    tree.Branch(
+        "InitialConditions",
+        initial_conditions_array,
+        "x1/F:id1/F:x2/F:id2/F:Q2/F",
+    )
     tree.Branch('BornLepton', born_lepton_array, var_str)
     tree.Branch('BornAntiLepton', born_antilepton_array, var_str)
     tree.Branch('BareLepton', bare_lepton_array, var_str)
@@ -296,6 +302,15 @@ def main(argv=None):
         event_array[0] = i_event
         nominal_weight_array[0] = weight_values[0] if weight_values else info.weight()
         pythia_weight_array[0] = info.weightValueByIndex()
+        # Use the PDF-specific hard-process values and the factorization scale;
+        # these are the quantities needed for event-by-event PDF reweighting.
+        initial_conditions_array[:] = (
+            info.x1pdf(),
+            info.id1pdf(),
+            info.x2pdf(),
+            info.id2pdf(),
+            info.Q2Fac(),
+        )
         born_lepton_array = at.fill_array(
             born_lepton_array, pythia.event, born_lminus.index()
         )
