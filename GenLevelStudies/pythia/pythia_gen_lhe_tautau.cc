@@ -1,6 +1,6 @@
 /**
  * @file pythia_gen_lhe_tautau.cc
- * @brief Shower Z-to-tau-pair events with forced leptonic tau decays.
+ * @brief Shower events and select the leading opposite-sign tau pair.
  *
  * Compile from the repository root with:
  * @code{.sh}
@@ -15,7 +15,6 @@
 
 #include "pythia_lhe_helpers.h"
 
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -45,33 +44,30 @@ bool hasSameIdMother(const Pythia8::Event& event, int index) {
 }
 
 /**
- * Finds a unique direct daughter with a requested PDG ID.
+ * Finds the highest-pT root tau of one charge.
+ *
+ * Same-ID descendants are excluded so radiation copies cannot compete with
+ * their original tau. The pT comparison uses the earliest copy in each tau
+ * history, before following that history to its decay.
  *
  * Args:
  *   event: Complete Pythia event record.
- *   parent: Parent particle index.
- *   daughterId: Requested daughter PDG ID.
- *   daughter: Output daughter index.
+ *   tauId: Requested tau PDG ID, either 15 or -15.
  *
  * Returns:
- *   True exactly when one matching direct daughter exists.
+ *   Index of the highest-pT root tau, or -1 when that charge is absent.
  */
-bool uniqueDirectDaughter(const Pythia8::Event& event,
-                          int parent,
-                          int daughterId,
-                          int& daughter) {
-  daughter = -1;
-  int matches = 0;
-  const std::vector<int> daughters = event[parent].daughterList();
-  for (std::vector<int>::const_iterator candidate = daughters.begin();
-       candidate != daughters.end(); ++candidate) {
-    if (*candidate > 0 && *candidate < event.size()
-        && event[*candidate].id() == daughterId) {
-      daughter = *candidate;
-      ++matches;
+int highestPtRootTau(const Pythia8::Event& event, int tauId) {
+  int bestIndex = -1;
+  double bestPt = -1.0;
+  for (int index = 1; index < event.size(); ++index) {
+    if (event[index].id() != tauId || hasSameIdMother(event, index)) continue;
+    if (event[index].pT() > bestPt) {
+      bestIndex = index;
+      bestPt = event[index].pT();
     }
   }
-  return matches == 1;
+  return bestIndex;
 }
 
 /**
@@ -79,7 +75,7 @@ bool uniqueDirectDaughter(const Pythia8::Event& event,
  *
  * Args:
  *   event: Complete Pythia event record.
- *   firstTau: Earliest tau copy descended directly from the Z.
+ *   firstTau: Earliest copy of the selected tau history.
  *   bornLepton: Output index of the direct charged-lepton daughter.
  *   bareLepton: Output index of the final same-ID lepton copy.
  *
@@ -109,8 +105,8 @@ bool tauDecayLepton(const Pythia8::Event& event,
   return true;
 }
 
-/** Selects charged leptons from an explicit Z-to-tau-pair decay history. */
-class ZTauTauSelector : public pythia_lhe::EventSelector {
+/** Selects charged leptons from the leading root tau of each charge. */
+class LeadingTauPairSelector : public pythia_lhe::EventSelector {
  public:
   /**
    * Forces every tau to use decay modes containing an electron or muon.
@@ -128,7 +124,7 @@ class ZTauTauSelector : public pythia_lhe::EventSelector {
   }
 
   /**
-   * Selects the charged daughters of the unique Z-sourced tau pair.
+   * Selects charged daughters of the highest-pT opposite-sign root tau pair.
    *
    * Args:
    *   event: Complete Pythia event record.
@@ -136,35 +132,23 @@ class ZTauTauSelector : public pythia_lhe::EventSelector {
    *   failureReason: Explanation when the decay history is unsuitable.
    *
    * Returns:
-   *   True when one unambiguous Z-to-tau-pair history is found.
+   *   True when both tau charges and their forced leptonic decays are found.
    */
   bool select(const Pythia8::Event& event,
               pythia_lhe::SelectedLeptons& selected,
               std::string& failureReason) const override {
-    struct TauPair { int minus; int plus; };
-    std::vector<TauPair> pairs;
-    for (int index = 1; index < event.size(); ++index) {
-      if (event[index].id() != 23 || hasSameIdMother(event, index)) continue;
-      const int zDecay = pythia_lhe::lastSameIdCopy(event, index);
-      TauPair pair = {-1, -1};
-      if (uniqueDirectDaughter(event, zDecay, 15, pair.minus)
-          && uniqueDirectDaughter(event, zDecay, -15, pair.plus)) {
-        pairs.push_back(pair);
-      }
-    }
-
-    if (pairs.size() != 1) {
-      std::ostringstream reason;
-      reason << "expected one explicit Z -> tau- tau+ history; found "
-             << pairs.size();
-      failureReason = reason.str();
+    const int tauMinus = highestPtRootTau(event, 15);
+    const int tauPlus = highestPtRootTau(event, -15);
+    if (tauMinus < 0 || tauPlus < 0) {
+      failureReason = "could not find at least one root tau of each charge";
       return false;
     }
-    if (!tauDecayLepton(event, pairs[0].minus, selected.bornMinus,
+    if (!tauDecayLepton(event, tauMinus, selected.bornMinus,
                         selected.bareMinus)
-        || !tauDecayLepton(event, pairs[0].plus, selected.bornPlus,
+        || !tauDecayLepton(event, tauPlus, selected.bornPlus,
                            selected.barePlus)) {
-      failureReason = "the Z-sourced taus do not each have one direct e/mu daughter";
+      failureReason =
+          "the highest-pT opposite-sign taus do not each have one direct e/mu daughter";
       return false;
     }
     return true;
@@ -177,9 +161,11 @@ class ZTauTauSelector : public pythia_lhe::EventSelector {
   std::string metadataText() const override {
     return "Both tau charges were forced to decay through modes containing an "
            "electron or muon (15:onMode = off; 15:onIfAny = 11 13).\n"
-           "BornLepton and BornAntiLepton are direct daughters of the tau- and "
-           "tau+ from an explicit Z decay; Bare branches are their last "
-           "same-PDG-ID copies after radiation.\nPythia renormalizes enabled "
+           "The highest-pT root tau- and highest-pT root tau+ are selected "
+           "independently; they are not required to share a parent. "
+           "BornLepton and BornAntiLepton are their direct charged-lepton "
+           "daughters; Bare branches are the last same-PDG-ID copies after "
+           "radiation.\nPythia renormalizes enabled "
            "tau branching fractions to unity; stored weights and the reported "
            "production cross section do not include the physical double-"
            "leptonic tau branching fraction.";
@@ -189,7 +175,7 @@ class ZTauTauSelector : public pythia_lhe::EventSelector {
 }  // namespace
 
 /**
- * Runs the forced Z-to-tau-pair LHE showering executable.
+ * Runs the forced leading-opposite-sign-tau LHE showering executable.
  *
  * Args:
  *   argc: Command-line argument count.
@@ -199,6 +185,7 @@ class ZTauTauSelector : public pythia_lhe::EventSelector {
  *   Process exit status.
  */
 int main(int argc, char* argv[]) {
-  const ZTauTauSelector selector;
+  const LeadingTauPairSelector selector;
   return pythia_lhe::run(argc, argv, selector);
 }
+

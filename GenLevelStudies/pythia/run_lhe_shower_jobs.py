@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
-"""Run many independent NLO LHE showering jobs in parallel.
+"""Run many independent LHE showering jobs with a selected C++ executable.
 
 This wrapper intentionally does not merge the produced ROOT files.  Each input
 LHE file is showered by one serial C++ process with its own deterministic seed.
 
-Example:
+Compile the showering executables:
+    conda activate hep
+    make -C GenLevelStudies/pythia -f Makefile.pythia_gen_lhe all
+
+Run the NLO dilepton shower:
     python GenLevelStudies/pythia/run_lhe_shower_jobs.py \
-        GenLevelStudies/madgraph/LHEs/Ex_tW.lhe \
-        -o /tmp/showered -j 1
+        .agents/skills/showering/assets/ex_WW.lhe \
+        --shower-script GenLevelStudies/pythia/pythia_gen_lhe_nlo \
+        -o /tmp/showered_nlo -j 1
+
+Run the forced tau-decay shower:
+    python GenLevelStudies/pythia/run_lhe_shower_jobs.py \
+        .agents/skills/showering/assets/Ex_Z_tautau_NLO.lhe \
+        --shower-script GenLevelStudies/pythia/pythia_gen_lhe_tautau \
+        -o /tmp/showered_tautau -j 1
 """
 
 import argparse
@@ -17,6 +28,31 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+
+def executable_path(value):
+    """Validate and normalize a showering executable path for argparse.
+
+    Args:
+        value: User-provided filesystem path.
+
+    Returns:
+        Absolute path to an existing executable file.
+
+    Raises:
+        argparse.ArgumentTypeError: The path is absent, not a file, or not
+            executable by the current user.
+    """
+    path = Path(value).expanduser()
+    if not path.is_file():
+        raise argparse.ArgumentTypeError(
+            f"showering script does not exist or is not a file: {path}"
+        )
+    if not os.access(path, os.X_OK):
+        raise argparse.ArgumentTypeError(
+            f"showering script is not executable: {path}"
+        )
+    return str(path.resolve())
 
 
 def parse_args(argv):
@@ -29,7 +65,7 @@ def parse_args(argv):
         Parsed argparse namespace.
     """
     parser = argparse.ArgumentParser(
-        description="Launch one serial pythia_gen_lhe_nlo process per LHE file."
+        description="Launch one serial, selectable C++ shower per LHE file."
     )
     parser.add_argument(
         "lhe_files",
@@ -43,10 +79,15 @@ def parse_args(argv):
         help="Directory where per-LHE ROOT files will be written.",
     )
     parser.add_argument(
-        "-e",
-        "--executable",
+        "-s",
+        "--shower-script",
+        type=executable_path,
         default=str(Path(__file__).with_name("pythia_gen_lhe_nlo")),
-        help="Path to the compiled NLO dilepton showering executable.",
+        metavar="EXECUTABLE",
+        help=(
+            "Path to an existing executable showering script "
+            "(default: pythia_gen_lhe_nlo beside this launcher)."
+        ),
     )
     parser.add_argument(
         "-c",
@@ -145,7 +186,7 @@ def build_jobs(args):
         seed = args.base_seed + index
 
         command = [
-            args.executable,
+            args.shower_script,
             str(lhe_path),
             str(output_file),
             "-c",
@@ -215,3 +256,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+
