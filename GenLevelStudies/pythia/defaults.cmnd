@@ -1,0 +1,28 @@
+# General Settings                                                                                                                                
+Init:showChangedSettings = on      # list changed settings
+Init:showChangedParticleData = on  # list changed particle data
+TimeShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTmaxMatch = 0 #Kinematic limit
+SpaceShower:pTdampMatch = 1 #Apply damping
+TimeShower:pTdampMatch = 1 #Apply damping
+SpaceShower:phiIntAsym = off #Pythia asymmetric showering bug
+
+# LHCb Defaults
+# Beam Settings
+Tune:pp = 5 # Revert to 4C tuning
+# Beams:frameType = 3
+Beams:idA = 2212
+Beams:idB = 2212
+Beams:eA = 6500
+Beams:eb = 6500
+Beams:eCM = 13000
+# Beams:allowMomentumSpread = on
+
+# Tune
+SpaceShower:rapidityOrder = off      # General
+MultipartonInteractions:bProfile = 1 # reset the default bProfile
+SpaceShower:alphaSvalue             = 0.130
+MultipartonInteractions:alphaSvalue = 0.130
+MultipartonInteractions:ecmRef      = 7000
+MultipartonInteractions:pT0Ref      = 2.742289e+00' # Multiparton interactions
+MultipartonInteractions:ecmPow      = 0.238

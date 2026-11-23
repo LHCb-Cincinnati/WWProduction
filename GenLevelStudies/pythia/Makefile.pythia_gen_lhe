@@ -1,0 +1,53 @@
+# Build example (from the repository root):
+#   conda activate hep
+#   make -C GenLevelStudies/pythia -f Makefile.pythia_gen_lhe all
+# Run example:
+#   GenLevelStudies/pythia/pythia_gen_lhe_nlo input.lhe output.root --seed 1
+
+SHELL := /usr/bin/env bash
+
+CXX ?= c++
+AR ?= ar
+PYTHIA8_CONFIG ?= pythia8-config
+ROOT_CONFIG ?= root-config
+GLIBCXX_USE_CXX11_ABI ?= 1
+
+TARGETS := pythia_gen_lhe_nlo pythia_gen_lhe_tautau
+LEGACY_TARGET := pythia_gen_lhe
+HELPER_LIBRARY := libpythia_lhe_helpers.a
+HELPER_OBJECT := pythia_lhe_helpers.o
+
+PYTHIA8_CXXFLAGS := $(shell $(PYTHIA8_CONFIG) --cxxflags 2>/dev/null)
+PYTHIA8_LIBS := $(shell $(PYTHIA8_CONFIG) --libs 2>/dev/null)
+ROOT_CXXFLAGS := $(shell $(ROOT_CONFIG) --cflags 2>/dev/null)
+ROOT_LIBS := $(shell $(ROOT_CONFIG) --libs 2>/dev/null)
+
+CXXFLAGS ?= -O2 -std=c++11 -pedantic -W -Wall -Wshadow -pthread
+ABI_CXXFLAGS := -D_GLIBCXX_USE_CXX11_ABI=$(GLIBCXX_USE_CXX11_ABI)
+
+.PHONY: all check-config clean
+
+all: check-config $(TARGETS)
+
+check-config:
+	@command -v "$(PYTHIA8_CONFIG)" >/dev/null 2>&1 || test -x "$(PYTHIA8_CONFIG)" || (echo "Missing PYTHIA8_CONFIG: $(PYTHIA8_CONFIG)" >&2; exit 1)
+	@command -v "$(ROOT_CONFIG)" >/dev/null 2>&1 || test -x "$(ROOT_CONFIG)" || (echo "Missing ROOT_CONFIG: $(ROOT_CONFIG)" >&2; exit 1)
+	@test -n "$(PYTHIA8_CXXFLAGS)" || (echo "Could not read Pythia cxxflags from $(PYTHIA8_CONFIG)" >&2; exit 1)
+	@test -n "$(PYTHIA8_LIBS)" || (echo "Could not read Pythia libs from $(PYTHIA8_CONFIG)" >&2; exit 1)
+	@test -n "$(ROOT_CXXFLAGS)" || (echo "Could not read ROOT cflags from $(ROOT_CONFIG)" >&2; exit 1)
+	@test -n "$(ROOT_LIBS)" || (echo "Could not read ROOT libs from $(ROOT_CONFIG)" >&2; exit 1)
+
+$(HELPER_OBJECT): pythia_lhe_helpers.cc pythia_lhe_helpers.h
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) -c $< -o $@
+
+$(HELPER_LIBRARY): $(HELPER_OBJECT)
+	$(AR) rcs $@ $^
+
+pythia_gen_lhe_nlo: pythia_gen_lhe_nlo.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
+
+pythia_gen_lhe_tautau: pythia_gen_lhe_tautau.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
+
+clean:
+	rm -f $(TARGETS) $(LEGACY_TARGET) $(HELPER_OBJECT) $(HELPER_LIBRARY)

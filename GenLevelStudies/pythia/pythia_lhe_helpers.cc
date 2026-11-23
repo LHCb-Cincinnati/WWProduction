@@ -1,9 +1,19 @@
-// Shower an MG5_aMC@NLO LHE file with Pythia8 and write selected
-// generator-level information to a ROOT file.
-//
-// This is the C++ analogue of pythia_gen_lhe.py.  The important difference is
-// that the C++ Pythia interface exposes CombineMatchingInput, so FxFx/MLM
-// matching can install the JetMatching user hook before Pythia initialization.
+/**
+ * @file pythia_lhe_helpers.cc
+ * @brief Shared Pythia, JetMatching, LHE-weight, and ROOT-output implementation.
+ *
+ * Compile and link this helper through both executables with:
+ * @code{.sh}
+ * conda activate hep
+ * make -C GenLevelStudies/pythia -f Makefile.pythia_gen_lhe all
+ * @endcode
+ * Run a linked executable with:
+ * @code{.sh}
+ * GenLevelStudies/pythia/pythia_gen_lhe_nlo input.lhe output.root
+ * @endcode
+ */
+
+#include "pythia_lhe_helpers.h"
 
 #include "Pythia8/Pythia.h"
 #include "Pythia8Plugins/CombineMatchingInput.h"
@@ -24,8 +34,9 @@
 #include <string>
 #include <vector>
 
-namespace {
+namespace pythia_lhe {
 
+/** Parsed command-line options shared by all showering executables. */
 struct Options {
   std::string lheFile;
   std::string outputFile;
@@ -37,24 +48,28 @@ struct Options {
   bool verbose = false;
 };
 
+/** Metadata for one named LHE variation weight. */
 struct WeightInfo {
   std::string weightId;
   std::string leafName;
   std::string description;
 };
 
+/** Metadata for one LHE weight group and its ROOT branch. */
 struct WeightGroup {
   std::string branchName;
   std::string originalName;
   std::vector<WeightInfo> weights;
 };
 
+/** Runtime storage backing one variable-size ROOT weight branch. */
 struct WeightBranch {
   WeightGroup group;
   std::vector<float> values;
   std::string leafList;
 };
 
+/** Flat particle representation matching the historical ROOT leaf layout. */
 struct ParticleRecord {
   float px = 0.0;
   float py = 0.0;
@@ -70,6 +85,7 @@ struct ParticleRecord {
   float status = 0.0;
 };
 
+/** Initial parton flavours, momentum fractions, and factorization scale. */
 struct InitialConditionsRecord {
   float x1 = 0.0;
   float id1 = 0.0;
@@ -81,6 +97,12 @@ struct InitialConditionsRecord {
 static_assert(sizeof(InitialConditionsRecord) == 5 * sizeof(float),
               "InitialConditionsRecord must match its ROOT leaf list");
 
+/**
+ * Prints command-line help.
+ *
+ * Args:
+ *   program: Executable name displayed in the usage line.
+ */
 void printUsage(const char* program) {
   std::cerr
       << "Usage: " << program
@@ -88,11 +110,29 @@ void printUsage(const char* program) {
       << " [--seed seed] [--verbose]\n";
 }
 
+/**
+ * Tests whether a path can be opened for reading.
+ *
+ * Args:
+ *   path: Candidate input path.
+ *
+ * Returns:
+ *   True when the file is readable.
+ */
 bool fileExists(const std::string& path) {
   std::ifstream input(path.c_str());
   return input.good();
 }
 
+/**
+ * Extracts the directory component of a path.
+ *
+ * Args:
+ *   path: Input filesystem path.
+ *
+ * Returns:
+ *   Directory component or a suitable root/current-directory fallback.
+ */
 std::string dirname(const std::string& path) {
   const std::string::size_type slash = path.find_last_of('/');
   if (slash == std::string::npos) return ".";
@@ -100,6 +140,15 @@ std::string dirname(const std::string& path) {
   return path.substr(0, slash);
 }
 
+/**
+ * Resolves the default production Pythia command file.
+ *
+ * Args:
+ *   programPath: Path used to invoke the executable.
+ *
+ * Returns:
+ *   Existing repository-relative or executable-relative command-file path.
+ */
 std::string resolveDefaultCommandFile(const std::string& programPath) {
   const std::string repoRootDefault = "GenLevelStudies/pythia/MG5NLOShower.cmd";
   if (fileExists(repoRootDefault)) return repoRootDefault;
@@ -110,6 +159,19 @@ std::string resolveDefaultCommandFile(const std::string& programPath) {
   return repoRootDefault;
 }
 
+/**
+ * Parses a complete decimal integer option.
+ *
+ * Args:
+ *   value: Text to parse.
+ *   optionName: Option name used in error messages.
+ *
+ * Returns:
+ *   Parsed integer.
+ *
+ * Throws:
+ *   std::runtime_error: The value is not a complete integer.
+ */
 int parseInteger(const std::string& value, const std::string& optionName) {
   char* end = 0;
   const long parsed = std::strtol(value.c_str(), &end, 10);
@@ -119,6 +181,16 @@ int parseInteger(const std::string& value, const std::string& optionName) {
   return static_cast<int>(parsed);
 }
 
+/**
+ * Parses the common showering command line.
+ *
+ * Args:
+ *   argc: Argument count.
+ *   argv: Argument values.
+ *
+ * Returns:
+ *   Validated shared options.
+ */
 Options parseArgs(int argc, char* argv[]) {
   Options options;
   std::vector<std::string> positional;
@@ -161,6 +233,15 @@ Options parseArgs(int argc, char* argv[]) {
   return options;
 }
 
+/**
+ * Removes leading and trailing whitespace.
+ *
+ * Args:
+ *   input: Original text.
+ *
+ * Returns:
+ *   Trimmed text.
+ */
 std::string trim(const std::string& input) {
   std::string::size_type first = 0;
   while (first < input.size()
@@ -177,6 +258,15 @@ std::string trim(const std::string& input) {
   return input.substr(first, last - first);
 }
 
+/**
+ * Replaces each whitespace run with a single space.
+ *
+ * Args:
+ *   input: Original text.
+ *
+ * Returns:
+ *   Normalized text.
+ */
 std::string collapseWhitespace(const std::string& input) {
   std::ostringstream output;
   bool inWhitespace = false;
@@ -192,12 +282,31 @@ std::string collapseWhitespace(const std::string& input) {
   return output.str();
 }
 
+/**
+ * Converts ASCII text to lowercase.
+ *
+ * Args:
+ *   input: Text copied for conversion.
+ *
+ * Returns:
+ *   Lowercase text.
+ */
 std::string lowercase(std::string input) {
   std::transform(input.begin(), input.end(), input.begin(),
                  [](unsigned char c) { return std::tolower(c); });
   return input;
 }
 
+/**
+ * Converts arbitrary text into a safe ROOT branch or leaf name.
+ *
+ * Args:
+ *   name: Original name.
+ *   fallback: Name used when no valid characters remain.
+ *
+ * Returns:
+ *   Sanitized ROOT identifier.
+ */
 std::string sanitizeRootName(const std::string& name,
                              const std::string& fallback) {
   std::string clean;
@@ -223,6 +332,16 @@ std::string sanitizeRootName(const std::string& name,
   return clean;
 }
 
+/**
+ * Makes a name unique within a mutable set.
+ *
+ * Args:
+ *   name: Preferred name.
+ *   used: Names already reserved; updated by this function.
+ *
+ * Returns:
+ *   Reserved unique name.
+ */
 std::string uniqueName(const std::string& name, std::set<std::string>& used) {
   if (used.insert(name).second) return name;
 
@@ -234,6 +353,17 @@ std::string uniqueName(const std::string& name, std::set<std::string>& used) {
   return unique;
 }
 
+/**
+ * Reads a quoted XML-style attribute from tag text.
+ *
+ * Args:
+ *   attributes: Raw opening-tag attributes.
+ *   name: Attribute name.
+ *   fallback: Value returned when the attribute is absent.
+ *
+ * Returns:
+ *   Parsed value or fallback.
+ */
 std::string getAttribute(const std::string& attributes,
                          const std::string& name,
                          const std::string& fallback) {
@@ -279,11 +409,32 @@ std::string getAttribute(const std::string& attributes,
   return fallback;
 }
 
+/**
+ * Searches text without case sensitivity.
+ *
+ * Args:
+ *   input: Text to search.
+ *   needle: Substring to locate.
+ *
+ * Returns:
+ *   True when the substring occurs.
+ */
 bool containsCaseInsensitive(const std::string& input,
                              const std::string& needle) {
   return lowercase(input).find(lowercase(needle)) != std::string::npos;
 }
 
+/**
+ * Extracts the first unsigned integer following a token.
+ *
+ * Args:
+ *   input: Text to inspect.
+ *   token: Case-insensitive marker preceding the integer.
+ *   value: Output parsed integer.
+ *
+ * Returns:
+ *   True when both token and integer are found.
+ */
 bool extractIntegerAfterToken(const std::string& input,
                               const std::string& token,
                               int& value) {
@@ -309,6 +460,17 @@ bool extractIntegerAfterToken(const std::string& input,
   return true;
 }
 
+/**
+ * Derives a stable PDF-member leaf name when metadata identifies a PDF weight.
+ *
+ * Args:
+ *   groupName: LHE weight-group name.
+ *   description: Individual weight description.
+ *   weightIndex: Position used when no member number is present.
+ *
+ * Returns:
+ *   PDFMember name or an empty string for non-PDF weights.
+ */
 std::string pdfMemberLeafName(const std::string& groupName,
                               const std::string& description,
                               int weightIndex) {
@@ -327,6 +489,19 @@ std::string pdfMemberLeafName(const std::string& groupName,
   return "PDFMember" + std::to_string(member);
 }
 
+/**
+ * Locates one XML-style opening tag and extracts its attributes.
+ *
+ * Args:
+ *   text: Text containing tags.
+ *   tag: Tag name without angle brackets.
+ *   start: Search offset.
+ *   tagEnd: Output offset of the closing angle bracket.
+ *   attributes: Output raw attribute text.
+ *
+ * Returns:
+ *   True when a complete opening tag is found.
+ */
 bool parseOpeningTag(const std::string& text,
                      const std::string& tag,
                      std::string::size_type start,
@@ -349,6 +524,15 @@ bool parseOpeningTag(const std::string& text,
   return true;
 }
 
+/**
+ * Parses initrwgt metadata from an LHE header.
+ *
+ * Args:
+ *   lheFile: Input LHE path.
+ *
+ * Returns:
+ *   Ordered weight groups with ROOT-safe names.
+ */
 std::vector<WeightGroup> parseLheWeightGroups(const std::string& lheFile) {
   std::ifstream input(lheFile.c_str());
   if (!input) throw std::runtime_error("Could not open LHE file: " + lheFile);
@@ -440,6 +624,15 @@ std::vector<WeightGroup> parseLheWeightGroups(const std::string& lheFile) {
   return groups;
 }
 
+/**
+ * Allocates runtime ROOT-branch buffers from parsed metadata.
+ *
+ * Args:
+ *   groups: Parsed LHE weight groups.
+ *
+ * Returns:
+ *   Branch buffers and leaf lists.
+ */
 std::vector<WeightBranch> buildWeightBranches(
     const std::vector<WeightGroup>& groups) {
   std::vector<WeightBranch> branches;
@@ -463,6 +656,13 @@ std::vector<WeightBranch> buildWeightBranches(
   return branches;
 }
 
+/**
+ * Copies Pythia's ordered weight vector into grouped ROOT buffers.
+ *
+ * Args:
+ *   branches: Output branch buffers.
+ *   pythiaWeights: Nominal weight followed by variation weights.
+ */
 void fillWeightBranches(std::vector<WeightBranch>& branches,
                         const std::vector<double>& pythiaWeights) {
   std::size_t offset = 1;
@@ -479,6 +679,13 @@ void fillWeightBranches(std::vector<WeightBranch>& branches,
   }
 }
 
+/**
+ * Writes the LHE-to-ROOT weight-name mapping.
+ *
+ * Args:
+ *   rootFile: Destination ROOT file.
+ *   branches: Weight metadata and buffers.
+ */
 void writeWeightMetadata(TFile& rootFile,
                          const std::vector<WeightBranch>& branches) {
   std::ostringstream metadata;
@@ -500,6 +707,16 @@ void writeWeightMetadata(TFile& rootFile,
   metadataObject.Write("LHEWeightMetadata");
 }
 
+/**
+ * Converts one Pythia particle into the stable ROOT leaf layout.
+ *
+ * Args:
+ *   event: Complete Pythia event record.
+ *   index: Valid particle index.
+ *
+ * Returns:
+ *   Flat particle record.
+ */
 ParticleRecord makeParticleRecord(const Pythia8::Event& event, int index) {
   if (index <= 0 || index >= event.size()) {
     throw std::runtime_error("Invalid particle index selected for ROOT output");
@@ -524,7 +741,17 @@ ParticleRecord makeParticleRecord(const Pythia8::Event& event, int index) {
   return record;
 }
 
-int getNonradiativeDecayIndex(const Pythia8::Event& event, int index) {
+/**
+ * Follows consecutive same-ID radiation copies.
+ *
+ * Args:
+ *   event: Complete Pythia event record.
+ *   index: Earliest particle-copy index.
+ *
+ * Returns:
+ *   Last same-ID descendant index.
+ */
+int lastSameIdCopy(const Pythia8::Event& event, int index) {
   if (index <= 0 || index >= event.size()) return index;
 
   const Pythia8::Particle& particle = event[index];
@@ -533,41 +760,36 @@ int getNonradiativeDecayIndex(const Pythia8::Event& event, int index) {
        daughter != daughters.end(); ++daughter) {
     if (*daughter > 0 && *daughter < event.size()
         && event[*daughter].id() == particle.id()) {
-      return getNonradiativeDecayIndex(event, *daughter);
+      return lastSameIdCopy(event, *daughter);
     }
   }
   return index;
 }
 
-bool findLeptons(const Pythia8::Event& event,
-                 int& bornLminus,
-                 int& bornLplus,
-                 int& bareLminus,
-                 int& bareLplus) {
-  bornLminus = -1;
-  bornLplus = -1;
-  bareLminus = -1;
-  bareLplus = -1;
+/** Provides the out-of-line polymorphic selector destructor. */
+EventSelector::~EventSelector() {}
 
-  for (int i = 0; i < event.size(); ++i) {
-    const Pythia8::Particle& particle = event[i];
-    if (particle.statusAbs() != 23) continue;
+/** Returns success because the default selector adds no Pythia settings. */
+bool EventSelector::configure(Pythia8::Pythia&) const { return true; }
 
-    if (particle.id() == 11 || particle.id() == 13) {
-      bornLminus = i;
-      bareLminus = getNonradiativeDecayIndex(event, i);
-    } else if (particle.id() == -11 || particle.id() == -13) {
-      bornLplus = i;
-      bareLplus = getNonradiativeDecayIndex(event, i);
-    }
-  }
+/** Returns no metadata key by default. */
+std::string EventSelector::metadataName() const { return ""; }
 
-  return bornLminus >= 0 && bornLplus >= 0 && bareLminus >= 0 && bareLplus >= 0;
-}
+/** Returns no metadata text by default. */
+std::string EventSelector::metadataText() const { return ""; }
 
-}  // namespace
-
-int main(int argc, char* argv[]) {
+/**
+ * Executes common Pythia initialization, matching, selection, and ROOT output.
+ *
+ * Args:
+ *   argc: Argument count.
+ *   argv: Argument values.
+ *   selector: Process-specific configuration and particle selection.
+ *
+ * Returns:
+ *   Zero on success or one after a reported exception.
+ */
+int run(int argc, char* argv[], const EventSelector& selector) {
   try {
     const Options options = parseArgs(argc, argv);
 
@@ -597,6 +819,10 @@ int main(int argc, char* argv[]) {
     }
 
     pythia.readString("Beams:LHEF = " + options.lheFile);
+
+    if (!selector.configure(pythia)) {
+      throw std::runtime_error("Could not apply process-specific Pythia settings");
+    }
 
     if (options.seedProvided) {
       if (options.seed <= 0) {
@@ -630,6 +856,7 @@ int main(int argc, char* argv[]) {
     const int nAbort = pythia.mode("Main:timesAllowErrors");
     int iAbort = 0;
     int iEvent = 0;
+    int rejectedEvents = 0;
 
     if (options.verbose) {
       std::cerr << "Creating ROOT output " << options.outputFile << std::endl;
@@ -686,14 +913,12 @@ int main(int argc, char* argv[]) {
 
       std::vector<double> weightValues = pythia.info.weightValueVector();
 
-      int bornLminus = -1;
-      int bornLplus = -1;
-      int bareLminus = -1;
-      int bareLplus = -1;
-      if (!findLeptons(pythia.event, bornLminus, bornLplus, bareLminus,
-                       bareLplus)) {
-        std::cerr << "WARNING: could not find both statusAbs()==23 leptons in "
-                  << "accepted event " << iEvent << "; event skipped.\n";
+      SelectedLeptons selected;
+      std::string failureReason;
+      if (!selector.select(pythia.event, selected, failureReason)) {
+        ++rejectedEvents;
+        std::cerr << "WARNING: event " << (iEvent + rejectedEvents - 1)
+                  << " rejected: " << failureReason << '\n';
         continue;
       }
 
@@ -712,10 +937,10 @@ int main(int argc, char* argv[]) {
       initialConditions.id2 = static_cast<float>(pythia.info.id2pdf());
       initialConditions.Q2 = static_cast<float>(pythia.info.Q2Fac());
 
-      bornLepton = makeParticleRecord(pythia.event, bornLminus);
-      bornAntiLepton = makeParticleRecord(pythia.event, bornLplus);
-      bareLepton = makeParticleRecord(pythia.event, bareLminus);
-      bareAntiLepton = makeParticleRecord(pythia.event, bareLplus);
+      bornLepton = makeParticleRecord(pythia.event, selected.bornMinus);
+      bornAntiLepton = makeParticleRecord(pythia.event, selected.bornPlus);
+      bareLepton = makeParticleRecord(pythia.event, selected.bareMinus);
+      bareAntiLepton = makeParticleRecord(pythia.event, selected.barePlus);
       fillWeightBranches(weightBranches, weightValues);
 
       tree.Fill();
@@ -726,6 +951,13 @@ int main(int argc, char* argv[]) {
       std::cerr << "Writing metadata and finalizing ROOT file" << std::endl;
     }
     writeWeightMetadata(rootFile, weightBranches);
+    if (!selector.metadataName().empty()) {
+      TObjString metadata(selector.metadataText().c_str());
+      rootFile.cd();
+      metadata.Write(selector.metadataName().c_str());
+    }
+    std::cout << "Selection summary: wrote " << iEvent << " events; rejected "
+              << rejectedEvents << " events.\n";
     pythia.stat();
     rootFile.Write();
     rootFile.Close();
@@ -739,3 +971,5 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+
+}  // namespace pythia_lhe
