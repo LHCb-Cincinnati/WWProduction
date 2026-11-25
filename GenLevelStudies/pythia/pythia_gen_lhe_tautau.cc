@@ -21,29 +21,6 @@
 namespace {
 
 /**
- * Reports whether a particle has a mother with the same PDG ID.
- *
- * Args:
- *   event: Complete Pythia event record.
- *   index: Particle index to inspect.
- *
- * Returns:
- *   True when a valid same-ID mother exists.
- */
-bool hasSameIdMother(const Pythia8::Event& event, int index) {
-  if (index <= 0 || index >= event.size()) return false;
-  const std::vector<int> mothers = event[index].motherList();
-  for (std::vector<int>::const_iterator mother = mothers.begin();
-       mother != mothers.end(); ++mother) {
-    if (*mother > 0 && *mother < event.size()
-        && event[*mother].id() == event[index].id()) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
  * Finds the highest-pT root tau of one charge.
  *
  * Same-ID descendants are excluded so radiation copies cannot compete with
@@ -61,7 +38,10 @@ int highestPtRootTau(const Pythia8::Event& event, int tauId) {
   int bestIndex = -1;
   double bestPt = -1.0;
   for (int index = 1; index < event.size(); ++index) {
-    if (event[index].id() != tauId || hasSameIdMother(event, index)) continue;
+    if (event[index].id() != tauId
+        || pythia_lhe::hasSameIdMother(event, index)) {
+      continue;
+    }
     if (event[index].pT() > bestPt) {
       bestIndex = index;
       bestPt = event[index].pT();
@@ -108,6 +88,12 @@ bool tauDecayLepton(const Pythia8::Event& event,
 /** Selects charged leptons from the leading root tau of each charge. */
 class LeadingTauPairSelector : public pythia_lhe::EventSelector {
  public:
+  /** Returns the stable tau-derived dilepton particle-branch order. */
+  std::vector<std::string> particleBranchNames() const override {
+    return std::vector<std::string>{"BornLepton", "BornAntiLepton",
+                                    "BareLepton", "BareAntiLepton"};
+  }
+
   /**
    * Forces every tau to use decay modes containing an electron or muon.
    *
@@ -135,7 +121,7 @@ class LeadingTauPairSelector : public pythia_lhe::EventSelector {
    *   True when both tau charges and their forced leptonic decays are found.
    */
   bool select(const Pythia8::Event& event,
-              pythia_lhe::SelectedLeptons& selected,
+              pythia_lhe::ParticleSelection& selected,
               std::string& failureReason) const override {
     const int tauMinus = highestPtRootTau(event, 15);
     const int tauPlus = highestPtRootTau(event, -15);
@@ -143,14 +129,18 @@ class LeadingTauPairSelector : public pythia_lhe::EventSelector {
       failureReason = "could not find at least one root tau of each charge";
       return false;
     }
-    if (!tauDecayLepton(event, tauMinus, selected.bornMinus,
-                        selected.bareMinus)
-        || !tauDecayLepton(event, tauPlus, selected.bornPlus,
-                           selected.barePlus)) {
+    int bornMinus = -1;
+    int bareMinus = -1;
+    int bornPlus = -1;
+    int barePlus = -1;
+    if (!tauDecayLepton(event, tauMinus, bornMinus, bareMinus)
+        || !tauDecayLepton(event, tauPlus, bornPlus, barePlus)) {
       failureReason =
           "the highest-pT opposite-sign taus do not each have one direct e/mu daughter";
       return false;
     }
+    selected.indices =
+        std::vector<int>{bornMinus, bornPlus, bareMinus, barePlus};
     return true;
   }
 
@@ -188,4 +178,3 @@ int main(int argc, char* argv[]) {
   const LeadingTauPairSelector selector;
   return pythia_lhe::run(argc, argv, selector);
 }
-

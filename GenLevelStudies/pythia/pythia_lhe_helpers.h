@@ -2,7 +2,7 @@
  * @file pythia_lhe_helpers.h
  * @brief Shared interfaces for converting LHE events to ROOT tuples.
  *
- * Compile both showering programs from the repository root with:
+ * Compile all showering programs from the repository root with:
  * @code{.sh}
  * conda activate hep
  * make -C GenLevelStudies/pythia -f Makefile.pythia_gen_lhe all
@@ -19,15 +19,13 @@
 #include "Pythia8/Pythia.h"
 
 #include <string>
+#include <vector>
 
 namespace pythia_lhe {
 
-/** Indices of the particles stored in the four lepton ROOT branches. */
-struct SelectedLeptons {
-  int bornMinus = -1;
-  int bornPlus = -1;
-  int bareMinus = -1;
-  int barePlus = -1;
+/** Ordered particle indices returned by a process-specific selector. */
+struct ParticleSelection {
+  std::vector<int> indices;
 };
 
 /** Strategy interface for process-specific Pythia setup and event selection. */
@@ -48,18 +46,43 @@ class EventSelector {
   virtual bool configure(Pythia8::Pythia& pythia) const;
 
   /**
+   * Returns the ordered ROOT particle-branch names produced by this selector.
+   *
+   * Returns:
+   *   One unique branch name for every index returned by select().
+   */
+  virtual std::vector<std::string> particleBranchNames() const = 0;
+
+  /**
+   * Returns the command file used when the user does not pass --command-file.
+   *
+   * Returns:
+   *   Command-file basename located beside the executable or in the source
+   *   directory.
+   */
+  virtual std::string defaultCommandFile() const;
+
+  /**
+   * Reports whether legacy LO PDF-reweighting aliases should be written.
+   *
+   * Returns:
+   *   True for LO selectors requiring the analysis-compatible weight schema.
+   */
+  virtual bool useLoWeightAliases() const;
+
+  /**
    * Selects the charged leptons to store for one accepted Pythia event.
    *
    * Args:
    *   event: Complete Pythia event record.
-   *   selected: Output indices for born and bare charged leptons.
+   *   selected: Output indices ordered like particleBranchNames().
    *   failureReason: Human-readable explanation when selection fails.
    *
    * Returns:
-   *   True exactly when all four output indices are valid.
+   *   True exactly when all required output indices are valid.
    */
   virtual bool select(const Pythia8::Event& event,
-                      SelectedLeptons& selected,
+                      ParticleSelection& selected,
                       std::string& failureReason) const = 0;
 
   /** Returns the ROOT key for optional selector-specific metadata. */
@@ -80,6 +103,18 @@ class EventSelector {
  *   Index of the last same-ID copy, or the input index when no copy exists.
  */
 int lastSameIdCopy(const Pythia8::Event& event, int index);
+
+/**
+ * Tests whether a particle has a valid mother with the same PDG ID.
+ *
+ * Args:
+ *   event: Complete Pythia event record.
+ *   index: Particle index to inspect.
+ *
+ * Returns:
+ *   True when the particle is a radiation or history copy of its mother.
+ */
+bool hasSameIdMother(const Pythia8::Event& event, int index);
 
 /**
  * Runs the common LHE showering and ROOT-output workflow.

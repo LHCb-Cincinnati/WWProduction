@@ -24,6 +24,12 @@ namespace {
 /** Selects events containing exactly one prompt e/mu of each charge. */
 class PromptDileptonSelector : public pythia_lhe::EventSelector {
  public:
+  /** Returns the stable NLO dilepton particle-branch order. */
+  std::vector<std::string> particleBranchNames() const override {
+    return std::vector<std::string>{"BornLepton", "BornAntiLepton",
+                                    "BareLepton", "BareAntiLepton"};
+  }
+
   /**
    * Selects the unique status-23 charged-lepton pair.
    *
@@ -36,7 +42,7 @@ class PromptDileptonSelector : public pythia_lhe::EventSelector {
    *   True when exactly one negative and one positive prompt lepton exist.
    */
   bool select(const Pythia8::Event& event,
-              pythia_lhe::SelectedLeptons& selected,
+              pythia_lhe::ParticleSelection& selected,
               std::string& failureReason) const override {
     std::vector<int> negative;
     std::vector<int> positive;
@@ -59,11 +65,10 @@ class PromptDileptonSelector : public pythia_lhe::EventSelector {
       return false;
     }
 
-    selected.bornMinus = negative.front();
-    selected.bornPlus = positive.front();
-    selected.bareMinus =
-        pythia_lhe::lastSameIdCopy(event, selected.bornMinus);
-    selected.barePlus = pythia_lhe::lastSameIdCopy(event, selected.bornPlus);
+    selected.indices =
+        std::vector<int>{negative.front(), positive.front(),
+                         pythia_lhe::lastSameIdCopy(event, negative.front()),
+                         pythia_lhe::lastSameIdCopy(event, positive.front())};
     return true;
   }
 };

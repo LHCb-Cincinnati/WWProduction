@@ -19,6 +19,12 @@ Run the forced tau-decay shower:
         .agents/skills/showering/assets/Ex_Z_tautau_NLO.lhe \
         --shower-script GenLevelStudies/pythia/pythia_gen_lhe_tautau \
         -o /tmp/showered_tautau -j 1
+
+Run an unmatched LO WZ shower using the executable's LO command-file default:
+    python GenLevelStudies/pythia/run_lhe_shower_jobs.py \
+        .agents/skills/showering/assets/Ex_WZ.lhe \
+        --shower-script GenLevelStudies/pythia/pythia_gen_lhe_wz_lo \
+        -o /tmp/showered_wz -j 1
 """
 
 import argparse
@@ -92,8 +98,11 @@ def parse_args(argv):
     parser.add_argument(
         "-c",
         "--command-file",
-        default=str(Path(__file__).with_name("MG5NLOShower.cmd")),
-        help="Pythia command file passed to every job.",
+        default=None,
+        help=(
+            "Optional Pythia command file passed to every job. When omitted, "
+            "the selected executable uses its process-specific default."
+        ),
     )
     parser.add_argument(
         "-n",
@@ -189,13 +198,13 @@ def build_jobs(args):
             args.shower_script,
             str(lhe_path),
             str(output_file),
-            "-c",
-            args.command_file,
             "-n",
             str(args.number_events),
             "--seed",
             str(seed),
         ]
+        if args.command_file is not None:
+            command[3:3] = ["-c", args.command_file]
         jobs.append((lhe_path, output_file, seed, command))
 
     return jobs
@@ -256,4 +265,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-

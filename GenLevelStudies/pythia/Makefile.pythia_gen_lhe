@@ -12,7 +12,8 @@ PYTHIA8_CONFIG ?= pythia8-config
 ROOT_CONFIG ?= root-config
 GLIBCXX_USE_CXX11_ABI ?= 1
 
-TARGETS := pythia_gen_lhe_nlo pythia_gen_lhe_tautau
+TARGETS := pythia_gen_lhe_nlo pythia_gen_lhe_tautau \
+	pythia_gen_lhe_tw_lo pythia_gen_lhe_wz_lo pythia_gen_lhe_zz_lo
 LEGACY_TARGET := pythia_gen_lhe
 HELPER_LIBRARY := libpythia_lhe_helpers.a
 HELPER_OBJECT := pythia_lhe_helpers.o
@@ -37,7 +38,7 @@ check-config:
 	@test -n "$(ROOT_CXXFLAGS)" || (echo "Could not read ROOT cflags from $(ROOT_CONFIG)" >&2; exit 1)
 	@test -n "$(ROOT_LIBS)" || (echo "Could not read ROOT libs from $(ROOT_CONFIG)" >&2; exit 1)
 
-$(HELPER_OBJECT): pythia_lhe_helpers.cc pythia_lhe_helpers.h
+pythia_lhe_helpers.o: pythia_lhe_helpers.cc pythia_lhe_helpers.h
 	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) -c $< -o $@
 
 $(HELPER_LIBRARY): $(HELPER_OBJECT)
@@ -47,6 +48,15 @@ pythia_gen_lhe_nlo: pythia_gen_lhe_nlo.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
 	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
 
 pythia_gen_lhe_tautau: pythia_gen_lhe_tautau.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
+
+pythia_gen_lhe_tw_lo: pythia_gen_lhe_tw_lo.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
+
+pythia_gen_lhe_wz_lo: pythia_gen_lhe_wz_lo.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
+	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
+
+pythia_gen_lhe_zz_lo: pythia_gen_lhe_zz_lo.cc pythia_lhe_helpers.h $(HELPER_LIBRARY)
 	$(CXX) $(CXXFLAGS) $(ABI_CXXFLAGS) $(PYTHIA8_CXXFLAGS) $(ROOT_CXXFLAGS) $< $(HELPER_LIBRARY) -o $@ $(PYTHIA8_LIBS) $(ROOT_LIBS)
 
 clean:

@@ -2,7 +2,7 @@
  * @file pythia_lhe_helpers.cc
  * @brief Shared Pythia, JetMatching, LHE-weight, and ROOT-output implementation.
  *
- * Compile and link this helper through both executables with:
+ * Compile and link this helper through all executables with:
  * @code{.sh}
  * conda activate hep
  * make -C GenLevelStudies/pythia -f Makefile.pythia_gen_lhe all
@@ -40,7 +40,7 @@ namespace pythia_lhe {
 struct Options {
   std::string lheFile;
   std::string outputFile;
-  std::string commandFile = "GenLevelStudies/pythia/MG5NLOShower.cmd";
+  std::string commandFile;
   int numberEvents = -1;
   int seed = -1;
   bool seedProvided = false;
@@ -67,6 +67,23 @@ struct WeightBranch {
   WeightGroup group;
   std::vector<float> values;
   std::string leafList;
+};
+
+/** Runtime storage for one analysis-compatible LO PDF member branch. */
+struct LoMemberAlias {
+  std::string branchName;
+  std::size_t sourceBranch = 0;
+  std::vector<float> values;
+  std::string leafList;
+};
+
+/** Runtime storage and mappings for the legacy LO PDF-reweighting schema. */
+struct LoWeightAliases {
+  std::vector<LoMemberAlias> members;
+  std::vector<std::size_t> centralSources;
+  std::vector<std::string> centralLeaves;
+  std::vector<float> centralValues;
+  std::string centralLeafList;
 };
 
 /** Flat particle representation matching the historical ROOT leaf layout. */
@@ -141,19 +158,23 @@ std::string dirname(const std::string& path) {
 }
 
 /**
- * Resolves the default production Pythia command file.
+ * Resolves a selector's default Pythia command file.
  *
  * Args:
  *   programPath: Path used to invoke the executable.
+ *   commandFileName: Selector-provided command-file basename.
  *
  * Returns:
  *   Existing repository-relative or executable-relative command-file path.
  */
-std::string resolveDefaultCommandFile(const std::string& programPath) {
-  const std::string repoRootDefault = "GenLevelStudies/pythia/MG5NLOShower.cmd";
+std::string resolveDefaultCommandFile(const std::string& programPath,
+                                      const std::string& commandFileName) {
+  const std::string repoRootDefault =
+      "GenLevelStudies/pythia/" + commandFileName;
   if (fileExists(repoRootDefault)) return repoRootDefault;
 
-  const std::string executableDirDefault = dirname(programPath) + "/MG5NLOShower.cmd";
+  const std::string executableDirDefault =
+      dirname(programPath) + "/" + commandFileName;
   if (fileExists(executableDirDefault)) return executableDirDefault;
 
   return repoRootDefault;
@@ -187,11 +208,13 @@ int parseInteger(const std::string& value, const std::string& optionName) {
  * Args:
  *   argc: Argument count.
  *   argv: Argument values.
+ *   defaultCommandFile: Selector-provided command-file basename.
  *
  * Returns:
  *   Validated shared options.
  */
-Options parseArgs(int argc, char* argv[]) {
+Options parseArgs(int argc, char* argv[],
+                  const std::string& defaultCommandFile) {
   Options options;
   std::vector<std::string> positional;
 
@@ -228,7 +251,8 @@ Options parseArgs(int argc, char* argv[]) {
   options.lheFile = positional[0];
   options.outputFile = positional[1];
   if (!options.commandFileProvided) {
-    options.commandFile = resolveDefaultCommandFile(argv[0]);
+    options.commandFile =
+        resolveDefaultCommandFile(argv[0], defaultCommandFile);
   }
   return options;
 }
@@ -657,6 +681,60 @@ std::vector<WeightBranch> buildWeightBranches(
 }
 
 /**
+ * Builds analysis-compatible LO PDF branch aliases from LHE weight groups.
+ *
+ * Args:
+ *   branches: Generic LHE weight branches in file order.
+ *
+ * Returns:
+ *   Alias buffers for every recognized LO PDF group.
+ */
+LoWeightAliases buildLoWeightAliases(
+    const std::vector<WeightBranch>& branches) {
+  struct AliasDefinition {
+    const char* sourceName;
+    const char* memberBranch;
+    const char* centralLeaf;
+  };
+  const AliasDefinition definitions[] = {
+      {"nnpdf31_lo_as_0118", "NNPDF31LO_Members", "nnpdf31lo"},
+      {"ct18lo", "CT18LO_Members", "ct18lo"},
+      {"msht20lo_as130", "MSHT20LO_Members", "msht20lo"},
+      {"pdf4lhc21_mc", "PDF4LHC21_Members", "pdf4lhc21"}};
+
+  LoWeightAliases aliases;
+  for (std::size_t definition = 0;
+       definition < sizeof(definitions) / sizeof(definitions[0]);
+       ++definition) {
+    for (std::size_t source = 0; source < branches.size(); ++source) {
+      if (lowercase(branches[source].group.originalName)
+          != definitions[definition].sourceName) {
+        continue;
+      }
+
+      LoMemberAlias member;
+      member.branchName = definitions[definition].memberBranch;
+      member.sourceBranch = source;
+      member.values.assign(branches[source].values.size(), 0.0);
+      member.leafList = branches[source].leafList;
+      aliases.members.push_back(member);
+      aliases.centralSources.push_back(source);
+      aliases.centralLeaves.push_back(definitions[definition].centralLeaf);
+      aliases.centralValues.push_back(0.0);
+      break;
+    }
+  }
+
+  std::ostringstream leafList;
+  for (std::size_t index = 0; index < aliases.centralLeaves.size(); ++index) {
+    if (index != 0) leafList << ':';
+    leafList << aliases.centralLeaves[index] << "/F";
+  }
+  aliases.centralLeafList = leafList.str();
+  return aliases;
+}
+
+/**
  * Copies Pythia's ordered weight vector into grouped ROOT buffers.
  *
  * Args:
@@ -677,6 +755,45 @@ void fillWeightBranches(std::vector<WeightBranch>& branches,
     }
     offset += branch->values.size();
   }
+}
+
+/**
+ * Fills LO compatibility branches with variation-to-nominal ratios.
+ *
+ * Args:
+ *   aliases: Alias buffers and their generic source-branch mappings.
+ *   branches: Filled generic LHE weight branches.
+ *   nominalWeight: Absolute nominal LHE weight for the current event.
+ *
+ * Returns:
+ *   True when ratios were filled; false when the nominal weight was zero.
+ */
+bool fillLoWeightAliases(LoWeightAliases& aliases,
+                         const std::vector<WeightBranch>& branches,
+                         double nominalWeight) {
+  std::fill(aliases.centralValues.begin(), aliases.centralValues.end(), 0.0);
+  for (std::vector<LoMemberAlias>::iterator member = aliases.members.begin();
+       member != aliases.members.end(); ++member) {
+    std::fill(member->values.begin(), member->values.end(), 0.0);
+  }
+  if (nominalWeight == 0.0) return false;
+
+  for (std::size_t index = 0; index < aliases.centralSources.size(); ++index) {
+    const WeightBranch& source = branches[aliases.centralSources[index]];
+    if (!source.values.empty()) {
+      aliases.centralValues[index] =
+          static_cast<float>(source.values[0] / nominalWeight);
+    }
+  }
+  for (std::vector<LoMemberAlias>::iterator member = aliases.members.begin();
+       member != aliases.members.end(); ++member) {
+    const WeightBranch& source = branches[member->sourceBranch];
+    for (std::size_t index = 0; index < member->values.size(); ++index) {
+      member->values[index] =
+          static_cast<float>(source.values[index] / nominalWeight);
+    }
+  }
+  return true;
 }
 
 /**
@@ -705,6 +822,48 @@ void writeWeightMetadata(TFile& rootFile,
   TObjString metadataObject(metadata.str().c_str());
   rootFile.cd();
   metadataObject.Write("LHEWeightMetadata");
+}
+
+/**
+ * Writes the normalization and source mapping for LO compatibility branches.
+ *
+ * Args:
+ *   rootFile: Destination ROOT file.
+ *   aliases: Configured LO compatibility aliases.
+ *   branches: Generic LHE weight metadata referenced by the aliases.
+ */
+void writeLoWeightMetadata(TFile& rootFile,
+                           const LoWeightAliases& aliases,
+                           const std::vector<WeightBranch>& branches) {
+  if (aliases.members.empty()) return;
+
+  std::ostringstream metadata;
+  metadata << "All compatibility values are absolute LHE variation weights "
+           << "divided by the event's nominal LHE weight.\n";
+  for (std::size_t index = 0; index < aliases.centralSources.size(); ++index) {
+    const WeightBranch& source = branches[aliases.centralSources[index]];
+    if (!source.group.weights.empty()) {
+      metadata << "pdfReweight." << aliases.centralLeaves[index] << " <- "
+               << source.group.originalName << "."
+               << source.group.weights[0].leafName << " (id="
+               << source.group.weights[0].weightId << ")\n";
+    }
+  }
+  for (std::vector<LoMemberAlias>::const_iterator member =
+           aliases.members.begin();
+       member != aliases.members.end(); ++member) {
+    const WeightBranch& source = branches[member->sourceBranch];
+    metadata << member->branchName << " <- "
+             << source.group.originalName << "\n";
+    for (std::size_t index = 0; index < source.group.weights.size(); ++index) {
+      metadata << "  " << source.group.weights[index].leafName
+               << ": id=" << source.group.weights[index].weightId << "\n";
+    }
+  }
+
+  TObjString metadataObject(metadata.str().c_str());
+  rootFile.cd();
+  metadataObject.Write("LOWeightAliasMetadata");
 }
 
 /**
@@ -766,11 +925,33 @@ int lastSameIdCopy(const Pythia8::Event& event, int index) {
   return index;
 }
 
+/** Tests whether a particle has a mother with the same PDG ID. */
+bool hasSameIdMother(const Pythia8::Event& event, int index) {
+  if (index <= 0 || index >= event.size()) return false;
+  const std::vector<int> mothers = event[index].motherList();
+  for (std::vector<int>::const_iterator mother = mothers.begin();
+       mother != mothers.end(); ++mother) {
+    if (*mother > 0 && *mother < event.size()
+        && event[*mother].id() == event[index].id()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Provides the out-of-line polymorphic selector destructor. */
 EventSelector::~EventSelector() {}
 
 /** Returns success because the default selector adds no Pythia settings. */
 bool EventSelector::configure(Pythia8::Pythia&) const { return true; }
+
+/** Returns the NLO command-file basename used by existing selectors. */
+std::string EventSelector::defaultCommandFile() const {
+  return "MG5NLOShower.cmd";
+}
+
+/** Disables LO compatibility aliases for existing selectors by default. */
+bool EventSelector::useLoWeightAliases() const { return false; }
 
 /** Returns no metadata key by default. */
 std::string EventSelector::metadataName() const { return ""; }
@@ -791,7 +972,22 @@ std::string EventSelector::metadataText() const { return ""; }
  */
 int run(int argc, char* argv[], const EventSelector& selector) {
   try {
-    const Options options = parseArgs(argc, argv);
+    const Options options =
+        parseArgs(argc, argv, selector.defaultCommandFile());
+    const std::vector<std::string> particleBranchNames =
+        selector.particleBranchNames();
+    if (particleBranchNames.empty()) {
+      throw std::runtime_error("Selector did not declare any particle branches");
+    }
+    std::set<std::string> uniqueParticleBranches;
+    for (std::vector<std::string>::const_iterator branch =
+             particleBranchNames.begin();
+         branch != particleBranchNames.end(); ++branch) {
+      if (branch->empty() || !uniqueParticleBranches.insert(*branch).second) {
+        throw std::runtime_error(
+            "Selector particle branch names must be nonempty and unique");
+      }
+    }
 
     if (!fileExists(options.lheFile)) {
       throw std::runtime_error("LHE file does not exist: " + options.lheFile);
@@ -807,6 +1003,10 @@ int run(int argc, char* argv[], const EventSelector& selector) {
     }
     std::vector<WeightBranch> weightBranches =
         buildWeightBranches(parseLheWeightGroups(options.lheFile));
+    LoWeightAliases loWeightAliases;
+    if (selector.useLoWeightAliases()) {
+      loWeightAliases = buildLoWeightAliases(weightBranches);
+    }
 
     if (options.verbose) {
       std::cerr << "Configuring Pythia with " << options.commandFile
@@ -839,7 +1039,10 @@ int run(int argc, char* argv[], const EventSelector& selector) {
 
     // The hook must stay alive until the event loop has completed.
     if (options.verbose) {
-      std::cerr << "Installing CombineMatchingInput user hook" << std::endl;
+      std::cerr << "Installing CombineMatchingInput user hook; "
+                << "JetMatching:merge is "
+                << (pythia.flag("JetMatching:merge") ? "on" : "off")
+                << std::endl;
     }
     Pythia8::CombineMatchingInput jetMatchingHook;
     jetMatchingHook.setHook(pythia);
@@ -857,6 +1060,7 @@ int run(int argc, char* argv[], const EventSelector& selector) {
     int iAbort = 0;
     int iEvent = 0;
     int rejectedEvents = 0;
+    int zeroNominalWeightEvents = 0;
 
     if (options.verbose) {
       std::cerr << "Creating ROOT output " << options.outputFile << std::endl;
@@ -873,10 +1077,7 @@ int run(int argc, char* argv[], const EventSelector& selector) {
     float nominalWeight = 0.0;
     float pythiaWeight = 0.0;
     InitialConditionsRecord initialConditions;
-    ParticleRecord bornLepton;
-    ParticleRecord bornAntiLepton;
-    ParticleRecord bareLepton;
-    ParticleRecord bareAntiLepton;
+    std::vector<ParticleRecord> particleRecords(particleBranchNames.size());
 
     const char* particleLeafList =
         "px/F:py/F:pz/F:pT/F:p/F:eta/F:e/F:phi/F:m0/F:pid/F:charge/F:status/F";
@@ -884,10 +1085,10 @@ int run(int argc, char* argv[], const EventSelector& selector) {
     tree.Branch("Event", &eventValue, "Event/F");
     tree.Branch("InitialConditions", &initialConditions,
                 "x1/F:id1/F:x2/F:id2/F:Q2/F");
-    tree.Branch("BornLepton", &bornLepton, particleLeafList);
-    tree.Branch("BornAntiLepton", &bornAntiLepton, particleLeafList);
-    tree.Branch("BareLepton", &bareLepton, particleLeafList);
-    tree.Branch("BareAntiLepton", &bareAntiLepton, particleLeafList);
+    for (std::size_t index = 0; index < particleBranchNames.size(); ++index) {
+      tree.Branch(particleBranchNames[index].c_str(),
+                  &particleRecords[index], particleLeafList);
+    }
     tree.Branch("NominalWeight", &nominalWeight, "NominalWeight/F");
     tree.Branch("PythiaWeight", &pythiaWeight, "PythiaWeight/F");
 
@@ -896,6 +1097,17 @@ int run(int argc, char* argv[], const EventSelector& selector) {
       tree.Branch(branch->group.branchName.c_str(),
                   branch->values.empty() ? 0 : &branch->values[0],
                   branch->leafList.c_str());
+    }
+    if (!loWeightAliases.centralValues.empty()) {
+      tree.Branch("pdfReweight", &loWeightAliases.centralValues[0],
+                  loWeightAliases.centralLeafList.c_str());
+    }
+    for (std::vector<LoMemberAlias>::iterator member =
+             loWeightAliases.members.begin();
+         member != loWeightAliases.members.end(); ++member) {
+      tree.Branch(member->branchName.c_str(),
+                  member->values.empty() ? 0 : &member->values[0],
+                  member->leafList.c_str());
     }
 
     if (options.verbose) {
@@ -913,13 +1125,17 @@ int run(int argc, char* argv[], const EventSelector& selector) {
 
       std::vector<double> weightValues = pythia.info.weightValueVector();
 
-      SelectedLeptons selected;
+      ParticleSelection selected;
       std::string failureReason;
       if (!selector.select(pythia.event, selected, failureReason)) {
         ++rejectedEvents;
         std::cerr << "WARNING: event " << (iEvent + rejectedEvents - 1)
                   << " rejected: " << failureReason << '\n';
         continue;
+      }
+      if (selected.indices.size() != particleBranchNames.size()) {
+        throw std::runtime_error(
+            "Selector returned a particle count that does not match its branches");
       }
 
       eventValue = static_cast<float>(iEvent);
@@ -937,11 +1153,16 @@ int run(int argc, char* argv[], const EventSelector& selector) {
       initialConditions.id2 = static_cast<float>(pythia.info.id2pdf());
       initialConditions.Q2 = static_cast<float>(pythia.info.Q2Fac());
 
-      bornLepton = makeParticleRecord(pythia.event, selected.bornMinus);
-      bornAntiLepton = makeParticleRecord(pythia.event, selected.bornPlus);
-      bareLepton = makeParticleRecord(pythia.event, selected.bareMinus);
-      bareAntiLepton = makeParticleRecord(pythia.event, selected.barePlus);
+      for (std::size_t index = 0; index < selected.indices.size(); ++index) {
+        particleRecords[index] =
+            makeParticleRecord(pythia.event, selected.indices[index]);
+      }
       fillWeightBranches(weightBranches, weightValues);
+      if (selector.useLoWeightAliases()
+          && !fillLoWeightAliases(loWeightAliases, weightBranches,
+                                  nominalWeight)) {
+        ++zeroNominalWeightEvents;
+      }
 
       tree.Fill();
       ++iEvent;
@@ -951,6 +1172,7 @@ int run(int argc, char* argv[], const EventSelector& selector) {
       std::cerr << "Writing metadata and finalizing ROOT file" << std::endl;
     }
     writeWeightMetadata(rootFile, weightBranches);
+    writeLoWeightMetadata(rootFile, loWeightAliases, weightBranches);
     if (!selector.metadataName().empty()) {
       TObjString metadata(selector.metadataText().c_str());
       rootFile.cd();
@@ -958,6 +1180,11 @@ int run(int argc, char* argv[], const EventSelector& selector) {
     }
     std::cout << "Selection summary: wrote " << iEvent << " events; rejected "
               << rejectedEvents << " events.\n";
+    if (zeroNominalWeightEvents != 0) {
+      std::cerr << "WARNING: " << zeroNominalWeightEvents
+                << " accepted events had zero nominal weight; LO ratio aliases "
+                << "were set to zero.\n";
+    }
     pythia.stat();
     rootFile.Write();
     rootFile.Close();
